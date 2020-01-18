@@ -36,7 +36,7 @@ interface StatelessAppSpec {
   };
 }
 
-export interface StatelessAppProbe {
+interface StatelessAppProbe {
   port: number;
   period?: number;
   httpGetPath?: string;
