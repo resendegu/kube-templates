@@ -148,13 +148,13 @@ export interface Container {
   image: string;
   imagePullPolicy?: "Always" | "Never" | "IfNotPresent";
   // lifecycle?: Lifecycle
-  // livenessProbe?: Probe
+  livenessProbe?: Probe;
   name: string;
   ports?: ContainerPort[];
-  // readinessProbe?: Probe
+  readinessProbe?: Probe;
   resources?: ResourceRequirements;
   // securityContext?: SecurityContext
-  // startupProbe?: Probe
+  startupProbe?: Probe;
   stdin?: boolean;
   stdinOnce?: boolean;
   terminationMessagePath?: string;
@@ -165,12 +165,52 @@ export interface Container {
   workingDir?: string;
 }
 
+export type Probe = (
+  | {
+      exec: ExecAction;
+    }
+  | {
+      tcpSocket: TCPSocketAction;
+    }
+  | {
+      httpGet: HTTPGetAction;
+    }
+) & {
+  failureThreshold?: number;
+  initialDelaySeconds?: number;
+  periodSeconds?: number;
+  successThreshold?: number;
+  timeoutSeconds?: number;
+};
+
+export interface ExecAction {
+  command: string[];
+}
+
+export interface TCPSocketAction {
+  host?: string;
+  port: number;
+}
+
+export interface HTTPGetAction {
+  host?: string;
+  httpHeaders?: HTTPHeader[];
+  path: string;
+  port?: number;
+  scheme?: "HTTP" | "HTTPS";
+}
+
+export interface HTTPHeader {
+  name: string;
+  value: string;
+}
+
 export interface ContainerPort {
-  containerPort: number
-  hostIP?: string
-  hostPort?: number
-  name?: string
-  protocol?: "TCP" | "UDP" | "SCTP"
+  containerPort: number;
+  hostIP?: string;
+  hostPort?: number;
+  name?: string;
+  protocol?: "TCP" | "UDP" | "SCTP";
 }
 
 export interface ResourceRequirements {
@@ -272,33 +312,33 @@ export interface ServicePort {
 }
 
 export interface IngressSpec {
-  backend?: IngressBackend
-  rules?: IngressRule[]
-  tls?: IngressTLS[]
+  backend?: IngressBackend;
+  rules?: IngressRule[];
+  tls?: IngressTLS[];
 }
 
 export interface IngressBackend {
-  serviceName: string
-  servicePort: number
+  serviceName: string;
+  servicePort: number;
 }
 
 export interface IngressRule {
-  host: string
-  http: HTTPIngressRuleValue
+  host: string;
+  http: HTTPIngressRuleValue;
 }
 
 export interface IngressTLS {
-  hosts?: string[]
-  secretName: string
+  hosts?: string[];
+  secretName: string;
 }
 
 export interface HTTPIngressRuleValue {
-  paths: HTTPIngressPath[]
+  paths: HTTPIngressPath[];
 }
 
 export interface HTTPIngressPath {
-  backend: IngressBackend
-  path: string
+  backend: IngressBackend;
+  path: string;
 }
 
 export class Deployment {

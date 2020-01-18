@@ -1,6 +1,6 @@
 import { URL } from "url";
 import { env, generateYaml } from "./helpers";
-import { Deployment, Ingress, ObjectMeta, Service } from "./kubernetes";
+import { Deployment, Ingress, ObjectMeta, Probe, Service } from "./kubernetes";
 
 interface StatelessAppSpec {
   replicas?: number;
@@ -19,7 +19,6 @@ interface StatelessAppSpec {
   ports?: (({
     type: "http";
     publicUrl?: string;
-    checkPath?: string;
     tlsCert?: string;
   } | {
     type: "tcp";
@@ -27,8 +26,17 @@ interface StatelessAppSpec {
     name: string;
     port: number;
     containerPort?: number;
-    checkPeriod?: number;
   }))[]
+  check?: {
+    ready?: StatelessAppProbe
+    alive?: StatelessAppProbe
+  }
+}
+
+export interface StatelessAppProbe {
+  port: number
+  period?: number
+  httpGetPath?: string
 }
 
 export class StatelessApp {
@@ -40,11 +48,25 @@ export class StatelessApp {
       if (portSpec.type !== "http" || !portSpec.publicUrl)
         continue;
 
-      const { hostname, pathname } = new URL(portSpec.publicUrl);
+      const { protocol, hostname, pathname } = new URL(portSpec.publicUrl);
 
       let rule = ingress.spec.rules!.find(x => x.host === hostname);
       if (!rule) {
         ingress.spec.rules!.push(rule = { host: hostname, http: { paths: [] } });
+      }
+
+      if (protocol === "https:") {
+        if (!portSpec.tlsCert) {
+          throw "Uma URL com HTTPS foi utilizada, mas 'tlsCert' não foi informado";
+        }
+
+        let tls = ingress.spec.tls!.find(x => x.secretName === portSpec.tlsCert);
+        if (!tls) {
+          ingress.spec.tls!.push(tls = { secretName: portSpec.tlsCert, hosts: [] });
+        }
+
+        if (!tls.hosts!.includes(hostname))
+          tls.hosts!.push(hostname);
       }
 
       rule.http.paths.push({
@@ -54,6 +76,27 @@ export class StatelessApp {
         },
         path: pathname
       });
+    }
+
+    function convertProbe(probe?: StatelessAppProbe): Probe | undefined {
+      if (!probe) {
+        return undefined;
+      } else if (probe.httpGetPath) {
+        return {
+          httpGet: {
+            path: probe.httpGetPath,
+            port: probe.port
+          },
+          periodSeconds: probe.period ?? 3
+        }
+      } else {
+        return {
+          tcpSocket: {
+            port: probe.port
+          },
+          periodSeconds: probe.period ?? 3
+        };
+      }
     }
 
     return generateYaml([
@@ -105,7 +148,9 @@ export class StatelessApp {
                 ports: (this.spec.ports ?? []).map(portSpec => ({
                   name: portSpec.name,
                   containerPort: portSpec.containerPort ?? portSpec.port
-                }))
+                })),
+                readinessProbe: convertProbe(this.spec.check?.ready),
+                livenessProbe: convertProbe(this.spec.check?.alive),
               }
             ]
           }
