@@ -1,10 +1,8 @@
 {
   "name": "@cubos/kube-templates",
   "version": "1.0.0",
-  "description": "",
   "main": "index.js",
-  "author": "",
-  "license": "ISC",
+  "types": "index.d.ts",
   "dependencies": {
     "js-yaml": "^3.13.1"
   },
