@@ -1,5 +1,5 @@
 import { URL } from "url";
-import { env, generateYaml } from "./helpers";
+import { clone, env, generateYaml } from "./helpers";
 import { Deployment, Ingress, ObjectMeta, Service } from "./kubernetes";
 
 interface StatelessAppSpec {
@@ -21,6 +21,7 @@ interface StatelessAppSpec {
         type: "http";
         publicUrl?: string;
         tlsCert?: string;
+        maxBodySize?: string;
       }
     | {
         type: "tcp";
@@ -42,7 +43,7 @@ export class StatelessApp {
   constructor(private metadata: ObjectMeta, private spec: StatelessAppSpec) {}
 
   get yaml() {
-    const ingress = new Ingress(this.metadata, { rules: [], tls: [] });
+    const ingress = new Ingress(clone(this.metadata), { rules: [], tls: [] });
     for (const portSpec of this.spec.ports ?? []) {
       if (portSpec.type !== "http" || !portSpec.publicUrl) continue;
 
@@ -79,6 +80,13 @@ export class StatelessApp {
         },
         path: pathname
       });
+
+      // TODO: This shouldn't be global on entire Ingress. Should be per port.
+      if (portSpec.maxBodySize !== undefined) {
+        const annotations = ingress.metadata.annotations ?? {};
+        ingress.metadata.annotations = annotations;
+        annotations["nginx.ingress.kubernetes.io/proxy-body-size"] = portSpec.maxBodySize;
+      }
     }
 
     let basicProbe = undefined;

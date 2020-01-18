@@ -44,3 +44,7 @@ export const env = new Proxy(process.env, {
     return envObj[String(prop)];
   },
 }) as { [envKey: string]: string };
+
+export function clone(obj: any): any {
+  return JSON.parse(JSON.stringify(obj));
+}
