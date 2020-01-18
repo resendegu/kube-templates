@@ -1,5 +1,6 @@
+import { URL } from "url";
 import { env, generateYaml } from "./helpers";
-import { Deployment, ObjectMeta } from "./kubernetes";
+import { Deployment, Ingress, ObjectMeta, Service } from "./kubernetes";
 
 interface StatelessAppSpec {
   replicas?: number;
@@ -15,12 +16,46 @@ interface StatelessAppSpec {
     request: string | number;
     limit: string | number;
   };
+  ports?: (({
+    type: "http";
+    publicUrl?: string;
+    checkPath?: string;
+    tlsCert?: string;
+  } | {
+    type: "tcp";
+  }) & ({
+    name: string;
+    port: number;
+    containerPort?: number;
+    checkPeriod?: number;
+  }))[]
 }
 
 export class StatelessApp {
   constructor(private metadata: ObjectMeta, private spec: StatelessAppSpec) {}
 
   get yaml() {
+    const ingress = new Ingress(this.metadata, { rules: [], tls: [] });
+    for (const portSpec of (this.spec.ports ?? [])) {
+      if (portSpec.type !== "http" || !portSpec.publicUrl)
+        continue;
+
+      const { hostname, pathname } = new URL(portSpec.publicUrl);
+
+      let rule = ingress.spec.rules!.find(x => x.host === hostname);
+      if (!rule) {
+        ingress.spec.rules!.push(rule = { host: hostname, http: { paths: [] } });
+      }
+
+      rule.http.paths.push({
+        backend: {
+          serviceName: this.metadata.name,
+          servicePort: portSpec.port
+        },
+        path: pathname
+      });
+    }
+
     return generateYaml([
       new Deployment(this.metadata, {
         replicas: this.spec.replicas ?? 1,
@@ -66,12 +101,27 @@ export class StatelessApp {
                     cpu: this.spec.cpu.request,
                     memory: this.spec.memory.request
                   }
-                }
+                },
+                ports: (this.spec.ports ?? []).map(portSpec => ({
+                  name: portSpec.name,
+                  containerPort: portSpec.containerPort ?? portSpec.port
+                }))
               }
             ]
           }
         }
-      })
+      }),
+      ...((this.spec.ports ?? []).length === 0 ? [] : [new Service(this.metadata, {
+        selector: {
+          "app.kubernetes.io/name": this.metadata.name
+        },
+        ports: (this.spec.ports ?? []).map(portSpec => ({
+          name: portSpec.name,
+          port: portSpec.port,
+          targetPort: portSpec.containerPort ?? portSpec.port
+        }))
+      })]),
+      ...(ingress.spec.rules!.length ? [ingress] : [])
     ]);
   }
 }

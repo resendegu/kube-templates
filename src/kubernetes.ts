@@ -150,7 +150,7 @@ export interface Container {
   // lifecycle?: Lifecycle
   // livenessProbe?: Probe
   name: string;
-  // ports?: ContainerPort[]
+  ports?: ContainerPort[];
   // readinessProbe?: Probe
   resources?: ResourceRequirements;
   // securityContext?: SecurityContext
@@ -163,6 +163,14 @@ export interface Container {
   // volumeDevices?: VolumeDevice[]
   // volumeMounts?: VolumeMount[]
   workingDir?: string;
+}
+
+export interface ContainerPort {
+  containerPort: number
+  hostIP?: string
+  hostPort?: number
+  name?: string
+  protocol?: "TCP" | "UDP" | "SCTP"
 }
 
 export interface ResourceRequirements {
@@ -229,14 +237,108 @@ export interface LocalObjectReference {
   name: string;
 }
 
+export interface ServiceSpec {
+  clusterIP?: string;
+  externalIPs?: string[];
+  externalName?: string;
+  externalTrafficPolicy?: "Local" | "Cluster";
+  healthCheckNodePort?: number;
+  ipFamily?: string;
+  loadBalancerIP?: string;
+  loadBalancerSourceRanges?: string[];
+  ports: ServicePort[];
+  publishNotReadyAddresses?: boolean;
+  selector: { [label: string]: string };
+  sessionAffinity?: "ClientIP" | "None";
+  sessionAffinityConfig?: SessionAffinityConfig;
+  topologyKeys?: string[];
+  type?: "ExternalName" | "ClusterIP" | "NodePort" | "LoadBalancer";
+}
+
+export interface SessionAffinityConfig {
+  clientIP: ClientIPConfig;
+}
+
+export interface ClientIPConfig {
+  timeoutSeconds: number;
+}
+
+export interface ServicePort {
+  name: string;
+  nodePort?: number;
+  port: number;
+  protocol?: "TCP" | "UDP" | "SCTP";
+  targetPort?: number;
+}
+
+export interface IngressSpec {
+  backend?: IngressBackend
+  rules?: IngressRule[]
+  tls?: IngressTLS[]
+}
+
+export interface IngressBackend {
+  serviceName: string
+  servicePort: number
+}
+
+export interface IngressRule {
+  host: string
+  http: HTTPIngressRuleValue
+}
+
+export interface IngressTLS {
+  hosts?: string[]
+  secretName: string
+}
+
+export interface HTTPIngressRuleValue {
+  paths: HTTPIngressPath[]
+}
+
+export interface HTTPIngressPath {
+  backend: IngressBackend
+  path: string
+}
+
 export class Deployment {
-  constructor(private metadata: ObjectMeta, private spec: DeploymentSpec) {}
+  constructor(public metadata: ObjectMeta, public spec: DeploymentSpec) {}
 
   get yaml() {
     return generateYaml([
       {
         apiVersion: "apps/v1",
         kind: "Deployment",
+        metadata: this.metadata,
+        spec: this.spec
+      }
+    ]);
+  }
+}
+
+export class Service {
+  constructor(public metadata: ObjectMeta, public spec: ServiceSpec) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "core/v1",
+        kind: "Service",
+        metadata: this.metadata,
+        spec: this.spec
+      }
+    ]);
+  }
+}
+
+export class Ingress {
+  constructor(public metadata: ObjectMeta, public spec: IngressSpec) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "networking.k8s.io/v1beta1",
+        kind: "Ingress",
         metadata: this.metadata,
         spec: this.spec
       }
