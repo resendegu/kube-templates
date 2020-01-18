@@ -173,8 +173,8 @@ export class StatelessApp {
                 livenessProbe: basicProbe
                   ? {
                       ...basicProbe,
-                      failureThreshold: 3,
-                      initialDelaySeconds: this.spec.check?.initialDelay ?? 1
+                      failureThreshold: 5,
+                      initialDelaySeconds: this.spec.check?.initialDelay ?? 5
                     }
                   : undefined
               }
