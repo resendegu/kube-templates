@@ -1,6 +1,6 @@
 import { URL } from "url";
 import { env, generateYaml } from "./helpers";
-import { Deployment, Ingress, ObjectMeta, Probe, Service } from "./kubernetes";
+import { Deployment, Ingress, ObjectMeta, Service } from "./kubernetes";
 
 interface StatelessAppSpec {
   replicas?: number;
@@ -85,7 +85,7 @@ export class StatelessApp {
       });
     }
 
-    function convertProbe(probe?: StatelessAppProbe): Probe | undefined {
+    function convertProbe(probe?: StatelessAppProbe) {
       if (!probe) {
         return undefined;
       } else if (probe.httpGetPath) {

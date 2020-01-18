@@ -9,7 +9,7 @@ export interface BasicObjectMeta {
   };
 }
 
-export interface NonNamespacedObjectMeta extends BasicObjectMeta {
+interface NonNamespacedObjectMeta extends BasicObjectMeta {
   name: string;
 }
 
@@ -17,7 +17,7 @@ export interface ObjectMeta extends NonNamespacedObjectMeta {
   namespace: string;
 }
 
-export interface DeploymentSpec {
+interface DeploymentSpec {
   minReadySeconds?: number;
   paused?: boolean;
   progressDeadlineSeconds?: number;
@@ -28,30 +28,30 @@ export interface DeploymentSpec {
   template: PodTemplateSpec;
 }
 
-export interface LabelSelector {
+interface LabelSelector {
   matchExpressions?: LabelSelectorRequirement[];
   matchLabels?: {
     [label: string]: string;
   };
 }
 
-export interface LabelSelectorRequirement {
+interface LabelSelectorRequirement {
   key: string;
   operator: "In" | "NotIn" | "Exists" | "DoesNotExist";
   values: string[];
 }
 
-export interface DeploymentStrategy {
+interface DeploymentStrategy {
   maxSurge?: number | string;
   maxUnavailable?: number | string;
 }
 
-export interface PodTemplateSpec {
+interface PodTemplateSpec {
   metadata: BasicObjectMeta;
   spec: PodSpec;
 }
 
-export interface PodSpec {
+interface PodSpec {
   activeDeadlineSeconds?: number;
   affinity?: Affinity;
   automountServiceAccountToken?: boolean;
@@ -88,59 +88,59 @@ export interface PodSpec {
   // volumes?: Volume[]
 }
 
-export interface Affinity {
+interface Affinity {
   nodeAffinity?: NodeAffinity;
   podAffinity?: PodAffinity;
   podAntiAffinity?: PodAntiAffinity;
 }
 
-export interface NodeAffinity {
+interface NodeAffinity {
   preferredDuringSchedulingIgnoredDuringExecution?: PreferredSchedulingTerm[];
   requiredDuringSchedulingIgnoredDuringExecution?: NodeSelector;
 }
 
-export interface PodAffinity {
+interface PodAffinity {
   preferredDuringSchedulingIgnoredDuringExecution?: WeightedPodAffinityTerm[];
   requiredDuringSchedulingIgnoredDuringExecution?: PodAffinityTerm[];
 }
 
-export interface PodAntiAffinity {
+interface PodAntiAffinity {
   preferredDuringSchedulingIgnoredDuringExecution?: WeightedPodAffinityTerm[];
   requiredDuringSchedulingIgnoredDuringExecution?: PodAffinityTerm[];
 }
 
-export interface NodeSelector {
+interface NodeSelector {
   nodeSelectorTerms?: NodeSelectorTerm[];
 }
 
-export interface PreferredSchedulingTerm {
+interface PreferredSchedulingTerm {
   preference?: NodeSelectorTerm;
   weight: number;
 }
 
-export interface WeightedPodAffinityTerm {
+interface WeightedPodAffinityTerm {
   podAffinityTerm?: PodAffinityTerm;
   weight: number;
 }
 
-export interface PodAffinityTerm {
+interface PodAffinityTerm {
   labelSelector?: LabelSelector;
   namespaces: string[];
   topologyKey: string;
 }
 
-export interface NodeSelectorTerm {
+interface NodeSelectorTerm {
   matchExpressions?: NodeSelectorRequirement[];
   matchFields?: NodeSelectorRequirement[];
 }
 
-export interface NodeSelectorRequirement {
+interface NodeSelectorRequirement {
   key: string;
   operator: "In" | "NotIn" | "Exists" | "DoesNotExist" | "Gt" | "Lt";
   values: string[];
 }
 
-export interface Container {
+interface Container {
   args?: string[];
   command?: string[];
   env?: EnvVar[];
@@ -165,7 +165,7 @@ export interface Container {
   workingDir?: string;
 }
 
-export type Probe = (
+type Probe = (
   | {
       exec: ExecAction;
     }
@@ -183,16 +183,16 @@ export type Probe = (
   timeoutSeconds?: number;
 };
 
-export interface ExecAction {
+interface ExecAction {
   command: string[];
 }
 
-export interface TCPSocketAction {
+interface TCPSocketAction {
   host?: string;
   port: number;
 }
 
-export interface HTTPGetAction {
+interface HTTPGetAction {
   host?: string;
   httpHeaders?: HTTPHeader[];
   path: string;
@@ -200,12 +200,12 @@ export interface HTTPGetAction {
   scheme?: "HTTP" | "HTTPS";
 }
 
-export interface HTTPHeader {
+interface HTTPHeader {
   name: string;
   value: string;
 }
 
-export interface ContainerPort {
+interface ContainerPort {
   containerPort: number;
   hostIP?: string;
   hostPort?: number;
@@ -213,7 +213,7 @@ export interface ContainerPort {
   protocol?: "TCP" | "UDP" | "SCTP";
 }
 
-export interface ResourceRequirements {
+interface ResourceRequirements {
   limits?: {
     memory?: string | number;
     cpu?: string | number;
@@ -224,7 +224,7 @@ export interface ResourceRequirements {
   };
 }
 
-export type EnvVar = EnvVarWithValue | EnvVarWithFrom;
+type EnvVar = EnvVarWithValue | EnvVarWithFrom;
 
 interface EnvVarWithValue {
   name: string;
@@ -236,7 +236,7 @@ interface EnvVarWithFrom {
   valueFrom: EnvVarSource;
 }
 
-export type EnvVarSource =
+type EnvVarSource =
   | {
       configMapKeyRef: ConfigMapKeySelector;
     }
@@ -250,34 +250,34 @@ export type EnvVarSource =
       secretKeyRef: SecretKeySelector;
     };
 
-export interface ConfigMapKeySelector {
+interface ConfigMapKeySelector {
   key: string;
   name: string;
   optional?: boolean;
 }
 
-export interface SecretKeySelector {
+interface SecretKeySelector {
   key: string;
   name: string;
   optional?: boolean;
 }
 
-export interface ObjectFieldSelector {
+interface ObjectFieldSelector {
   apiVersion?: string;
   fieldPath: string;
 }
 
-export interface ResourceFieldSelector {
+interface ResourceFieldSelector {
   containerName?: string;
   divisor?: number | string;
   resource: string;
 }
 
-export interface LocalObjectReference {
+interface LocalObjectReference {
   name: string;
 }
 
-export interface ServiceSpec {
+interface ServiceSpec {
   clusterIP?: string;
   externalIPs?: string[];
   externalName?: string;
@@ -295,15 +295,15 @@ export interface ServiceSpec {
   type?: "ExternalName" | "ClusterIP" | "NodePort" | "LoadBalancer";
 }
 
-export interface SessionAffinityConfig {
+interface SessionAffinityConfig {
   clientIP: ClientIPConfig;
 }
 
-export interface ClientIPConfig {
+interface ClientIPConfig {
   timeoutSeconds: number;
 }
 
-export interface ServicePort {
+interface ServicePort {
   name: string;
   nodePort?: number;
   port: number;
@@ -311,32 +311,32 @@ export interface ServicePort {
   targetPort?: number;
 }
 
-export interface IngressSpec {
+interface IngressSpec {
   backend?: IngressBackend;
   rules?: IngressRule[];
   tls?: IngressTLS[];
 }
 
-export interface IngressBackend {
+interface IngressBackend {
   serviceName: string;
   servicePort: number;
 }
 
-export interface IngressRule {
+interface IngressRule {
   host: string;
   http: HTTPIngressRuleValue;
 }
 
-export interface IngressTLS {
+interface IngressTLS {
   hosts?: string[];
   secretName: string;
 }
 
-export interface HTTPIngressRuleValue {
+interface HTTPIngressRuleValue {
   paths: HTTPIngressPath[];
 }
 
-export interface HTTPIngressPath {
+interface HTTPIngressPath {
   backend: IngressBackend;
   path: string;
 }

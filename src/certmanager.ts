@@ -1,7 +1,7 @@
 import { generateYaml } from "./helpers";
 import { ObjectMeta } from "./kubernetes";
 
-export interface CertificateSpec {
+interface CertificateSpec {
   acme: ACMECertificateConfig
   commonName?: string
   dnsNames?: string[]
@@ -18,17 +18,17 @@ export interface CertificateSpec {
   usages?: string[]
 }
 
-export interface ObjectReference {
+interface ObjectReference {
   group?: string
   kind: string
   name: string
 }
 
-export interface ACMECertificateConfig {
+interface ACMECertificateConfig {
   config: DomainSolverConfig[]
 }
 
-export type DomainSolverConfig = ({
+type DomainSolverConfig = ({
   dns01: DNS01SolverConfig
 } | {
   http01: HTTP01SolverConfig
@@ -36,11 +36,11 @@ export type DomainSolverConfig = ({
   domains: string[]
 }
 
-export interface DNS01SolverConfig {
+interface DNS01SolverConfig {
   provider: string
 }
 
-export type HTTP01SolverConfig = {
+type HTTP01SolverConfig = {
   ingress: string
 } | {
   ingressClass: string
