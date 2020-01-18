@@ -362,7 +362,7 @@ export class Service {
   get yaml() {
     return generateYaml([
       {
-        apiVersion: "core/v1",
+        apiVersion: "v1",
         kind: "Service",
         metadata: this.metadata,
         spec: this.spec
@@ -408,7 +408,7 @@ export class Secret {
     }
     return generateYaml([
       {
-        apiVersion: "core/v1",
+        apiVersion: "v1",
         data: data,
         kind: "Secret",
         metadata: this.metadata
