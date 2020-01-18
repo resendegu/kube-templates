@@ -122,11 +122,24 @@ export class StatelessApp {
             }
           },
           spec: {
-            imagePullSecrets: [
-              {
-                name: "gitlab-registry"
-              }
-            ],
+            ...(this.spec.image.startsWith("registry.cubos.io")
+              ? {
+                  imagePullSecrets: [
+                    {
+                      name: "gitlab-registry"
+                    }
+                  ]
+                }
+              : this.spec.image.includes("gcr.io/cubos-203208")
+              ? {
+                  imagePullSecrets: [
+                    {
+                      name: "google-cloud-registry"
+                    }
+                  ]
+                }
+              : {}),
+            automountServiceAccountToken: false,
             containers: [
               {
                 name: this.metadata.name,
