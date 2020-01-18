@@ -31,15 +31,11 @@ interface StatelessAppSpec {
     containerPort?: number;
   })[];
   check?: {
-    ready?: StatelessAppProbe;
-    alive?: StatelessAppProbe;
+    port: number;
+    period?: number;
+    initialDelay?: number;
+    httpGetPath?: string;
   };
-}
-
-interface StatelessAppProbe {
-  port: number;
-  period?: number;
-  httpGetPath?: string;
 }
 
 export class StatelessApp {
@@ -85,25 +81,23 @@ export class StatelessApp {
       });
     }
 
-    function convertProbe(probe?: StatelessAppProbe) {
-      if (!probe) {
-        return undefined;
-      } else if (probe.httpGetPath) {
-        return {
-          httpGet: {
-            path: probe.httpGetPath,
-            port: probe.port
-          },
-          periodSeconds: probe.period ?? 3
-        };
-      } else {
-        return {
-          tcpSocket: {
-            port: probe.port
-          },
-          periodSeconds: probe.period ?? 3
-        };
-      }
+    let basicProbe = undefined;
+    if (this.spec.check === undefined) {
+    } else if (this.spec.check.httpGetPath) {
+      basicProbe = {
+        httpGet: {
+          path: this.spec.check.httpGetPath,
+          port: this.spec.check.port
+        },
+        periodSeconds: this.spec.check.period ?? 3
+      };
+    } else {
+      basicProbe = {
+        tcpSocket: {
+          port: this.spec.check.port
+        },
+        periodSeconds: this.spec.check.period ?? 3
+      };
     }
 
     return generateYaml([
@@ -169,8 +163,20 @@ export class StatelessApp {
                   name: portSpec.name,
                   containerPort: portSpec.containerPort ?? portSpec.port
                 })),
-                readinessProbe: convertProbe(this.spec.check?.ready),
-                livenessProbe: convertProbe(this.spec.check?.alive)
+                readinessProbe: basicProbe
+                  ? {
+                      ...basicProbe,
+                      failureThreshold: 1,
+                      successThreshold: 2
+                    }
+                  : undefined,
+                livenessProbe: basicProbe
+                  ? {
+                      ...basicProbe,
+                      failureThreshold: 3,
+                      initialDelaySeconds: this.spec.check?.initialDelay ?? 1
+                    }
+                  : undefined
               }
             ]
           }
