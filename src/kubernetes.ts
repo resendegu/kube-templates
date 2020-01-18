@@ -385,3 +385,34 @@ export class Ingress {
     ]);
   }
 }
+
+export class Secret {
+  constructor(
+    public metadata: ObjectMeta,
+    public data?: { [key: string]: string | Buffer }
+  ) {}
+
+  get yaml() {
+    let data: any = undefined;
+    const targetData = this.data;
+    if (targetData) {
+      data = {};
+      for (const key in targetData) {
+        let value = targetData[key];
+        if (!(value instanceof Buffer)) {
+          value = Buffer.from(value);
+        }
+
+        data[key] = value.toString("base64");
+      }
+    }
+    return generateYaml([
+      {
+        apiVersion: "core/v1",
+        data: data,
+        kind: "Secret",
+        metadata: this.metadata
+      }
+    ]);
+  }
+}
