@@ -1,0 +1,29 @@
+image: node
+
+stages:
+  - build
+  - deploy
+
+Build Library:
+  stage: build
+  only:
+    - master
+  script:
+    - npm ci
+    - npx tsc -p tsconfig.json
+  artifacts:
+    paths:
+      - dist/
+
+Deploy (NPM):
+  stage: deploy
+  dependencies:
+    - Build Library
+  only:
+    - master
+  script:
+    - echo -e "@cubos:registry=https://nexus.cubos.io/repository/${NXRM_PUBLISH_REPOSITORY}/\n//nexus.cubos.io/repository/${NXRM_PUBLISH_REPOSITORY}/:_auth=$(echo -n ${NXRM_PUBLISH_USERNAME}':'${NXRM_PUBLISH_PASSWORD} | openssl base64)" > dist/.npmrc
+    - cp package.json dist/
+    - cd dist/
+    - npm version 1.0.$CI_PIPELINE_ID || true
+    - npm publish
