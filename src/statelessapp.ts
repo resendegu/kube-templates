@@ -105,13 +105,13 @@ export class StatelessApp {
         revisionHistoryLimit: 2,
         selector: {
           matchLabels: {
-            "app.kubernetes.io/name": this.metadata.name
+            app: this.metadata.name
           }
         },
         template: {
           metadata: {
             labels: {
-              "app.kubernetes.io/name": this.metadata.name
+              app: this.metadata.name
             }
           },
           spec: {
@@ -158,7 +158,7 @@ export class StatelessApp {
       }),
       ...((this.spec.ports ?? []).length === 0 ? [] : [new Service(this.metadata, {
         selector: {
-          "app.kubernetes.io/name": this.metadata.name
+          app: this.metadata.name
         },
         ports: (this.spec.ports ?? []).map(portSpec => ({
           name: portSpec.name,
