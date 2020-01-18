@@ -27,7 +27,7 @@ interface StatelessAppSpec {
         type: "tcp";
       }
   ) & {
-    name: string;
+    name?: string;
     port: number;
     containerPort?: number;
   })[];
@@ -168,7 +168,7 @@ export class StatelessApp {
                   }
                 },
                 ports: (this.spec.ports ?? []).map(portSpec => ({
-                  name: portSpec.name,
+                  name: portSpec.name ?? `port${portSpec.port}`,
                   containerPort: portSpec.containerPort ?? portSpec.port
                 })),
                 readinessProbe: basicProbe
@@ -198,7 +198,7 @@ export class StatelessApp {
                 app: this.metadata.name
               },
               ports: (this.spec.ports ?? []).map(portSpec => ({
-                name: portSpec.name,
+                name: portSpec.name ?? `port${portSpec.port}`,
                 port: portSpec.port,
                 targetPort: portSpec.containerPort ?? portSpec.port
               }))
