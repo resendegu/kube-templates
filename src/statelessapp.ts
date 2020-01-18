@@ -16,27 +16,30 @@ interface StatelessAppSpec {
     request: string | number;
     limit: string | number;
   };
-  ports?: (({
-    type: "http";
-    publicUrl?: string;
-    tlsCert?: string;
-  } | {
-    type: "tcp";
-  }) & ({
+  ports?: ((
+    | {
+        type: "http";
+        publicUrl?: string;
+        tlsCert?: string;
+      }
+    | {
+        type: "tcp";
+      }
+  ) & {
     name: string;
     port: number;
     containerPort?: number;
-  }))[]
+  })[];
   check?: {
-    ready?: StatelessAppProbe
-    alive?: StatelessAppProbe
-  }
+    ready?: StatelessAppProbe;
+    alive?: StatelessAppProbe;
+  };
 }
 
 export interface StatelessAppProbe {
-  port: number
-  period?: number
-  httpGetPath?: string
+  port: number;
+  period?: number;
+  httpGetPath?: string;
 }
 
 export class StatelessApp {
@@ -44,15 +47,16 @@ export class StatelessApp {
 
   get yaml() {
     const ingress = new Ingress(this.metadata, { rules: [], tls: [] });
-    for (const portSpec of (this.spec.ports ?? [])) {
-      if (portSpec.type !== "http" || !portSpec.publicUrl)
-        continue;
+    for (const portSpec of this.spec.ports ?? []) {
+      if (portSpec.type !== "http" || !portSpec.publicUrl) continue;
 
       const { protocol, hostname, pathname } = new URL(portSpec.publicUrl);
 
       let rule = ingress.spec.rules!.find(x => x.host === hostname);
       if (!rule) {
-        ingress.spec.rules!.push(rule = { host: hostname, http: { paths: [] } });
+        ingress.spec.rules!.push(
+          (rule = { host: hostname, http: { paths: [] } })
+        );
       }
 
       if (protocol === "https:") {
@@ -60,13 +64,16 @@ export class StatelessApp {
           throw "Uma URL com HTTPS foi utilizada, mas 'tlsCert' não foi informado";
         }
 
-        let tls = ingress.spec.tls!.find(x => x.secretName === portSpec.tlsCert);
+        let tls = ingress.spec.tls!.find(
+          x => x.secretName === portSpec.tlsCert
+        );
         if (!tls) {
-          ingress.spec.tls!.push(tls = { secretName: portSpec.tlsCert, hosts: [] });
+          ingress.spec.tls!.push(
+            (tls = { secretName: portSpec.tlsCert, hosts: [] })
+          );
         }
 
-        if (!tls.hosts!.includes(hostname))
-          tls.hosts!.push(hostname);
+        if (!tls.hosts!.includes(hostname)) tls.hosts!.push(hostname);
       }
 
       rule.http.paths.push({
@@ -88,7 +95,7 @@ export class StatelessApp {
             port: probe.port
           },
           periodSeconds: probe.period ?? 3
-        }
+        };
       } else {
         return {
           tcpSocket: {
@@ -150,22 +157,26 @@ export class StatelessApp {
                   containerPort: portSpec.containerPort ?? portSpec.port
                 })),
                 readinessProbe: convertProbe(this.spec.check?.ready),
-                livenessProbe: convertProbe(this.spec.check?.alive),
+                livenessProbe: convertProbe(this.spec.check?.alive)
               }
             ]
           }
         }
       }),
-      ...((this.spec.ports ?? []).length === 0 ? [] : [new Service(this.metadata, {
-        selector: {
-          app: this.metadata.name
-        },
-        ports: (this.spec.ports ?? []).map(portSpec => ({
-          name: portSpec.name,
-          port: portSpec.port,
-          targetPort: portSpec.containerPort ?? portSpec.port
-        }))
-      })]),
+      ...((this.spec.ports ?? []).length === 0
+        ? []
+        : [
+            new Service(this.metadata, {
+              selector: {
+                app: this.metadata.name
+              },
+              ports: (this.spec.ports ?? []).map(portSpec => ({
+                name: portSpec.name,
+                port: portSpec.port,
+                targetPort: portSpec.containerPort ?? portSpec.port
+              }))
+            })
+          ]),
       ...(ingress.spec.rules!.length ? [ingress] : [])
     ]);
   }
