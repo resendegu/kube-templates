@@ -22,8 +22,14 @@ function stripUndefinedProperties(obj: any): any {
     const newObj: any = {};
     for (const prop of Object.keys(obj)) {
       const value = obj[prop];
-      if (value !== undefined)
-        newObj[prop] = stripUndefinedProperties(value);
+
+      if (value === undefined)
+        continue;
+
+      if (Array.isArray(value) && value.length === 0)
+        continue;
+
+      newObj[prop] = stripUndefinedProperties(value);
     }
     return newObj;
   }
