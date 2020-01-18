@@ -5,7 +5,7 @@ import { CertManagerCertificate } from "./certmanager";
 interface CertificateSpec {
   domain: string;
   provider?: "cloudflare";
-  replicationAllowedNamespaces?: string;
+  replicationAllowedNamespaces?: RegExp;
 }
 
 export class Certificate {
@@ -40,7 +40,7 @@ export class Certificate {
             ? {
                 "replicator.v1.mittwald.de/replication-allowed": "true",
                 "replicator.v1.mittwald.de/replication-allowed-namespaces": this
-                  .spec.replicationAllowedNamespaces
+                  .spec.replicationAllowedNamespaces.source
               }
             : {})
         }
