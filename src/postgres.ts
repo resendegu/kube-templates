@@ -10,20 +10,11 @@ interface PostgresSpec {
   };
   memory: string | number;
   postgresUserPassword?: string;
-  users?: ((
-    | {
-        username: string;
-        database: string;
-      }
-    | {
-        username: string;
-      }
-    | {
-        database: string;
-      }
-  ) & {
+  users?: {
+    username: string;
+    database: string;
     password: string;
-  })[];
+  }[];
 }
 
 export class Postgres {
@@ -61,6 +52,7 @@ export class Postgres {
               {
                 name: "postgres",
                 image: `postgres:${this.spec.version}-alpine`,
+                imagePullPolicy: "Always",
                 ports: [
                   {
                     name: "postgres",
@@ -85,14 +77,30 @@ export class Postgres {
                 },
                 readinessProbe: {
                   exec: {
-                    command: ["psql", "-h", "127.0.0.1", "-U", "postgres", "-c", "SELECT 1"]
+                    command: [
+                      "psql",
+                      "-h",
+                      "127.0.0.1",
+                      "-U",
+                      "postgres",
+                      "-c",
+                      "SELECT 1"
+                    ]
                   },
                   failureThreshold: 1,
                   periodSeconds: 3
                 },
                 livenessProbe: {
                   exec: {
-                    command: ["psql", "-h", "127.0.0.1", "-U", "postgres", "-c", "SELECT 1"]
+                    command: [
+                      "psql",
+                      "-h",
+                      "127.0.0.1",
+                      "-U",
+                      "postgres",
+                      "-c",
+                      "SELECT 1"
+                    ]
                   },
                   failureThreshold: 2,
                   periodSeconds: 5,
@@ -100,8 +108,9 @@ export class Postgres {
                 }
               },
               {
-                name: "sidecar",
+                name: "setup",
                 image: `postgres:${this.spec.version}-alpine`,
+                imagePullPolicy: "Always",
                 command: [
                   "/bin/bash",
                   "-ec",
@@ -114,8 +123,40 @@ export class Postgres {
                   done
                   echo Postgres is ready.
 
-                  psql -h 127.0.0.1 -U postgres -c "alter user postgres encrypted password '"'${this.spec.postgresUserPassword ?? ""}'"'"
+                  echo Setting password for user postgres
+                  psql -h 127.0.0.1 -U postgres -c "ALTER USER postgres ENCRYPTED PASSWORD '"'${this
+                    .spec.postgresUserPassword ?? ""}'"'"
 
+                  ${
+                    /*
+                      For some reason users are already dropped on database start. WTF?
+
+                      for user in $(psql -h 127.0.0.1 -U postgres -c 'SELECT usename FROM pg_user WHERE NOT usesuper' | tail -n+3 | sed '$d' | sed '$d')
+                      do
+                        echo Dropping user $user
+                        psql -h 127.0.0.1 -U postgres -c "drop user $user"
+                      done
+                    */ ""
+                  }
+
+                  ${(this.spec.users ?? [])
+                    .map(
+                      user => `
+                        echo Creating user ${user.username}...
+                        psql -h 127.0.0.1 -U postgres -c "CREATE USER "'"${user.username}"'" ENCRYPTED PASSWORD '"'${user.password}'"'"
+
+                        echo Creating database ${user.database}...
+                        psql -h 127.0.0.1 -U postgres -c 'CREATE DATABASE "${user.database}"' || true
+
+                        echo Granting privileges on database ${user.database} to user ${user.username}...
+                        psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON DATABASE "${user.database}" TO "${user.username}"'
+                        psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "${user.username}"' ${user.database}
+                      `
+                    )
+                    .join("\n")}
+
+                  echo Done.
+                  touch /ready
                   sleep 9999999d
                 `
                 ],
@@ -129,6 +170,13 @@ export class Postgres {
                     memory: "5Mi"
                   }
                 },
+                readinessProbe: {
+                  exec: {
+                    command: ["cat", "/ready"]
+                  },
+                  failureThreshold: 1,
+                  periodSeconds: 3
+                }
               }
             ]
           }
@@ -145,7 +193,9 @@ export class Postgres {
                   storage: "2Gi"
                 }
               },
-              storageClassName: process.env.PRODUCTION ? "ssd-regional" : "standard"
+              storageClassName: process.env.PRODUCTION
+                ? "ssd-regional"
+                : "standard"
             }
           }
         ]
