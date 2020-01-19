@@ -1,9 +1,9 @@
 import { URL } from "url";
 import { clone, env, generateYaml } from "./helpers";
-import { Deployment, Ingress, ObjectMeta, Service } from "./kubernetes";
+import { Deployment, HorizontalPodAutoscaler, Ingress, ObjectMeta, Service } from "./kubernetes";
 
 interface StatelessAppSpec {
-  replicas?: number;
+  replicas?: number | [number, number];
   image: string;
   command?: string[];
   envs?: { [env: string]: string | number };
@@ -85,7 +85,8 @@ export class StatelessApp {
       if (portSpec.maxBodySize !== undefined) {
         const annotations = ingress.metadata.annotations ?? {};
         ingress.metadata.annotations = annotations;
-        annotations["nginx.ingress.kubernetes.io/proxy-body-size"] = portSpec.maxBodySize;
+        annotations["nginx.ingress.kubernetes.io/proxy-body-size"] =
+          portSpec.maxBodySize;
       }
     }
 
@@ -110,7 +111,9 @@ export class StatelessApp {
 
     return generateYaml([
       new Deployment(this.metadata, {
-        replicas: this.spec.replicas ?? 1,
+        replicas: Array.isArray(this.spec.replicas)
+          ? undefined // https://github.com/kubernetes/kubernetes/issues/25238
+          : this.spec.replicas ?? 1,
         revisionHistoryLimit: 2,
         selector: {
           matchLabels: {
@@ -204,7 +207,21 @@ export class StatelessApp {
               }))
             })
           ]),
-      ...(ingress.spec.rules!.length ? [ingress] : [])
+      ...(ingress.spec.rules!.length ? [ingress] : []),
+      ...(this.spec.replicas && Array.isArray(this.spec.replicas)
+        ? [
+            new HorizontalPodAutoscaler(this.metadata, {
+              maxReplicas: this.spec.replicas[1],
+              minReplicas: this.spec.replicas[0],
+              scaleTargetRef: {
+                apiVersion: "apps/v1",
+                kind: "Deployment",
+                name: this.metadata.name
+              },
+              targetCPUUtilizationPercentage: 75
+            })
+          ]
+        : [])
     ]);
   }
 }

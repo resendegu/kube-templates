@@ -341,6 +341,19 @@ interface HTTPIngressPath {
   path: string;
 }
 
+interface HorizontalPodAutoscalerSpec {
+  maxReplicas: number
+  minReplicas: number
+  scaleTargetRef: CrossVersionObjectReference
+  targetCPUUtilizationPercentage: number
+}
+
+interface CrossVersionObjectReference {
+  apiVersion: string
+  kind: string
+  name: string
+}
+
 export class Deployment {
   constructor(public metadata: ObjectMeta, public spec: DeploymentSpec) {}
 
@@ -379,6 +392,21 @@ export class Ingress {
       {
         apiVersion: "networking.k8s.io/v1beta1",
         kind: "Ingress",
+        metadata: this.metadata,
+        spec: this.spec
+      }
+    ]);
+  }
+}
+
+export class HorizontalPodAutoscaler {
+  constructor(public metadata: ObjectMeta, public spec: HorizontalPodAutoscalerSpec) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "autoscaling/v1",
+        kind: "HorizontalPodAutoscaler",
         metadata: this.metadata,
         spec: this.spec
       }
