@@ -152,7 +152,16 @@ interface Container {
   name: string;
   ports?: ContainerPort[];
   readinessProbe?: Probe;
-  resources?: ResourceRequirements;
+  resources?:  {
+    limits?: {
+      memory?: string | number;
+      cpu?: string | number;
+    };
+    requests?: {
+      memory?: string | number;
+      cpu?: string | number;
+    };
+  };
   // securityContext?: SecurityContext
   startupProbe?: Probe;
   stdin?: boolean;
@@ -211,17 +220,6 @@ interface ContainerPort {
   hostPort?: number;
   name?: string;
   protocol?: "TCP" | "UDP" | "SCTP";
-}
-
-interface ResourceRequirements {
-  limits?: {
-    memory?: string | number;
-    cpu?: string | number;
-  };
-  requests?: {
-    memory?: string | number;
-    cpu?: string | number;
-  };
 }
 
 type EnvVar = EnvVarWithValue | EnvVarWithFrom;
@@ -354,6 +352,49 @@ interface CrossVersionObjectReference {
   name: string
 }
 
+interface StatefulSetSpec {
+  podManagementPolicy?: "OrderedReady" | "Parallel"
+  replicas?: number
+  revisionHistoryLimit?: number
+  selector: LabelSelector
+  serviceName: string
+  template: PodTemplateSpec
+  updateStrategy?: StatefulSetUpdateStrategy
+  volumeClaimTemplates: {
+    metadata: NonNamespacedObjectMeta
+    spec: PersistentVolumeClaimSpec
+  }[]
+}
+
+interface StatefulSetUpdateStrategy {
+  rollingUpdate: RollingUpdateStatefulSetStrategy
+  type: "RollingUpdate"
+}
+
+interface RollingUpdateStatefulSetStrategy {
+  partition: number
+}
+
+interface PersistentVolumeClaimSpec {
+  accessModes: ("ReadWriteOnce" | "ReadOnlyMany" | "ReadWriteMany")[]
+  dataSource?: TypedLocalObjectReference
+  resources:  {
+    requests: {
+      storage: string | number;
+    };
+  }
+  selector?: LabelSelector
+  storageClassName?: string
+  volumeMode?: "Filesystem" | "Block"
+  volumeName?: string
+}
+
+interface TypedLocalObjectReference {
+  apiGroup: string
+  kind: string
+  name: string
+}
+
 export class Deployment {
   constructor(public metadata: ObjectMeta, public spec: DeploymentSpec) {}
 
@@ -362,6 +403,21 @@ export class Deployment {
       {
         apiVersion: "apps/v1",
         kind: "Deployment",
+        metadata: this.metadata,
+        spec: this.spec
+      }
+    ]);
+  }
+}
+
+export class StatefulSet {
+  constructor(public metadata: ObjectMeta, public spec: StatefulSetSpec) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "apps/v1",
+        kind: "StatefulSet",
         metadata: this.metadata,
         spec: this.spec
       }
