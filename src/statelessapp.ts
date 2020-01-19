@@ -164,6 +164,7 @@ export class StatelessApp {
                   }
                 }
               : {}),
+            restartPolicy: "Never",
             containers: [
               {
                 name: this.metadata.name,
