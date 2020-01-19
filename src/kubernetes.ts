@@ -83,10 +83,107 @@ interface PodSpec {
   shareProcessNamespace?: boolean;
   subdomain?: string;
   terminationGracePeriodSeconds?: number;
-  // tolerations?: Toleration[]
+  tolerations?: Toleration[]
   // topologySpreadConstraints?: TopologySpreadConstraint[]
-  // volumes?: Volume[]
+  volumes?: Volume[];
 }
+
+interface Toleration {
+  effect: string
+  key: string
+  operator?: "Exists" | "Equal"
+  tolerationSeconds?: number
+  value?: string
+}
+
+type Volume = {
+  name: string;
+} & (
+  // | {
+  //     awsElasticBlockStore?: AWSElasticBlockStoreVolumeSource;
+  //   }
+  // | {
+  //     azureDisk?: AzureDiskVolumeSource;
+  //   }
+  // | {
+  //     azureFile?: AzureFileVolumeSource;
+  //   }
+  // | {
+  //     cephfs?: CephFSVolumeSource;
+  //   }
+  // | {
+  //     cinder?: CinderVolumeSource;
+  //   }
+  // | {
+  //     configMap?: ConfigMapVolumeSource;
+  //   }
+  // | {
+  //     downwardAPI?: DownwardAPIVolumeSource;
+  //   }
+  // | {
+  //     emptyDir?: EmptyDirVolumeSource;
+  //   }
+  // | {
+  //     fc?: FCVolumeSource;
+  //   }
+  // | {
+  //     flexVolume?: FlexVolumeSource;
+  //   }
+  // | {
+  //     flocker?: FlockerVolumeSource;
+  //   }
+  // | {
+  //     gcePersistentDisk?: GCEPersistentDiskVolumeSource;
+  //   }
+  // | {
+  //     gitRepo?: GitRepoVolumeSource;
+  //   }
+  // | {
+  //     glusterfs?: GlusterfsVolumeSource;
+  //   }
+  // | {
+  //     hostPath?: HostPathVolumeSource;
+  //   }
+  // | {
+  //     iscsi?: ISCSIVolumeSource;
+  //   }
+  // | {
+  //     nfs?: NFSVolumeSource;
+  //   }
+  | {
+      persistentVolumeClaim?: {
+        claimName: string
+        readonly?: boolean
+      };
+    }
+  // | {
+  //     photonPersistentDisk?: PhotonPersistentDiskVolumeSource;
+  //   }
+  // | {
+  //     portworxVolume?: PortworxVolumeSource;
+  //   }
+  // | {
+  //     projected?: ProjectedVolumeSource;
+  //   }
+  // | {
+  //     quobyte?: QuobyteVolumeSource;
+  //   }
+  // | {
+  //     rbd?: RBDVolumeSource;
+  //   }
+  // | {
+  //     scaleIO?: ScaleIOVolumeSource;
+  //   }
+  // | {
+  //     secret?: SecretVolumeSource;
+  //   }
+  // | {
+  //     storageos?: StorageOSVolumeSource;
+  //   }
+  // | {
+  //     vsphereVolume?: VsphereVirtualDiskVolumeSource;
+  //   }
+);
 
 interface Affinity {
   nodeAffinity?: NodeAffinity;
@@ -152,7 +249,7 @@ interface Container {
   name: string;
   ports?: ContainerPort[];
   readinessProbe?: Probe;
-  resources?:  {
+  resources?: {
     limits?: {
       memory?: string | number;
       cpu?: string | number;
@@ -170,8 +267,16 @@ interface Container {
   terminationMessagePolicy?: string;
   tty?: boolean;
   // volumeDevices?: VolumeDevice[]
-  // volumeMounts?: VolumeMount[]
+  volumeMounts?: VolumeMount[]
   workingDir?: string;
+}
+
+interface VolumeMount {
+  mountPath: string
+  mountPropagation?: string
+  name: string
+  readOnly?: boolean
+  subPath?: string
 }
 
 type Probe = (
@@ -340,59 +445,59 @@ interface HTTPIngressPath {
 }
 
 interface HorizontalPodAutoscalerSpec {
-  maxReplicas: number
-  minReplicas: number
-  scaleTargetRef: CrossVersionObjectReference
-  targetCPUUtilizationPercentage: number
+  maxReplicas: number;
+  minReplicas: number;
+  scaleTargetRef: CrossVersionObjectReference;
+  targetCPUUtilizationPercentage: number;
 }
 
 interface CrossVersionObjectReference {
-  apiVersion: string
-  kind: string
-  name: string
+  apiVersion: string;
+  kind: string;
+  name: string;
 }
 
 interface StatefulSetSpec {
-  podManagementPolicy?: "OrderedReady" | "Parallel"
-  replicas?: number
-  revisionHistoryLimit?: number
-  selector: LabelSelector
-  serviceName: string
-  template: PodTemplateSpec
-  updateStrategy?: StatefulSetUpdateStrategy
+  podManagementPolicy?: "OrderedReady" | "Parallel";
+  replicas?: number;
+  revisionHistoryLimit?: number;
+  selector: LabelSelector;
+  serviceName: string;
+  template: PodTemplateSpec;
+  updateStrategy?: StatefulSetUpdateStrategy;
   volumeClaimTemplates: {
-    metadata: NonNamespacedObjectMeta
-    spec: PersistentVolumeClaimSpec
-  }[]
+    metadata: NonNamespacedObjectMeta;
+    spec: PersistentVolumeClaimSpec;
+  }[];
 }
 
 interface StatefulSetUpdateStrategy {
-  rollingUpdate: RollingUpdateStatefulSetStrategy
-  type: "RollingUpdate"
+  rollingUpdate: RollingUpdateStatefulSetStrategy;
+  type: "RollingUpdate";
 }
 
 interface RollingUpdateStatefulSetStrategy {
-  partition: number
+  partition: number;
 }
 
 interface PersistentVolumeClaimSpec {
-  accessModes: ("ReadWriteOnce" | "ReadOnlyMany" | "ReadWriteMany")[]
-  dataSource?: TypedLocalObjectReference
-  resources:  {
+  accessModes: ("ReadWriteOnce" | "ReadOnlyMany" | "ReadWriteMany")[];
+  dataSource?: TypedLocalObjectReference;
+  resources: {
     requests: {
       storage: string | number;
     };
-  }
-  selector?: LabelSelector
-  storageClassName?: string
-  volumeMode?: "Filesystem" | "Block"
-  volumeName?: string
+  };
+  selector?: LabelSelector;
+  storageClassName?: string;
+  volumeMode?: "Filesystem" | "Block";
+  volumeName?: string;
 }
 
 interface TypedLocalObjectReference {
-  apiGroup: string
-  kind: string
-  name: string
+  apiGroup: string;
+  kind: string;
+  name: string;
 }
 
 export class Deployment {
@@ -456,7 +561,10 @@ export class Ingress {
 }
 
 export class HorizontalPodAutoscaler {
-  constructor(public metadata: ObjectMeta, public spec: HorizontalPodAutoscalerSpec) {}
+  constructor(
+    public metadata: ObjectMeta,
+    public spec: HorizontalPodAutoscalerSpec
+  ) {}
 
   get yaml() {
     return generateYaml([
