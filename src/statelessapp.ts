@@ -145,6 +145,25 @@ export class StatelessApp {
                 }
               : {}),
             automountServiceAccountToken: false,
+            ...(process.env.PRODUCTION &&
+            this.spec.replicas !== undefined &&
+            ((Array.isArray(this.spec.replicas) &&
+              this.spec.replicas[0] >= 3) ||
+              this.spec.replicas >= 3)
+              ? {
+                  tolerations: [
+                    {
+                      key: "preemptible",
+                      operator: "Equal",
+                      value: "true",
+                      effect: "NoSchedule"
+                    }
+                  ],
+                  nodeSelector: {
+                    preemptible: "true"
+                  }
+                }
+              : {}),
             containers: [
               {
                 name: this.metadata.name,
