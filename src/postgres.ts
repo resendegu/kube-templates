@@ -2,7 +2,7 @@ import { generateYaml } from "./helpers";
 import { ObjectMeta, Service, StatefulSet } from "./kubernetes";
 
 interface PostgresSpec {
-  // replicas?: number;
+  // readReplicas?: number;
   version: string;
   cpu: {
     request: string | number;
@@ -61,8 +61,9 @@ export class Postgres {
                 ],
                 volumeMounts: [
                   {
-                    mountPath: "/var/lib/postgresql",
-                    name: "data"
+                    mountPath: "/var/lib/postgresql/data",
+                    name: "data",
+                    subPath: "data"
                   }
                 ],
                 resources: {
@@ -127,17 +128,20 @@ export class Postgres {
                   psql -h 127.0.0.1 -U postgres -c "ALTER USER postgres ENCRYPTED PASSWORD '"'${this
                     .spec.postgresUserPassword ?? ""}'"'"
 
-                  ${
-                    /*
-                      For some reason users are already dropped on database start. WTF?
+                  for user in $(psql -h 127.0.0.1 -U postgres -c 'SELECT usename FROM pg_user WHERE NOT usesuper' | tail -n+3 | sed '$d' | sed '$d')
+                  do
+                    echo Dropping user $user
 
-                      for user in $(psql -h 127.0.0.1 -U postgres -c 'SELECT usename FROM pg_user WHERE NOT usesuper' | tail -n+3 | sed '$d' | sed '$d')
-                      do
-                        echo Dropping user $user
-                        psql -h 127.0.0.1 -U postgres -c "drop user $user"
-                      done
-                    */ ""
-                  }
+                    for database in $(psql -h 127.0.0.1 -U postgres -c 'SELECT datname FROM pg_database WHERE NOT datistemplate' | tail -n+3 | sed '$d' | sed '$d')
+                    do
+                      echo Revoke $user on $database
+                      psql -h 127.0.0.1 -U postgres -c "REASSIGN OWNED BY $user TO postgres" $database
+                      psql -h 127.0.0.1 -U postgres -c "REVOKE ALL PRIVILEGES ON DATABASE $database FROM $user"
+                      psql -h 127.0.0.1 -U postgres -c "REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM $user" $database
+                    done
+
+                    psql -h 127.0.0.1 -U postgres -c "DROP USER $user"
+                  done
 
                   ${(this.spec.users ?? [])
                     .map(
