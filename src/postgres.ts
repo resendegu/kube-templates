@@ -140,6 +140,15 @@ export class Postgres {
                       psql -h 127.0.0.1 -U postgres -c "REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM $user" $database
                     done
 
+                    ${
+                      // Only drop users that should not exist
+                      (this.spec.users ?? []).map(
+                        user => `
+                          [ "$user" == '${user.username}' ] && continue
+                        `
+                      ).join("\n")
+                    }
+
                     echo Dropping user $user
                     psql -h 127.0.0.1 -U postgres -c "DROP USER $user"
                   done
@@ -148,7 +157,8 @@ export class Postgres {
                     .map(
                       user => `
                         echo Creating user ${user.username}...
-                        psql -h 127.0.0.1 -U postgres -c "CREATE USER "'"${user.username}"'" ENCRYPTED PASSWORD '"'${user.password}'"'"
+                        psql -h 127.0.0.1 -U postgres -c "CREATE USER "'"${user.username}"'" ENCRYPTED PASSWORD '"'${user.password}'"'" || true
+                        psql -h 127.0.0.1 -U postgres -c "ALTER USER "'"${user.username}"'" ENCRYPTED PASSWORD '"'${user.password}'"'"
 
                         echo Creating database ${user.database}...
                         psql -h 127.0.0.1 -U postgres -c 'CREATE DATABASE "${user.database}"' || true
