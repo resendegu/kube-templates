@@ -128,11 +128,11 @@ export class Postgres {
                   psql -h 127.0.0.1 -U postgres -c "ALTER USER postgres ENCRYPTED PASSWORD '"'${this
                     .spec.postgresUserPassword ?? ""}'"'"
 
-                  for user in $(psql -h 127.0.0.1 -U postgres -c 'SELECT usename FROM pg_user WHERE NOT usesuper' | tail -n+3 | sed '$d' | sed '$d')
+                  USERS=$(psql -h 127.0.0.1 -U postgres -c 'SELECT usename FROM pg_user WHERE NOT usesuper' | tail -n+3 | sed '$d' | sed '$d')
+                  DATABASES=$(psql -h 127.0.0.1 -U postgres -c 'SELECT datname FROM pg_database WHERE NOT datistemplate' | tail -n+3 | sed '$d' | sed '$d')
+                  for user in $USERS
                   do
-                    echo Dropping user $user
-
-                    for database in $(psql -h 127.0.0.1 -U postgres -c 'SELECT datname FROM pg_database WHERE NOT datistemplate' | tail -n+3 | sed '$d' | sed '$d')
+                    for database in $DATABASES
                     do
                       echo Revoke $user on $database
                       psql -h 127.0.0.1 -U postgres -c "REASSIGN OWNED BY $user TO postgres" $database
@@ -140,6 +140,7 @@ export class Postgres {
                       psql -h 127.0.0.1 -U postgres -c "REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM $user" $database
                     done
 
+                    echo Dropping user $user
                     psql -h 127.0.0.1 -U postgres -c "DROP USER $user"
                   done
 
