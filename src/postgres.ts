@@ -10,9 +10,15 @@ interface PostgresSpec {
   };
   memory: string | number;
   postgresUserPassword?: string;
+  databases?: (
+    | {
+        name: string;
+        users?: string[];
+      }
+    | string
+  )[];
   users?: {
     username: string;
-    database: string;
     password: string;
   }[];
 }
@@ -142,11 +148,13 @@ export class Postgres {
 
                     ${
                       // Only drop users that should not exist
-                      (this.spec.users ?? []).map(
-                        user => `
+                      (this.spec.users ?? [])
+                        .map(
+                          user => `
                           [ "$user" == '${user.username}' ] && continue
                         `
-                      ).join("\n")
+                        )
+                        .join("\n")
                     }
 
                     echo Dropping user $user
@@ -159,20 +167,39 @@ export class Postgres {
                         echo Creating user ${user.username}...
                         psql -h 127.0.0.1 -U postgres -c "CREATE USER "'"${user.username}"'" ENCRYPTED PASSWORD '"'${user.password}'"'" || true
                         psql -h 127.0.0.1 -U postgres -c "ALTER USER "'"${user.username}"'" ENCRYPTED PASSWORD '"'${user.password}'"'"
+                      `
+                    )
+                    .join("\n")}
 
-                        echo Creating database ${user.database}...
-                        psql -h 127.0.0.1 -U postgres -c 'CREATE DATABASE "${user.database}"' || true
+                  ${(this.spec.databases ?? [])
+                    .map(databaseOrName =>
+                      typeof databaseOrName === "string"
+                        ? { name: databaseOrName }
+                        : databaseOrName
+                    )
+                    .map(
+                      database => `
+                        echo Creating database ${database.name}...
+                        psql -h 127.0.0.1 -U postgres -c 'CREATE DATABASE "${
+                          database.name
+                        }"' || true
 
-                        echo Granting privileges on database ${user.database} to user ${user.username}...
-                        psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON DATABASE "${user.database}" TO "${user.username}"'
-                        psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "${user.username}"' ${user.database}
+                        ${(database.users ?? [])
+                          .map(
+                            user => `
+                              echo Granting privileges on database ${database.name} to user ${user}...
+                              psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON DATABASE "${database.name}" TO "${user}"'
+                              psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "${user}"' ${database.name}
+                            `
+                          )
+                          .join("\n")}
                       `
                     )
                     .join("\n")}
 
                   echo Done.
                   touch /ready
-                  sleep 9999999d
+                  sleep inf
                 `
                 ],
                 resources: {
