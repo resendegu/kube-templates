@@ -200,7 +200,7 @@ export class Postgres {
 
                   echo Done.
                   touch /ready
-                  sleep inf
+                  sleep 9999999d
                 `
                 ],
                 resources: {
