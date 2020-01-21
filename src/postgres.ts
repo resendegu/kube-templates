@@ -200,7 +200,13 @@ export class Postgres {
 
                   echo Done.
                   touch /ready
-                  sleep 9999999d
+
+                  trap 'echo Graceful shutdown; exit 0' SIGTERM
+                  while :
+                  do
+                    sleep 999d &
+                    wait $!
+                  done
                 `
                 ],
                 resources: {
