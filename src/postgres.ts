@@ -54,6 +54,7 @@ export class Postgres {
             }
           },
           spec: {
+            automountServiceAccountToken: false,
             containers: [
               {
                 name: "postgres",
@@ -205,11 +206,11 @@ export class Postgres {
                 resources: {
                   limits: {
                     cpu: "100m",
-                    memory: "5Mi"
+                    memory: "20Mi"
                   },
                   requests: {
                     cpu: 0,
-                    memory: "5Mi"
+                    memory: "20Mi"
                   }
                 },
                 readinessProbe: {
