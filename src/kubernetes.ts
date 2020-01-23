@@ -500,6 +500,32 @@ interface TypedLocalObjectReference {
   name: string;
 }
 
+interface JobSpec {
+  activeDeadlineSeconds?: number;
+  backoffLimit?: number;
+  completions?: number;
+  manualSelector?: boolean;
+  parallelism?: number;
+  selector: LabelSelector;
+  template: PodTemplateSpec;
+  ttlSecondsAfterFinished?: number;
+}
+
+interface JobTemplateSpec {
+  metadata: ObjectMeta;
+  spec: JobSpec;
+}
+
+interface CronJobSpec {
+  concurrencyPolicy?: "Allow" | "Forbid" | "Replace";
+  failedJobsHistoryLimit?: number;
+  jobTemplate: JobTemplateSpec;
+  schedule: string;
+  startingDeadlineSeconds?: number;
+  successfulJobsHistoryLimit?: number;
+  suspend?: boolean;
+}
+
 export class Deployment {
   constructor(public metadata: ObjectMeta, public spec: DeploymentSpec) {}
 
@@ -604,6 +630,21 @@ export class Secret {
         data: data,
         kind: "Secret",
         metadata: this.metadata
+      }
+    ]);
+  }
+}
+
+export class CronJob {
+  constructor(public metadata: ObjectMeta, public spec: CronJobSpec) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "batch/v1beta1",
+        kind: "CronJob",
+        metadata: this.metadata,
+        spec: this.spec
       }
     ]);
   }
