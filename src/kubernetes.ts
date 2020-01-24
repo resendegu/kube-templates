@@ -100,88 +100,91 @@ type Volume = {
   name: string;
 } & (
   // | {
-  //     awsElasticBlockStore?: AWSElasticBlockStoreVolumeSource;
+  //     awsElasticBlockStore: AWSElasticBlockStoreVolumeSource;
   //   }
   // | {
-  //     azureDisk?: AzureDiskVolumeSource;
+  //     azureDisk: AzureDiskVolumeSource;
   //   }
   // | {
-  //     azureFile?: AzureFileVolumeSource;
+  //     azureFile: AzureFileVolumeSource;
   //   }
   // | {
-  //     cephfs?: CephFSVolumeSource;
+  //     cephfs: CephFSVolumeSource;
   //   }
   // | {
-  //     cinder?: CinderVolumeSource;
+  //     cinder: CinderVolumeSource;
   //   }
   // | {
-  //     configMap?: ConfigMapVolumeSource;
+  //     configMap: ConfigMapVolumeSource;
   //   }
   // | {
-  //     downwardAPI?: DownwardAPIVolumeSource;
-  //   }
-  // | {
-  //     emptyDir?: EmptyDirVolumeSource;
-  //   }
-  // | {
-  //     fc?: FCVolumeSource;
-  //   }
-  // | {
-  //     flexVolume?: FlexVolumeSource;
-  //   }
-  // | {
-  //     flocker?: FlockerVolumeSource;
-  //   }
-  // | {
-  //     gcePersistentDisk?: GCEPersistentDiskVolumeSource;
-  //   }
-  // | {
-  //     gitRepo?: GitRepoVolumeSource;
-  //   }
-  // | {
-  //     glusterfs?: GlusterfsVolumeSource;
-  //   }
-  // | {
-  //     hostPath?: HostPathVolumeSource;
-  //   }
-  // | {
-  //     iscsi?: ISCSIVolumeSource;
-  //   }
-  // | {
-  //     nfs?: NFSVolumeSource;
+  //     downwardAPI: DownwardAPIVolumeSource;
   //   }
   | {
-      persistentVolumeClaim?: {
+      emptyDir: {
+        medium?: "" | "Memory";
+        sizeLimit?: number | string;
+      };
+    }
+  // | {
+  //     fc: FCVolumeSource;
+  //   }
+  // | {
+  //     flexVolume: FlexVolumeSource;
+  //   }
+  // | {
+  //     flocker: FlockerVolumeSource;
+  //   }
+  // | {
+  //     gcePersistentDisk: GCEPersistentDiskVolumeSource;
+  //   }
+  // | {
+  //     gitRepo: GitRepoVolumeSource;
+  //   }
+  // | {
+  //     glusterfs: GlusterfsVolumeSource;
+  //   }
+  // | {
+  //     hostPath: HostPathVolumeSource;
+  //   }
+  // | {
+  //     iscsi: ISCSIVolumeSource;
+  //   }
+  // | {
+  //     nfs: NFSVolumeSource;
+  //   }
+  | {
+      persistentVolumeClaim: {
         claimName: string
         readonly?: boolean
       };
     }
   // | {
-  //     photonPersistentDisk?: PhotonPersistentDiskVolumeSource;
+  //     photonPersistentDisk: PhotonPersistentDiskVolumeSource;
   //   }
   // | {
-  //     portworxVolume?: PortworxVolumeSource;
+  //     portworxVolume: PortworxVolumeSource;
   //   }
   // | {
-  //     projected?: ProjectedVolumeSource;
+  //     projected: ProjectedVolumeSource;
   //   }
   // | {
-  //     quobyte?: QuobyteVolumeSource;
+  //     quobyte: QuobyteVolumeSource;
   //   }
   // | {
-  //     rbd?: RBDVolumeSource;
+  //     rbd: RBDVolumeSource;
   //   }
   // | {
-  //     scaleIO?: ScaleIOVolumeSource;
+  //     scaleIO: ScaleIOVolumeSource;
   //   }
   // | {
-  //     secret?: SecretVolumeSource;
+  //     secret: SecretVolumeSource;
   //   }
   // | {
-  //     storageos?: StorageOSVolumeSource;
+  //     storageos: StorageOSVolumeSource;
   //   }
   // | {
-  //     vsphereVolume?: VsphereVirtualDiskVolumeSource;
+  //     vsphereVolume: VsphereVirtualDiskVolumeSource;
   //   }
 );
 
