@@ -8,4 +8,5 @@ export * from "./src/redis"
 export * from "./src/replicatedsecret"
 export * from "./src/rethink"
 export * from "./src/statelessapp"
+export * from "./src/staticsite"
 

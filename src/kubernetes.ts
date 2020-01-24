@@ -392,9 +392,9 @@ interface ServiceSpec {
   ipFamily?: string;
   loadBalancerIP?: string;
   loadBalancerSourceRanges?: string[];
-  ports: ServicePort[];
+  ports?: ServicePort[];
   publishNotReadyAddresses?: boolean;
-  selector: { [label: string]: string };
+  selector?: { [label: string]: string };
   sessionAffinity?: "ClientIP" | "None";
   sessionAffinityConfig?: SessionAffinityConfig;
   topologyKeys?: string[];
