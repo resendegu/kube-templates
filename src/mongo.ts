@@ -9,7 +9,10 @@ interface MongoSpec {
     limit: string | number;
   };
   memory: string | number;
-  // postgresUserPassword?: string;
+  auth?: {
+    username: string
+    password: string
+  }
 }
 
 export class Mongo {
@@ -48,6 +51,45 @@ export class Mongo {
               {
                 name: "config",
                 emptyDir: {}
+              }
+            ],
+            initContainers: this.spec.auth && [
+              {
+                name: "mongo",
+                image: `mongo:${this.spec.version}`,
+                imagePullPolicy: "Always",
+                command: [
+                  "bash",
+                  "-ec",
+                  `
+                    mongod &
+                    pid=$!
+
+                    echo Wait for Mongo to be ready.
+                    until mongo --eval "db.adminCommand('ping')"
+                    do
+                    echo Not ready yet. Trying again...
+                    sleep 1
+                    done
+                    echo Mongo is ready.
+
+                    mongo --eval "db.dropAllUsers()"
+                    mongo --eval "db.createUser({ user: '${this.spec.auth.username}', pwd: '${this.spec.auth.password}', roles: [{ role: 'root', db: 'admin' }] })"
+
+                    kill -TERM $pid
+                    wait $pid
+                  `
+                ],
+                volumeMounts: [
+                  {
+                    mountPath: "/data/db",
+                    name: "datadir"
+                  },
+                  {
+                    mountPath: "/data/configdb",
+                    name: "config"
+                  }
+                ],
               }
             ],
             containers: [
