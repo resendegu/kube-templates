@@ -99,6 +99,7 @@ export class Mongo {
                 imagePullPolicy: "Always",
                 command: [
                   "mongod",
+                  "--bind_ip=0.0.0.0",
                   ...(this.spec.auth ? ["--auth"] : [])
                 ],
                 ports: [
