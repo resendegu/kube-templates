@@ -21,12 +21,259 @@ interface PostgresSpec {
     username: string;
     password: string;
   }[];
+  options?: {
+    maxConnections?: number;
+    superuserReservedConnections?: number;
+    tcpKeepalivesIdle?: number;
+    tcpKeepalivesInterval?: number;
+    tcpKeepalivesCount?: number;
+    tcpUserTimeout?: number;
+    authenticationTimeout?: string;
+    sharedBuffers?: string;
+    hugePages?: boolean | "try";
+    tempBuffers?: string;
+    maxPreparedTransactions?: number;
+    workMem?: string;
+    maintenanceWorkMem?: string;
+    autovacuumWorkMem?: string | -1;
+    logicalDecodingWorkMem?: string;
+    maxStackDepth?: string;
+    sharedMemoryType?: "mmap" | "sysv";
+    dynamicSharedMemoryType?: "posix" | "sysv" | "mmap";
+    tempFileLimit?: string | -1;
+    maxFilesPerProcess?: number;
+    vacuumCostDelay?: number;
+    vacuumCostPageHit?: number;
+    vacuumCostPageMiss?: number;
+    vacuumCostPageDirty?: number;
+    vacuumCostLimit?: number;
+    bgwriterDelay?: string;
+    bgwriterLruMaxpages?: number;
+    bgwriterLruMultiplier?: number;
+    bgwriterFlushAfter?: number;
+    effectiveIoConcurrency?: number;
+    maxWorkerProcesses?: number;
+    maxParallelMaintenanceWorkers?: number;
+    maxParallelWorkersPerGather?: number;
+    parallelLeaderParticipation?: boolean;
+    maxParallelWorkers?: number;
+    oldSnapshotThreshold?: string | 0 | -1;
+    backendFlushAfter?: number;
+    walLevel?: "replica" | "minimal" | "logical";
+    fsync?: boolean;
+    synchronousCommit?: boolean | "local" | "remoteWrite" | "remoteApply";
+    walSyncMethod?:
+      | "fsync"
+      | "openDatasync"
+      | "fdatasync"
+      | "fsyncWritethrough"
+      | "openSync";
+    fullPageWrites?: boolean;
+    walCompression?: boolean;
+    walLogHints?: boolean;
+    walInitZero?: boolean;
+    walRecycle?: boolean;
+    walBuffers?: string | -1;
+    walWriterDelay?: string;
+    walWriterFlushAfter?: string | 0;
+    commitDelay?: number;
+    commitSiblings?: number;
+    checkpointTimeout?: string;
+    maxWalSize?: string;
+    minWalSize?: string;
+    checkpointCompletionTarget?: number;
+    checkpointFlushAfter?: number;
+    checkpointWarning?: string;
+    enableBitmapscan?: boolean;
+    enableHashagg?: boolean;
+    enableHashjoin?: boolean;
+    enableIndexscan?: boolean;
+    enableIndexonlyscan?: boolean;
+    enableMaterial?: boolean;
+    enableMergejoin?: boolean;
+    enableNestloop?: boolean;
+    enableParallelAppend?: boolean;
+    enableSeqscan?: boolean;
+    enableSort?: boolean;
+    enableTidscan?: boolean;
+    enablePartitionwiseJoin?: boolean;
+    enablePartitionwiseAggregate?: boolean;
+    enableParallelHash?: boolean;
+    enablePartitionPruning?: boolean;
+    seqPageCost?: number;
+    randomPageCost?: number;
+    cpuTupleCost?: number;
+    cpuIndexTupleCost?: number;
+    cpuOperatorCost?: number;
+    parallelTupleCost?: number;
+    parallelSetupCost?: number;
+    jitAboveCost?: number | -1;
+    jitInlineAboveCost?: number | -1;
+    jitOptimizeAboveCost?: number | -1;
+    minParallelTableScanSize?: string;
+    minParallelIndexScanSize?: string;
+    effectiveCacheSize?: string;
+    geqo?: boolean;
+    geqoThreshold?: number;
+    geqoEffort?: number;
+    geqoPoolSize?: number;
+    geqoGenerations?: number;
+    geqoSelectionBias?: number;
+    geqoSeed?: number;
+    defaultStatisticsTarget?: number;
+    constraintExclusion?: boolean | "partition";
+    cursorTupleFraction?: number;
+    fromCollapseLimit?: number;
+    joinCollapseLimit?: number;
+    forceParallelMode?: boolean;
+    jit?: boolean;
+    planCacheMode?: "auto" | "forceGenericPlan" | "forceCustomPlan";
+    logMinMessages?:
+      | "warning"
+      | "debug5"
+      | "debug4"
+      | "debug3"
+      | "debug2"
+      | "debug1"
+      | "info"
+      | "notice"
+      | "warning"
+      | "error"
+      | "log"
+      | "fatal"
+      | "panic";
+    logMinErrorStatement?:
+      | "error"
+      | "debug5"
+      | "debug4"
+      | "debug3"
+      | "debug2"
+      | "debug1"
+      | "info"
+      | "notice"
+      | "warning"
+      | "error"
+      | "log"
+      | "fatal"
+      | "panic";
+    logMinDurationStatement?: number;
+    logMinDurationSample?: number;
+    logStatementSampleRate?: number;
+    logTransactionSampleRate?: number;
+    debugPrintParse?: boolean;
+    debugPrintRewritten?: boolean;
+    debugPrintPlan?: boolean;
+    debugPrettyPrint?: boolean;
+    logCheckpoints?: boolean;
+    logConnections?: boolean;
+    logDisconnections?: boolean;
+    logDuration?: boolean;
+    logErrorVerbosity?: "default" | "terse" | "verbose";
+    logHostname?: boolean;
+    logLockWaits?: boolean;
+    logStatement?: "none" | "ddl" | "mod" | "all";
+    logParametersOnError?: boolean;
+    logReplicationCommands?: boolean;
+    logTempFiles?: number;
+    trackActivities?: boolean;
+    trackCounts?: boolean;
+    trackIoTiming?: boolean;
+    trackFunctions?: "none" | "pl" | "all";
+    trackActivityQuerySize?: number;
+    logParserStats?: boolean;
+    logPlannerStats?: boolean;
+    logExecutorStats?: boolean;
+    logStatementStats?: boolean;
+    autovacuum?: boolean;
+    logAutovacuumMinDuration?: number;
+    autovacuumMaxWorkers?: number;
+    autovacuumNaptime?: string;
+    autovacuumVacuumThreshold?: number;
+    autovacuumAnalyzeThreshold?: number;
+    autovacuumVacuumScaleFactor?: number;
+    autovacuumAnalyzeScaleFactor?: number;
+    autovacuumFreezeMaxAge?: number;
+    autovacuumMultixactFreezeMaxAge: number;
+    autovacuumVacuumCostDelay?: string | -1;
+    autovacuumVacuumCostLimit?: number;
+    clientMinMessages?:
+      | "notice"
+      | "debug5"
+      | "debug4"
+      | "debug3"
+      | "debug2"
+      | "debug1"
+      | "log"
+      | "notice"
+      | "warning"
+      | "error";
+    rowSecurity?: boolean;
+    defaultTableAccessMethod?: string;
+    checkFunctionBodies?: boolean;
+    defaultTransactionReadOnly?: boolean;
+    defaultTransactionDeferrable?: boolean;
+    sessionReplicationRole?: string;
+    statementTimeout?: number;
+    lockTimeout?: number;
+    idleInTransactionSessionTimeout?: number;
+    vacuumFreezeMinAge?: number;
+    vacuumFreezeTableAge?: number;
+    vacuumMultixactFreezeMinAge?: number;
+    vacuumMultixactFreezeTableAge?: number;
+    vacuumCleanupIndexScaleFactor?: number;
+    deadlockTimeout?: string;
+    maxLocksPerTransaction?: number;
+    maxPredLocksPerTransaction?: number;
+    maxPredLocksPerRelation?: number;
+    maxPredLocksPerPage?: number;
+    arrayNulls?: boolean;
+    backslashQuote?: boolean | "safeEncoding";
+    escapeStringWarning?: boolean;
+    loCompatPrivileges?: boolean;
+    operatorPrecedenceWarning?: boolean;
+    quoteAllIdentifiers?: boolean;
+    standardConformingStrings?: boolean;
+    synchronizeSeqscans?: boolean;
+    transformNullEquals?: boolean;
+    exitOnError?: boolean;
+    dataSyncRetry?: boolean;
+  };
+}
+
+function parseMemory(memory: string | number) {
+  if (typeof memory === "number") return memory;
+
+  const str = memory
+    .replace(/\s/gu, "")
+    .replace(/e(\d+)$/, n => new Array(n).fill("0").join(""));
+
+  let i = 0;
+  for (const letter of ["K", "M", "G", "T", "P", "E"]) {
+    i += 1;
+
+    const match = str.match(new RegExp(`^(\\d+)${letter}(i?)$`));
+    if (match) {
+      const base = parseInt(match[1], 10);
+      const multiplier = Math.pow(match[2] ? 1024 : 1000, i);
+      return base * multiplier;
+    }
+  }
+
+  throw new Error(`Unrecognized memory format: '${memory}'`);
 }
 
 export class Postgres {
   constructor(private metadata: ObjectMeta, private spec: PostgresSpec) {}
 
   get yaml() {
+    const options = {
+      maxConnections: Math.max(
+        100,
+        parseMemory(this.spec.memory) / (8 * 1024 * 1024)
+      ),
+      ...(this.spec.options ?? {})
+    };
+
     return generateYaml([
       new Service(this.metadata, {
         selector: {
@@ -59,6 +306,22 @@ export class Postgres {
               {
                 name: "postgres",
                 image: `postgres:${this.spec.version}-alpine`,
+                command: [
+                  "postgres",
+                  ...Object.entries(options)
+                    .map(([key, value]) => [
+                      "-c",
+                      `${key.replace(/[A-Z]/g, x => `-${x.toLowerCase()}`)}=` +
+                        `${
+                          value === true
+                            ? "yes"
+                            : value === false
+                            ? "no"
+                            : value
+                        }`
+                    ])
+                    .reduce((a, b) => [...a, ...b])
+                ],
                 imagePullPolicy: "Always",
                 ports: [
                   {
@@ -242,9 +505,7 @@ export class Postgres {
                   storage: "2Gi"
                 }
               },
-              storageClassName: process.env.PRODUCTION
-                ? "ssd-regional"
-                : "ssd"
+              storageClassName: process.env.PRODUCTION ? "ssd-regional" : "ssd"
             }
           }
         ]
