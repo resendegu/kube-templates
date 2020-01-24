@@ -107,9 +107,9 @@ export class Rethink {
                   "-ec",
                   `rethinkdb serve ` +
                   `--bind all ` +
-                  `${this.spec.cacheMb ? `--cache-size ${this.spec.cacheMb}` : ""} ` +
+                  (this.spec.cacheMb ? `--cache-size ${this.spec.cacheMb} ` : "") +
                   `--directory /data/rethinkdb ` +
-                  new Array(this.spec.replicas ?? 1).fill(0).map((_, idx) => `--join rethinkdb-${idx} `).join("") +
+                  `$(echo "--join ${this.metadata.name}-"{0..${(this.spec.replicas ?? 1) - 1}} | sed "s/$(hostname)//") ` +
                   `--canonical-address $(hostname)`
                 ],
                 ports: [
