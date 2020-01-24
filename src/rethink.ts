@@ -73,12 +73,6 @@ export class Rethink {
           },
           spec: {
             automountServiceAccountToken: false,
-            volumes: [
-              {
-                name: "config",
-                emptyDir: {}
-              }
-            ],
             initContainers: [
               {
                 name: "create",
@@ -109,7 +103,7 @@ export class Rethink {
                   `--bind all ` +
                   (this.spec.cacheMb ? `--cache-size ${this.spec.cacheMb} ` : "") +
                   `--directory /data/rethinkdb ` +
-                  `$(echo "--join ${this.metadata.name}-"{0..${(this.spec.replicas ?? 1) - 1}} | sed "s/$(hostname)//") ` +
+                  `$(echo "--join ${this.metadata.name}-"{0..${(this.spec.replicas ?? 1) - 1}} | sed "s/--join $(hostname)//") ` +
                   `--canonical-address $(hostname)`
                 ],
                 ports: [
