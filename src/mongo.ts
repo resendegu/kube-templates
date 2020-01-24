@@ -97,6 +97,10 @@ export class Mongo {
                 name: "mongo",
                 image: `mongo:${this.spec.version}`,
                 imagePullPolicy: "Always",
+                command: [
+                  "mongod",
+                  ...(this.spec.auth ? ["--auth"] : [])
+                ],
                 ports: [
                   {
                     name: "mongo",
