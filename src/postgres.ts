@@ -311,7 +311,7 @@ export class Postgres {
                   ...Object.entries(options)
                     .map(([key, value]) => [
                       "-c",
-                      `${key.replace(/[A-Z]/g, x => `-${x.toLowerCase()}`)}=` +
+                      `${key.replace(/[A-Z]/g, x => `_${x.toLowerCase()}`)}=` +
                         `${
                           value === true
                             ? "yes"
