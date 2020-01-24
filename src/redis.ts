@@ -8,6 +8,13 @@ interface RedisSpec {
     limit: string | number;
   };
   memory: string | number;
+  options?: {
+    // TODO: Add all from https://raw.githubusercontent.com/antirez/redis/5.0/redis.conf
+    maxmemory?: string;
+    maxmemoryPolicy?: string;
+    maxmemorySamples?: number;
+    replicaIgnoreMaxmemory?: boolean;
+  };
 }
 
 export class Redis {
@@ -47,6 +54,17 @@ export class Redis {
                 name: "redis",
                 image: `redis:${this.spec.version}`,
                 imagePullPolicy: "Always",
+                command: [
+                  "redis-server",
+                  ...Object.entries(this.spec.options ?? {})
+                    .map(([key, value]) => [
+                      `--${key.replace(/[A-Z]/g, x => `-${x.toLowerCase()}`)}`,
+                      `${
+                        value === true ? "yes" : value === false ? "no" : value
+                      }`
+                    ])
+                    .reduce((a, b) => [...a, ...b])
+                ],
                 ports: [
                   {
                     name: "redis",
@@ -65,20 +83,14 @@ export class Redis {
                 },
                 readinessProbe: {
                   exec: {
-                    command: [
-                      "redis-cli",
-                      "ping"
-                    ]
+                    command: ["redis-cli", "ping"]
                   },
                   failureThreshold: 1,
                   periodSeconds: 3
                 },
                 livenessProbe: {
                   exec: {
-                    command: [
-                      "redis-cli",
-                      "ping"
-                    ]
+                    command: ["redis-cli", "ping"]
                   },
                   failureThreshold: 2,
                   periodSeconds: 5,
