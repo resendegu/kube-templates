@@ -55,7 +55,7 @@ export class Mongo {
             ],
             initContainers: this.spec.auth && [
               {
-                name: "mongo",
+                name: "setup",
                 image: `mongo:${this.spec.version}`,
                 imagePullPolicy: "Always",
                 command: [
@@ -166,9 +166,7 @@ export class Mongo {
                   storage: "2Gi"
                 }
               },
-              storageClassName: process.env.PRODUCTION
-                ? "ssd"
-                : "standard"
+              storageClassName: "ssd"
             }
           }
         ]

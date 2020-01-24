@@ -244,7 +244,7 @@ export class Postgres {
               },
               storageClassName: process.env.PRODUCTION
                 ? "ssd-regional"
-                : "standard"
+                : "ssd"
             }
           }
         ]
