@@ -97,7 +97,7 @@ export class Mongo {
                 name: "mongo",
                 image: `mongo:${this.spec.version}`,
                 imagePullPolicy: "Always",
-                command: [
+                args: [
                   "mongod",
                   "--bind_ip=0.0.0.0",
                   ...(this.spec.auth ? ["--auth"] : [])

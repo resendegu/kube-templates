@@ -306,7 +306,7 @@ export class Postgres {
               {
                 name: "postgres",
                 image: `postgres:${this.spec.version}-alpine`,
-                command: [
+                args: [
                   "postgres",
                   ...Object.entries(options)
                     .map(([key, value]) => [

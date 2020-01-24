@@ -54,7 +54,7 @@ export class Redis {
                 name: "redis",
                 image: `redis:${this.spec.version}`,
                 imagePullPolicy: "Always",
-                command: [
+                args: [
                   "redis-server",
                   ...Object.entries(this.spec.options ?? {})
                     .map(([key, value]) => [
