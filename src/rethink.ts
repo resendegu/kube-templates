@@ -99,7 +99,7 @@ export class Rethink {
                 command: [
                   "bash",
                   "-ec",
-                  `rethinkdb serve ` +
+                  `touch /data/rethinkdb/log_file; tail -f /data/rethinkdb/log_file & rethinkdb serve ` +
                   `--bind all ` +
                   (this.spec.cacheMb ? `--cache-size ${this.spec.cacheMb} ` : "") +
                   `--directory /data/rethinkdb ` +
