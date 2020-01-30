@@ -6,7 +6,7 @@ interface StatelessAppSpec {
   replicas?: number | [number, number];
   image: string;
   command?: string[];
-  envs?: { [env: string]: string | number };
+  envs?: { [env: string]: string | number | { secretName: string, key: string } };
   forwardEnvs?: string[];
   cpu: {
     request: string | number;
@@ -170,10 +170,18 @@ export class StatelessApp {
                 image: this.spec.image,
                 command: this.spec.command,
                 env: [
-                  ...Object.keys(this.spec.envs ?? {}).map(key => ({
-                    name: key,
-                    value: `${(this.spec.envs ?? {})[key]}`
-                  })),
+                  ...(this.spec.envs ? Object.entries(this.spec.envs).map(([name, value]) => (typeof value === "object" ? {
+                    name,
+                    valueFrom: {
+                      secretKeyRef: {
+                        name: value.secretName,
+                        key: value.key
+                      }
+                    }
+                  } : {
+                    name,
+                    value: `${value}`
+                  })) : []),
                   ...(this.spec.forwardEnvs ?? []).map(key => ({
                     name: key,
                     value: env[key] as string
