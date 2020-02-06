@@ -8,6 +8,7 @@ interface StatelessAppSpec {
   command?: string[];
   envs?: { [env: string]: string | number | { secretName: string, key: string } };
   forwardEnvs?: string[];
+  secretEnvs?: string[];
   cpu: {
     request: string | number;
     limit: string | number;
@@ -187,6 +188,11 @@ export class StatelessApp {
                     value: env[key] as string
                   }))
                 ],
+                envFrom: this.spec.secretEnvs?.map(name => ({
+                  secretRef: {
+                    name,
+                  }
+                })) ?? [],
                 resources: {
                   limits: {
                     cpu: this.spec.cpu.limit,

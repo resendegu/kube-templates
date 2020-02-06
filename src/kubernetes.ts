@@ -240,11 +240,27 @@ interface NodeSelectorRequirement {
   values: string[];
 }
 
+interface SecretEnvSource {
+  name: string;
+  optional?: boolean;
+}
+
+interface ConfigMapEnvSource {
+  name: string;
+  optional?: boolean;
+}
+
+interface EnvFromSource {
+  configMapRef?: ConfigMapEnvSource;
+  prefix?: string;
+  secretRef?: SecretEnvSource;
+}
+
 interface Container {
   args?: string[];
   command?: string[];
   env?: EnvVar[];
-  // envFrom?: EnvFromSource[]
+  envFrom?: EnvFromSource[];
   image: string;
   imagePullPolicy?: "Always" | "Never" | "IfNotPresent";
   // lifecycle?: Lifecycle
