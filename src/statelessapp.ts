@@ -1,6 +1,6 @@
 import { URL } from "url";
 import { clone, env, generateYaml, parseMemory } from "./helpers";
-import { Deployment, HorizontalPodAutoscaler, Ingress, ObjectMeta, Service } from "./kubernetes";
+import { Deployment, HorizontalPodAutoscaler, Ingress, ObjectMeta, Service, Volume, VolumeMount } from "./kubernetes";
 
 interface StatelessAppSpec {
   replicas?: number | [number, number];
@@ -43,6 +43,14 @@ interface StatelessAppSpec {
     initialDelay?: number;
     httpGetPath?: string;
   };
+  volumes?: {
+    type: "configMap" | "secret";
+    optional?: boolean;
+    readOnly?: boolean;
+    name: string;
+    mountPath: string;
+    items?: { key: string, path: string }[];
+  }[];
 }
 
 export class StatelessApp {
@@ -142,6 +150,28 @@ export class StatelessApp {
       };
     }
 
+    const volumes: Volume[] = [];
+    const volumeMounts: VolumeMount[] = [];
+
+    for (const volume of this.spec.volumes ?? []) {
+      const name = "vol_" + volume.mountPath.replace(/[^a-zA-Z0-9]/gu, "");
+
+      volumes.push({
+        name,
+        [volume.type]: {
+          [volume.type === "secret" ? "secretName" : "name"]: volume.name,
+          items: volume.items,
+          optional: volume.optional ?? false,
+        },
+      } as Volume);
+
+      volumeMounts.push({
+        name,
+        readOnly: volume.readOnly ?? true,
+        mountPath: volume.mountPath,
+      });
+    }
+
     return generateYaml([
       new Deployment(this.metadata, {
         replicas: Array.isArray(this.spec.replicas)
@@ -197,6 +227,7 @@ export class StatelessApp {
                   }
                 }
               : {}),
+            volumes,
             containers: [
               {
                 name: this.metadata.name,
@@ -239,6 +270,7 @@ export class StatelessApp {
                   name: portSpec.name ?? `port${portSpec.port}`,
                   containerPort: portSpec.containerPort ?? portSpec.port
                 })),
+                volumeMounts,
                 readinessProbe: basicProbe
                   ? {
                       ...basicProbe,

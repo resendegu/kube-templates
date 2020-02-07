@@ -96,7 +96,13 @@ interface Toleration {
   value?: string
 }
 
-type Volume = {
+interface KeyToPath {
+  key: string;
+  path: string;
+  mode?: string;
+}
+
+export type Volume = {
   name: string;
 } & (
   // | {
@@ -114,9 +120,14 @@ type Volume = {
   // | {
   //     cinder: CinderVolumeSource;
   //   }
-  // | {
-  //     configMap: ConfigMapVolumeSource;
-  //   }
+  | {
+      configMap: {
+        defaultMode?: string;
+        items: KeyToPath[];
+        name: string;
+        optional?: boolean;
+      };
+    }
   // | {
   //     downwardAPI: DownwardAPIVolumeSource;
   //   }
@@ -177,9 +188,14 @@ type Volume = {
   // | {
   //     scaleIO: ScaleIOVolumeSource;
   //   }
-  // | {
-  //     secret: SecretVolumeSource;
-  //   }
+  | {
+      secret: {
+        defaultMode?: string;
+        items: KeyToPath[];
+        optional?: boolean;
+        secretName: string;
+      };
+    }
   // | {
   //     storageos: StorageOSVolumeSource;
   //   }
@@ -290,7 +306,7 @@ interface Container {
   workingDir?: string;
 }
 
-interface VolumeMount {
+export interface VolumeMount {
   mountPath: string
   mountPropagation?: string
   name: string
