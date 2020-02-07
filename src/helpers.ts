@@ -48,3 +48,25 @@ export const env = new Proxy(process.env, {
 export function clone(obj: any): any {
   return JSON.parse(JSON.stringify(obj));
 }
+
+export function parseMemory(memory: string | number) {
+  if (typeof memory === "number") return memory;
+
+  const str = memory
+    .replace(/\s/gu, "")
+    .replace(/e(\d+)$/, n => new Array(n).fill("0").join(""));
+
+  let i = 0;
+  for (const letter of ["K", "M", "G", "T", "P", "E"]) {
+    i += 1;
+
+    const match = str.match(new RegExp(`^(\\d+)${letter}(i?)$`, "i"));
+    if (match) {
+      const base = parseInt(match[1], 10);
+      const multiplier = Math.pow(match[2] ? 1024 : 1000, i);
+      return base * multiplier;
+    }
+  }
+
+  throw new Error(`Unrecognized memory format: '${memory}'`);
+}

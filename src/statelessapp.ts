@@ -1,5 +1,5 @@
 import { URL } from "url";
-import { clone, env, generateYaml } from "./helpers";
+import { clone, env, generateYaml, parseMemory } from "./helpers";
 import { Deployment, HorizontalPodAutoscaler, Ingress, ObjectMeta, Service } from "./kubernetes";
 
 interface StatelessAppSpec {
@@ -23,6 +23,11 @@ interface StatelessAppSpec {
         publicUrl?: string;
         tlsCert?: string;
         maxBodySize?: string;
+        endpoints?: Array<{
+          publicUrl?: string;
+          tlsCert?: string;
+          maxBodySize?: string;
+        }>;
       }
     | {
         type: "tcp";
@@ -45,49 +50,76 @@ export class StatelessApp {
 
   get yaml() {
     const ingress = new Ingress(clone(this.metadata), { rules: [], tls: [] });
+
     for (const portSpec of this.spec.ports ?? []) {
-      if (portSpec.type !== "http" || !portSpec.publicUrl) continue;
+      if (portSpec.type !== "http" || (!portSpec.publicUrl && !portSpec.endpoints?.length)) continue;
 
-      const { protocol, hostname, pathname } = new URL(portSpec.publicUrl);
-
-      let rule = ingress.spec.rules!.find(x => x.host === hostname);
-      if (!rule) {
-        ingress.spec.rules!.push(
-          (rule = { host: hostname, http: { paths: [] } })
-        );
-      }
-
-      if (protocol === "https:") {
-        if (!portSpec.tlsCert) {
-          throw "Uma URL com HTTPS foi utilizada, mas 'tlsCert' não foi informado";
+      if (portSpec.publicUrl) {
+        if (!portSpec.endpoints) {
+          portSpec.endpoints = [];
         }
 
-        let tls = ingress.spec.tls!.find(
-          x => x.secretName === portSpec.tlsCert
-        );
-        if (!tls) {
-          ingress.spec.tls!.push(
-            (tls = { secretName: portSpec.tlsCert, hosts: [] })
+        portSpec.endpoints.push({
+          maxBodySize: portSpec.maxBodySize,
+          publicUrl: portSpec.publicUrl,
+          tlsCert: portSpec.tlsCert,
+        });
+      }
+
+      let maxBodySizeBytes = portSpec.maxBodySize ? parseMemory(portSpec.maxBodySize) : null;
+
+      for (const endpointSpec of portSpec.endpoints ?? []) {
+        if (!endpointSpec.publicUrl) continue;
+
+        const { protocol, hostname, pathname } = new URL(endpointSpec.publicUrl);
+        let rule = ingress.spec.rules!.find(x => x.host === hostname);
+
+        if (!rule) {
+          ingress.spec.rules!.push(
+            (rule = { host: hostname, http: { paths: [] } })
           );
         }
 
-        if (!tls.hosts!.includes(hostname)) tls.hosts!.push(hostname);
+        if (protocol === "https:") {
+          if (!endpointSpec.tlsCert) {
+            throw "Uma URL com HTTPS foi utilizada, mas 'tlsCert' não foi informado";
+          }
+
+          let tls = ingress.spec.tls!.find(
+            x => x.secretName === endpointSpec.tlsCert
+          );
+
+          if (!tls) {
+            ingress.spec.tls!.push(
+              (tls = { secretName: endpointSpec.tlsCert, hosts: [] })
+            );
+          }
+
+          if (!tls.hosts!.includes(hostname)) tls.hosts!.push(hostname);
+        }
+
+        rule.http.paths.push({
+          backend: {
+            serviceName: this.metadata.name,
+            servicePort: portSpec.port
+          },
+          path: pathname
+        });
+
+        if (endpointSpec.maxBodySize) {
+          const endpointMaxBodySizeBytes = parseMemory(endpointSpec.maxBodySize);
+
+          if (endpointMaxBodySizeBytes > (maxBodySizeBytes ?? 1)) {
+            maxBodySizeBytes = endpointMaxBodySizeBytes;
+          }
+        }
       }
 
-      rule.http.paths.push({
-        backend: {
-          serviceName: this.metadata.name,
-          servicePort: portSpec.port
-        },
-        path: pathname
-      });
-
       // TODO: This shouldn't be global on entire Ingress. Should be per port.
-      if (portSpec.maxBodySize !== undefined) {
+      if (maxBodySizeBytes) {
         const annotations = ingress.metadata.annotations ?? {};
         ingress.metadata.annotations = annotations;
-        annotations["nginx.ingress.kubernetes.io/proxy-body-size"] =
-          portSpec.maxBodySize;
+        annotations["nginx.ingress.kubernetes.io/proxy-body-size"] = maxBodySizeBytes.toString();
       }
     }
 
