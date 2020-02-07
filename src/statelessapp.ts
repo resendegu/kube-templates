@@ -154,7 +154,7 @@ export class StatelessApp {
     const volumeMounts: VolumeMount[] = [];
 
     for (const volume of this.spec.volumes ?? []) {
-      const name = "vol_" + volume.mountPath.replace(/[^a-zA-Z0-9]/gu, "");
+      const name = "vol-" + volume.mountPath.replace(/[^a-zA-Z0-9]/gu, "");
 
       volumes.push({
         name,
