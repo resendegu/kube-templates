@@ -74,7 +74,7 @@ export class StatelessApp {
         });
       }
 
-      let maxBodySizeBytes = portSpec.maxBodySize ? parseMemory(portSpec.maxBodySize) : null;
+      let maxBodySizeBytes = null;
 
       for (const endpointSpec of portSpec.endpoints ?? []) {
         if (!endpointSpec.publicUrl) continue;
@@ -117,7 +117,7 @@ export class StatelessApp {
         if (endpointSpec.maxBodySize) {
           const endpointMaxBodySizeBytes = parseMemory(endpointSpec.maxBodySize);
 
-          if (endpointMaxBodySizeBytes > (maxBodySizeBytes ?? 1)) {
+          if (!maxBodySizeBytes || endpointMaxBodySizeBytes > maxBodySizeBytes) {
             maxBodySizeBytes = endpointMaxBodySizeBytes;
           }
         }
