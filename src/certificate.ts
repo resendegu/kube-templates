@@ -9,38 +9,46 @@ interface CertificateSpec {
 }
 
 export class Certificate {
-  constructor(private metadata: ObjectMeta, private spec: CertificateSpec) {}
+  constructor(private metadata: Omit<ObjectMeta, "name"> & { name?: string }, private spec: CertificateSpec) {}
 
   get yaml() {
+    const domainSlash = this.spec.domain.replace(/\./gu, "-");
+
     return generateYaml([
-      new CertManagerCertificate(this.metadata, {
-        secretName: this.metadata.name,
-        commonName: this.spec.domain,
-        issuerRef: {
-          name: "letsencrypt",
-          kind: "ClusterIssuer"
+      new CertManagerCertificate(
+        {
+          name: domainSlash,
+          ...this.metadata
         },
-        dnsNames: [this.spec.domain, "*." + this.spec.domain],
-        acme: {
-          config: [
-            {
-              dns01: {
-                provider: this.spec.provider ?? "cloudflare"
-              },
-              domains: [this.spec.domain, "*." + this.spec.domain]
-            }
-          ]
+        {
+          secretName: `cert-${domainSlash}`,
+          commonName: this.spec.domain,
+          issuerRef: {
+            name: "letsencrypt",
+            kind: "ClusterIssuer"
+          },
+          dnsNames: [this.spec.domain, "*." + this.spec.domain],
+          acme: {
+            config: [
+              {
+                dns01: {
+                  provider: this.spec.provider ?? "cloudflare"
+                },
+                domains: [this.spec.domain, "*." + this.spec.domain]
+              }
+            ]
+          }
         }
-      }),
+      ),
       new Secret({
         ...this.metadata,
+        name: `cert-${domainSlash}`,
         annotations: {
           ...(this.metadata.annotations ?? {}),
           ...(this.spec.replicationAllowedNamespaces
             ? {
                 "replicator.v1.mittwald.de/replication-allowed": "true",
-                "replicator.v1.mittwald.de/replication-allowed-namespaces": this
-                  .spec.replicationAllowedNamespaces.source
+                "replicator.v1.mittwald.de/replication-allowed-namespaces": this.spec.replicationAllowedNamespaces.source
               }
             : {})
         }
