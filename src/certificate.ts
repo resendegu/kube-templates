@@ -4,7 +4,7 @@ import { CertManagerCertificate } from "./certmanager";
 
 interface CertificateSpec {
   domain: string;
-  provider?: "cloudflare";
+  provider?: string;
   replicationAllowedNamespaces?: RegExp;
 }
 
