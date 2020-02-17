@@ -4,6 +4,7 @@ import { Deployment, HorizontalPodAutoscaler, Ingress, ObjectMeta, Service, Volu
 
 interface StatelessAppSpec {
   replicas?: number | [number, number];
+  disablePreemptibility?: boolean;
   image: string;
   command?: string[];
   envs?: { [env: string]: string | number | { secretName: string, key: string } };
@@ -212,7 +213,7 @@ export class StatelessApp {
             this.spec.replicas !== undefined &&
             ((Array.isArray(this.spec.replicas) &&
               this.spec.replicas[0] >= 3) ||
-              this.spec.replicas >= 3)
+              this.spec.replicas >= 3) && !(this.spec.disablePreemptibility ?? false)
               ? {
                   tolerations: [
                     {
