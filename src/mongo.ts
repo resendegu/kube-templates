@@ -73,8 +73,8 @@ export class Mongo {
                     done
                     echo Mongo is ready.
 
-                    mongo --eval "db.dropAllUsers()"
-                    mongo --eval "db.createUser({ user: '${this.spec.auth.username}', pwd: '${this.spec.auth.password}', roles: [{ role: 'root', db: 'admin' }] })"
+                    mongo --eval "db.getSiblingDB('admin').dropAllUsers()"
+                    mongo --eval "db.getSiblingDB('admin').createUser({ user: '${this.spec.auth.username}', pwd: '${this.spec.auth.password}', roles: [{ role: 'root', db: 'admin' }] })"
 
                     kill -TERM $pid
                     wait $pid
