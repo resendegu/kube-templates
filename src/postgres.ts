@@ -300,6 +300,12 @@ export class Postgres {
                     ])
                     .reduce((a, b) => [...a, ...b])
                 ],
+                env: this.spec.postgresUserPassword ? [
+                  {
+                    name: "POSTGRES_PASSWORD",
+                    value: this.spec.postgresUserPassword,
+                  }
+                ] : [],
                 imagePullPolicy: "Always",
                 ports: [
                   {
