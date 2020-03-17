@@ -388,7 +388,7 @@ export class Postgres {
                   }
 
                   READ_ONLY=$(psql -h 127.0.0.1 -U postgres -c 'SELECT pg_is_in_recovery()' | tail -n+3 | sed '$d' | sed '$d' | xargs)
-                  if [ $READONLY = "t" ]; then
+                  if [ $READ_ONLY = "t" ]; then
                     echo Database is in read only mode
                     echo Setup will not execute
                     touch /ready
