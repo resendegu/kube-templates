@@ -1,5 +1,5 @@
 import { generateYaml, parseMemory } from "./helpers";
-import { ObjectMeta, Service, StatefulSet } from "./kubernetes";
+import { Container, ObjectMeta, Service, StatefulSet } from "./kubernetes";
 
 interface PostgresSpec {
   // readReplicas?: number;
@@ -21,6 +21,7 @@ interface PostgresSpec {
     username: string;
     password: string;
   }[];
+  initContainers?: Container[],
   options?: {
     maxConnections?: number;
     superuserReservedConnections?: number;
@@ -279,6 +280,7 @@ export class Postgres {
             }
           },
           spec: {
+            initContainers: this.spec.initContainers,
             automountServiceAccountToken: false,
             containers: [
               {

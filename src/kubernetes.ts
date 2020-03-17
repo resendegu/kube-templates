@@ -272,7 +272,7 @@ interface EnvFromSource {
   secretRef?: SecretEnvSource;
 }
 
-interface Container {
+export interface Container {
   args?: string[];
   command?: string[];
   env?: EnvVar[];
