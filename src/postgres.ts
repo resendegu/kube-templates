@@ -378,6 +378,23 @@ export class Postgres {
                   done
                   echo Postgres is ready.
 
+                  function keep_alive {
+                    trap 'echo Graceful shutdown; exit 0' SIGTERM
+                    while :
+                    do
+                      sleep 999d &
+                      wait $!
+                    done
+                  }
+
+                  READ_ONLY=$(psql -h 127.0.0.1 -U postgres -c 'SELECT pg_is_in_recovery()' | tail -n+3 | sed '$d' | sed '$d' | xargs)
+                  if [ $READONLY = "t" ]; then
+                    echo Database is in read only mode
+                    echo Setup will not execute
+                    touch /ready
+                    keep_alive
+                  fi
+
                   echo Setting password for user postgres
                   psql -h 127.0.0.1 -U postgres -c "ALTER USER postgres ENCRYPTED PASSWORD '"'${this
                     .spec.postgresUserPassword ?? ""}'"'"
@@ -447,13 +464,7 @@ export class Postgres {
 
                   echo Done.
                   touch /ready
-
-                  trap 'echo Graceful shutdown; exit 0' SIGTERM
-                  while :
-                  do
-                    sleep 999d &
-                    wait $!
-                  done
+                  keep_alive
                 `
                 ],
                 resources: {
