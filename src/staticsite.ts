@@ -3,6 +3,7 @@ import { generateYaml } from "./helpers";
 import { Ingress, ObjectMeta, Service } from "./kubernetes";
 
 interface StaticSiteSpec {
+  provider?: "gcs" | "s3";
   publicUrl: string;
   bucketName?: string;
   notFoundRedirect?: string;
@@ -15,37 +16,33 @@ export class StaticSite {
 
   get yaml() {
     const { hostname, pathname } = new URL(this.spec.publicUrl);
+    const providerName = this.spec.provider === "gcs" ? "google-cloud-storage" : "amazon-s3";
+    const providerEndpoint = this.spec.provider === "gcs" ? "storage.googleapis.com" : "s3.amazonaws.com";
 
     return generateYaml([
       new Service(
         {
-          name: "google-cloud-storage",
+          name: providerName,
           namespace: this.metadata.namespace
         },
         {
           type: "ExternalName",
-          externalName: "storage.googleapis.com"
+          externalName: providerEndpoint
         }
       ),
+
       new Ingress(
         {
           ...this.metadata,
           annotations: {
             ...this.metadata.annotations,
-            "nginx.ingress.kubernetes.io/rewrite-target":
-              this.spec.bucketName ?? hostname,
-            "nginx.ingress.kubernetes.io/upstream-vhost":
-              "storage.googleapis.com",
-            ...(this.spec.notFoundRedirect
-              ? {
-                  "nginx.ingress.kubernetes.io/configuration-snippet": `
-                      proxy_intercept_errors on;
-                      error_page 404 =${this.spec.notFoundStatus ?? 404} ${
-                    this.spec.notFoundRedirect
-                  };
-                  `
-                }
-              : {})
+            "nginx.ingress.kubernetes.io/rewrite-target": `/${this.spec.bucketName ?? hostname}/$1`,
+            "nginx.ingress.kubernetes.io/upstream-vhost": providerEndpoint,
+            "nginx.ingress.kubernetes.io/configuration-snippet": `
+              proxy_intercept_errors on;
+              error_page 403 =200 /index.html;
+              ${this.spec.notFoundRedirect ? `error_page 404 =${this.spec.notFoundStatus ?? 404} ${this.spec.notFoundRedirect};` : ""}
+            `
           }
         },
         {
@@ -58,7 +55,7 @@ export class StaticSite {
                   {
                     path: `${pathname}?(.*)`,
                     backend: {
-                      serviceName: "google-cloud-storage",
+                      serviceName: providerName,
                       servicePort: 80
                     }
                   }
