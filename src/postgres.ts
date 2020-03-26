@@ -300,7 +300,7 @@ export class Postgres {
                             : value
                         }`
                     ])
-                    .reduce((a, b) => [...a, ...b])
+                    .reduce((a, b) => [...a, ...b], [])
                 ],
                 env: this.spec.postgresUserPassword ? [
                   {

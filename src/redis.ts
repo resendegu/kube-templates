@@ -63,7 +63,7 @@ export class Redis {
                         value === true ? "yes" : value === false ? "no" : value
                       }`
                     ])
-                    .reduce((a, b) => [...a, ...b])
+                    .reduce((a, b) => [...a, ...b], [])
                 ],
                 ports: [
                   {
