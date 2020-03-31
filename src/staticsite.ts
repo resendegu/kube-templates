@@ -16,7 +16,7 @@ export class StaticSite {
 
   get yaml() {
     const { hostname, pathname } = new URL(this.spec.publicUrl);
-    const providerName = this.spec.provider === "s3" ? "amazon-s3" : "google-cloud-storage;
+    const providerName = this.spec.provider === "s3" ? "amazon-s3" : "google-cloud-storage";
     const providerEndpoint = this.spec.provider === "s3" ? "s3.amazonaws.com" : "storage.googleapis.com";
 
     return generateYaml([
