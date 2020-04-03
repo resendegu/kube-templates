@@ -38,11 +38,17 @@ interface StatelessAppSpec {
     port: number;
     containerPort?: number;
   })[];
-  check?: {
-    port: number;
+  check?: (
+    | {
+        port: number;
+        httpGetPath?: string;
+      }
+    | {
+        command: string[];
+      }
+  ) & {
     period?: number;
     initialDelay?: number;
-    httpGetPath?: string;
   };
   volumes?: {
     type: "configMap" | "secret";
@@ -138,18 +144,25 @@ export class StatelessApp {
 
     let basicProbe = undefined;
     if (this.spec.check === undefined) {
-    } else if (this.spec.check.httpGetPath) {
+    } else if ((this.spec.check as any).command) {
+      basicProbe = {
+        exec: {
+          command: (this.spec.check as any).command
+        },
+        periodSeconds: this.spec.check.period ?? 3
+      };
+    } else if ((this.spec.check as any).httpGetPath) {
       basicProbe = {
         httpGet: {
-          path: this.spec.check.httpGetPath,
-          port: this.spec.check.port
+          path: (this.spec.check as any).httpGetPath,
+          port: (this.spec.check as any).port
         },
         periodSeconds: this.spec.check.period ?? 3
       };
     } else {
       basicProbe = {
         tcpSocket: {
-          port: this.spec.check.port
+          port: (this.spec.check as any).port
         },
         periodSeconds: this.spec.check.period ?? 3
       };
