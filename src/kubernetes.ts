@@ -462,7 +462,7 @@ interface IngressBackend {
 
 interface IngressRule {
   host: string;
-  http: HTTPIngressRuleValue;
+  http?: HTTPIngressRuleValue;
 }
 
 interface IngressTLS {
