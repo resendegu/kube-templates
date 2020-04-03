@@ -107,6 +107,10 @@ export class StatelessApp {
           if (!tls.hosts!.includes(hostname)) tls.hosts!.push(hostname);
         }
 
+        if (!rule.http) {
+          rule.http = { paths: [] };
+        }
+
         rule.http.paths.push({
           backend: {
             serviceName: this.metadata.name,
