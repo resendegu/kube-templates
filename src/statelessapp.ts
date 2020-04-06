@@ -42,6 +42,7 @@ interface StatelessAppSpec {
     | {
         port: number;
         httpGetPath?: string;
+        host?: string;
       }
     | {
         command: string[];
@@ -155,7 +156,8 @@ export class StatelessApp {
       basicProbe = {
         httpGet: {
           path: (this.spec.check as any).httpGetPath,
-          port: (this.spec.check as any).port
+          port: (this.spec.check as any).port,
+          httpHeaders: (this.spec.check as any).host ? [{ name: "Host", value: (this.spec.check as any).host }] : []
         },
         periodSeconds: this.spec.check.period ?? 3
       };
