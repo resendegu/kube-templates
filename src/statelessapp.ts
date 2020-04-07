@@ -23,6 +23,7 @@ interface StatelessAppSpec {
         type: "http";
         publicUrl?: string;
         tlsCert?: string;
+        timeout?: number;
         maxBodySize?: string;
         endpoints?: Array<{
           publicUrl?: string;
@@ -135,11 +136,16 @@ export class StatelessApp {
         }
       }
 
+      const annotations = ingress.metadata.annotations ?? {};
+      ingress.metadata.annotations = annotations;
+
       // TODO: This shouldn't be global on entire Ingress. Should be per port.
       if (maxBodySizeBytes) {
-        const annotations = ingress.metadata.annotations ?? {};
-        ingress.metadata.annotations = annotations;
         annotations["nginx.ingress.kubernetes.io/proxy-body-size"] = maxBodySizeBytes.toString();
+      }
+
+      if (portSpec.timeout) {
+        annotations["nginx.ingress.kubernetes.io/proxy-read-timeout"] = portSpec.timeout.toString();
       }
     }
 
