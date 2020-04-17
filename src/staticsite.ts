@@ -40,8 +40,8 @@ export class StaticSite {
             "nginx.ingress.kubernetes.io/upstream-vhost": providerEndpoint,
             "nginx.ingress.kubernetes.io/configuration-snippet": `
               proxy_intercept_errors on;
-              error_page 403 =200 /index.html;
-              ${this.spec.notFoundRedirect ? `error_page 404 =${this.spec.notFoundStatus ?? 404} ${this.spec.notFoundRedirect};` : ""}
+              error_page 403 = /index.html;
+              ${this.spec.notFoundRedirect ? `error_page 404 =${this.spec.notFoundStatus ?? ""} ${this.spec.notFoundRedirect};` : ""}
             `
           }
         },
