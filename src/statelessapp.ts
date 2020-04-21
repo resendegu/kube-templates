@@ -124,7 +124,7 @@ export class StatelessApp {
             serviceName: this.metadata.name,
             servicePort: portSpec.port
           },
-          path: pathname
+          path: (pathname.endsWith("/") ? pathname.substring(0, pathname.length - 1) : pathname) + "(/|$)(.*)"
         });
 
         if (endpointSpec.maxBodySize) {
@@ -147,6 +147,8 @@ export class StatelessApp {
       if (portSpec.timeout) {
         annotations["nginx.ingress.kubernetes.io/proxy-read-timeout"] = portSpec.timeout.toString();
       }
+
+      annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$2";
     }
 
     let basicProbe = undefined;
