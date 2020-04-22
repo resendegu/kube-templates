@@ -124,7 +124,7 @@ export class StatelessApp {
             serviceName: this.metadata.name,
             servicePort: portSpec.port
           },
-          path: (pathname.endsWith("/") ? pathname.substring(0, pathname.length - 1) : pathname) + "(/|$)(.*)"
+          path: (pathname !== "/" && pathname.endsWith("/") ? pathname.substring(0, pathname.length - 1) : pathname) + "(/|$)(.*)"
         });
 
         if (endpointSpec.maxBodySize) {
