@@ -84,6 +84,7 @@ export class StatelessApp {
       }
 
       let maxBodySizeBytes = null;
+      let hasPath = false;
 
       for (const endpointSpec of portSpec.endpoints ?? []) {
         if (!endpointSpec.publicUrl) continue;
@@ -119,12 +120,14 @@ export class StatelessApp {
           rule.http = { paths: [] };
         }
 
+        hasPath = hasPath ?? pathname === "/";
+
         rule.http.paths.push({
           backend: {
             serviceName: this.metadata.name,
             servicePort: portSpec.port
           },
-          path: (pathname !== "/" && pathname.endsWith("/") ? pathname.substring(0, pathname.length - 1) : pathname) + "(/|$)(.*)"
+          path: pathname === "/" ? pathname : ((pathname.endsWith("/") ? pathname.substring(0, pathname.length - 1) : pathname) + "(/|$)(.*)")
         });
 
         if (endpointSpec.maxBodySize) {
@@ -148,7 +151,9 @@ export class StatelessApp {
         annotations["nginx.ingress.kubernetes.io/proxy-read-timeout"] = portSpec.timeout.toString();
       }
 
-      annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$2";
+      if (hasPath) {
+        annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$2";
+      }
     }
 
     let basicProbe = undefined;
