@@ -120,7 +120,7 @@ export class StatelessApp {
           rule.http = { paths: [] };
         }
 
-        hasPath = hasPath ?? pathname === "/";
+        hasPath = hasPath ?? pathname !== "/";
 
         rule.http.paths.push({
           backend: {
