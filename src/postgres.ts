@@ -324,6 +324,10 @@ export class Postgres {
                     name: "data",
                     subPath: "data",
                   },
+                  {
+                    mountPath: "/dev/shm",
+                    name: "shm",
+                  },
                 ],
                 resources: {
                   limits: {
@@ -489,6 +493,14 @@ export class Postgres {
                   },
                   failureThreshold: 1,
                   periodSeconds: 3,
+                },
+              },
+            ],
+            volumes: [
+              {
+                name: "shm",
+                emptyDir: {
+                  medium: "Memory" as const,
                 },
               },
             ],
