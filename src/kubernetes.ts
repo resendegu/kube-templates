@@ -83,17 +83,17 @@ interface PodSpec {
   shareProcessNamespace?: boolean;
   subdomain?: string;
   terminationGracePeriodSeconds?: number;
-  tolerations?: Toleration[]
+  tolerations?: Toleration[];
   // topologySpreadConstraints?: TopologySpreadConstraint[]
   volumes?: Volume[];
 }
 
 interface Toleration {
-  effect: string
-  key: string
-  operator?: "Exists" | "Equal"
-  tolerationSeconds?: number
-  value?: string
+  effect: string;
+  key: string;
+  operator?: "Exists" | "Equal";
+  tolerationSeconds?: number;
+  value?: string;
 }
 
 interface KeyToPath {
@@ -105,7 +105,7 @@ interface KeyToPath {
 export type Volume = {
   name: string;
 } & (
-  // | {
+  | // | {
   //     awsElasticBlockStore: AWSElasticBlockStoreVolumeSource;
   //   }
   // | {
@@ -120,7 +120,7 @@ export type Volume = {
   // | {
   //     cinder: CinderVolumeSource;
   //   }
-  | {
+  {
       configMap: {
         defaultMode?: string;
         items: KeyToPath[];
@@ -166,8 +166,8 @@ export type Volume = {
   //   }
   | {
       persistentVolumeClaim: {
-        claimName: string
-        readonly?: boolean
+        claimName: string;
+        readonly?: boolean;
       };
     }
   // | {
@@ -302,16 +302,16 @@ export interface Container {
   terminationMessagePolicy?: string;
   tty?: boolean;
   // volumeDevices?: VolumeDevice[]
-  volumeMounts?: VolumeMount[]
+  volumeMounts?: VolumeMount[];
   workingDir?: string;
 }
 
 export interface VolumeMount {
-  mountPath: string
-  mountPropagation?: string
-  name: string
-  readOnly?: boolean
-  subPath?: string
+  mountPath: string;
+  mountPropagation?: string;
+  name: string;
+  readOnly?: boolean;
+  subPath?: string;
 }
 
 type Probe = (
@@ -570,8 +570,8 @@ export class Deployment {
         apiVersion: "apps/v1",
         kind: "Deployment",
         metadata: this.metadata,
-        spec: this.spec
-      }
+        spec: this.spec,
+      },
     ]);
   }
 }
@@ -585,8 +585,8 @@ export class StatefulSet {
         apiVersion: "apps/v1",
         kind: "StatefulSet",
         metadata: this.metadata,
-        spec: this.spec
-      }
+        spec: this.spec,
+      },
     ]);
   }
 }
@@ -600,8 +600,8 @@ export class Service {
         apiVersion: "v1",
         kind: "Service",
         metadata: this.metadata,
-        spec: this.spec
-      }
+        spec: this.spec,
+      },
     ]);
   }
 }
@@ -615,8 +615,8 @@ export class Ingress {
         apiVersion: "networking.k8s.io/v1beta1",
         kind: "Ingress",
         metadata: this.metadata,
-        spec: this.spec
-      }
+        spec: this.spec,
+      },
     ]);
   }
 }
@@ -633,8 +633,8 @@ export class HorizontalPodAutoscaler {
         apiVersion: "autoscaling/v1",
         kind: "HorizontalPodAutoscaler",
         metadata: this.metadata,
-        spec: this.spec
-      }
+        spec: this.spec,
+      },
     ]);
   }
 }
@@ -664,8 +664,8 @@ export class Secret {
         apiVersion: "v1",
         data: data,
         kind: "Secret",
-        metadata: this.metadata
-      }
+        metadata: this.metadata,
+      },
     ]);
   }
 }
@@ -679,8 +679,8 @@ export class CronJob {
         apiVersion: "batch/v1beta1",
         kind: "CronJob",
         metadata: this.metadata,
-        spec: this.spec
-      }
+        spec: this.spec,
+      },
     ]);
   }
 }

@@ -10,9 +10,9 @@ interface MongoSpec {
   };
   memory: string | number;
   auth?: {
-    username: string
-    password: string
-  }
+    username: string;
+    password: string;
+  };
 }
 
 export class Mongo {
@@ -22,36 +22,36 @@ export class Mongo {
     return generateYaml([
       new Service(this.metadata, {
         selector: {
-          app: this.metadata.name
+          app: this.metadata.name,
         },
         ports: [
           {
             name: "mongo",
-            port: 27017
-          }
-        ]
+            port: 27017,
+          },
+        ],
       }),
       new StatefulSet(this.metadata, {
         serviceName: this.metadata.name,
         replicas: 1,
         selector: {
           matchLabels: {
-            app: this.metadata.name
-          }
+            app: this.metadata.name,
+          },
         },
         template: {
           metadata: {
             labels: {
-              app: this.metadata.name
-            }
+              app: this.metadata.name,
+            },
           },
           spec: {
             automountServiceAccountToken: false,
             volumes: [
               {
                 name: "config",
-                emptyDir: {}
-              }
+                emptyDir: {},
+              },
             ],
             initContainers: this.spec.auth && [
               {
@@ -78,19 +78,19 @@ export class Mongo {
 
                     kill -TERM $pid
                     wait $pid
-                  `
+                  `,
                 ],
                 volumeMounts: [
                   {
                     mountPath: "/data/db",
-                    name: "datadir"
+                    name: "datadir",
                   },
                   {
                     mountPath: "/data/configdb",
-                    name: "config"
-                  }
+                    name: "config",
+                  },
                 ],
-              }
+              },
             ],
             containers: [
               {
@@ -100,78 +100,70 @@ export class Mongo {
                 args: [
                   "mongod",
                   "--bind_ip=0.0.0.0",
-                  ...(this.spec.auth ? ["--auth"] : [])
+                  ...(this.spec.auth ? ["--auth"] : []),
                 ],
                 ports: [
                   {
                     name: "mongo",
-                    containerPort: 27017
-                  }
+                    containerPort: 27017,
+                  },
                 ],
                 volumeMounts: [
                   {
                     mountPath: "/data/db",
-                    name: "datadir"
+                    name: "datadir",
                   },
                   {
                     mountPath: "/data/configdb",
-                    name: "config"
-                  }
+                    name: "config",
+                  },
                 ],
                 resources: {
                   limits: {
                     cpu: this.spec.cpu.limit,
-                    memory: this.spec.memory
+                    memory: this.spec.memory,
                   },
                   requests: {
                     cpu: this.spec.cpu.request,
-                    memory: this.spec.memory
-                  }
+                    memory: this.spec.memory,
+                  },
                 },
                 readinessProbe: {
                   exec: {
-                    command: [
-                      "mongo",
-                      "--eval",
-                      "db.adminCommand('ping')"
-                    ]
+                    command: ["mongo", "--eval", "db.adminCommand('ping')"],
                   },
                   failureThreshold: 1,
-                  periodSeconds: 3
+                  periodSeconds: 3,
                 },
                 livenessProbe: {
                   exec: {
-                    command: [
-                      "mongo",
-                      "--eval",
-                      "db.adminCommand('ping')"
-                    ]
+                    command: ["mongo", "--eval", "db.adminCommand('ping')"],
                   },
                   failureThreshold: 2,
                   periodSeconds: 5,
-                  initialDelaySeconds: 10
-                }
-              }
-            ]
-          }
+                  initialDelaySeconds: 10,
+                },
+              },
+            ],
+          },
         },
         volumeClaimTemplates: [
           {
             metadata: {
-              name: "datadir"
+              name: "datadir",
             },
             spec: {
               accessModes: ["ReadWriteOnce"],
               resources: {
                 requests: {
-                  storage: "2Gi"
-                }
+                  storage: "2Gi",
+                },
               },
-              storageClassName: "ssd"
-            }
-          }
-        ]
-      })
+              storageClassName: "ssd",
+            },
+          },
+        ],
+      }),
     ]);
   }
 }

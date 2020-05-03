@@ -21,7 +21,7 @@ interface PostgresSpec {
     username: string;
     password: string;
   }[];
-  initContainers?: Container[],
+  initContainers?: Container[];
   options?: {
     maxConnections?: number;
     superuserReservedConnections?: number;
@@ -250,34 +250,34 @@ export class Postgres {
         100,
         parseMemory(this.spec.memory) / (8 * 1024 * 1024)
       ),
-      ...(this.spec.options ?? {})
+      ...(this.spec.options ?? {}),
     };
 
     return generateYaml([
       new Service(this.metadata, {
         selector: {
-          app: this.metadata.name
+          app: this.metadata.name,
         },
         ports: [
           {
             name: "postgres",
-            port: 5432
-          }
-        ]
+            port: 5432,
+          },
+        ],
       }),
       new StatefulSet(this.metadata, {
         serviceName: this.metadata.name,
         replicas: 1,
         selector: {
           matchLabels: {
-            app: this.metadata.name
-          }
+            app: this.metadata.name,
+          },
         },
         template: {
           metadata: {
             labels: {
-              app: this.metadata.name
-            }
+              app: this.metadata.name,
+            },
           },
           spec: {
             initContainers: this.spec.initContainers,
@@ -291,46 +291,49 @@ export class Postgres {
                   ...Object.entries(options)
                     .map(([key, value]) => [
                       "-c",
-                      `${key.replace(/[A-Z]/g, x => `_${x.toLowerCase()}`)}=` +
+                      `${key.replace(
+                        /[A-Z]/g,
+                        (x) => `_${x.toLowerCase()}`
+                      )}=` +
                         `${
                           value === true
                             ? "yes"
                             : value === false
                             ? "no"
                             : value
-                        }`
+                        }`,
                     ])
-                    .reduce((a, b) => [...a, ...b], [])
+                    .reduce((a, b) => [...a, ...b], []),
                 ],
                 env: [
                   {
                     name: "POSTGRES_PASSWORD",
                     value: this.spec.postgresUserPassword ?? "postgres",
-                  }
+                  },
                 ],
                 imagePullPolicy: "Always",
                 ports: [
                   {
                     name: "postgres",
-                    containerPort: 5432
-                  }
+                    containerPort: 5432,
+                  },
                 ],
                 volumeMounts: [
                   {
                     mountPath: "/var/lib/postgresql/data",
                     name: "data",
-                    subPath: "data"
-                  }
+                    subPath: "data",
+                  },
                 ],
                 resources: {
                   limits: {
                     cpu: this.spec.cpu.limit,
-                    memory: this.spec.memory
+                    memory: this.spec.memory,
                   },
                   requests: {
                     cpu: this.spec.cpu.request,
-                    memory: this.spec.memory
-                  }
+                    memory: this.spec.memory,
+                  },
                 },
                 readinessProbe: {
                   exec: {
@@ -341,11 +344,11 @@ export class Postgres {
                       "-U",
                       "postgres",
                       "-c",
-                      "SELECT 1"
-                    ]
+                      "SELECT 1",
+                    ],
                   },
                   failureThreshold: 1,
-                  periodSeconds: 3
+                  periodSeconds: 3,
                 },
                 livenessProbe: {
                   exec: {
@@ -356,13 +359,13 @@ export class Postgres {
                       "-U",
                       "postgres",
                       "-c",
-                      "SELECT 1"
-                    ]
+                      "SELECT 1",
+                    ],
                   },
                   failureThreshold: 2,
                   periodSeconds: 5,
-                  initialDelaySeconds: 10
-                }
+                  initialDelaySeconds: 10,
+                },
               },
               {
                 name: "setup",
@@ -398,8 +401,9 @@ export class Postgres {
                   fi
 
                   echo Setting password for user postgres
-                  psql -h 127.0.0.1 -U postgres -c "ALTER USER postgres ENCRYPTED PASSWORD '"'${this
-                    .spec.postgresUserPassword ?? "postgres"}'"'"
+                  psql -h 127.0.0.1 -U postgres -c "ALTER USER postgres ENCRYPTED PASSWORD '"'${
+                    this.spec.postgresUserPassword ?? "postgres"
+                  }'"'"
 
                   USERS=$(psql -h 127.0.0.1 -U postgres -c 'SELECT usename FROM pg_user WHERE NOT usesuper' | tail -n+3 | sed '$d' | sed '$d')
                   DATABASES=$(psql -h 127.0.0.1 -U postgres -c 'SELECT datname FROM pg_database WHERE NOT datistemplate' | tail -n+3 | sed '$d' | sed '$d')
@@ -417,7 +421,7 @@ export class Postgres {
                       // Only drop users that should not exist
                       (this.spec.users ?? [])
                         .map(
-                          user => `
+                          (user) => `
                           [ "$user" == '${user.username}' ] && continue
                         `
                         )
@@ -430,7 +434,7 @@ export class Postgres {
 
                   ${(this.spec.users ?? [])
                     .map(
-                      user => `
+                      (user) => `
                         echo Creating user ${user.username}...
                         psql -h 127.0.0.1 -U postgres -c "CREATE USER "'"${user.username}"'" ENCRYPTED PASSWORD '"'${user.password}'"'" || true
                         psql -h 127.0.0.1 -U postgres -c "ALTER USER "'"${user.username}"'" ENCRYPTED PASSWORD '"'${user.password}'"'"
@@ -439,13 +443,13 @@ export class Postgres {
                     .join("\n")}
 
                   ${(this.spec.databases ?? [])
-                    .map(databaseOrName =>
+                    .map((databaseOrName) =>
                       typeof databaseOrName === "string"
                         ? { name: databaseOrName }
                         : databaseOrName
                     )
                     .map(
-                      database => `
+                      (database) => `
                         echo Creating database ${database.name}...
                         psql -h 127.0.0.1 -U postgres -c 'CREATE DATABASE "${
                           database.name
@@ -453,7 +457,7 @@ export class Postgres {
 
                         ${(database.users ?? [])
                           .map(
-                            user => `
+                            (user) => `
                               echo Granting privileges on database ${database.name} to user ${user}...
                               psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON DATABASE "${database.name}" TO "${user}"'
                               psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "${user}"' ${database.name}
@@ -467,46 +471,46 @@ export class Postgres {
                   echo Done.
                   touch /ready
                   keep_alive
-                `
+                `,
                 ],
                 resources: {
                   limits: {
                     cpu: "100m",
-                    memory: "20Mi"
+                    memory: "20Mi",
                   },
                   requests: {
                     cpu: 0,
-                    memory: "20Mi"
-                  }
+                    memory: "20Mi",
+                  },
                 },
                 readinessProbe: {
                   exec: {
-                    command: ["cat", "/ready"]
+                    command: ["cat", "/ready"],
                   },
                   failureThreshold: 1,
-                  periodSeconds: 3
-                }
-              }
-            ]
-          }
+                  periodSeconds: 3,
+                },
+              },
+            ],
+          },
         },
         volumeClaimTemplates: [
           {
             metadata: {
-              name: "data"
+              name: "data",
             },
             spec: {
               accessModes: ["ReadWriteOnce"],
               resources: {
                 requests: {
-                  storage: "2Gi"
-                }
+                  storage: "2Gi",
+                },
               },
-              storageClassName: process.env.PRODUCTION ? "ssd-regional" : "ssd"
-            }
-          }
-        ]
-      })
+              storageClassName: process.env.PRODUCTION ? "ssd-regional" : "ssd",
+            },
+          },
+        ],
+      }),
     ]);
   }
 }
