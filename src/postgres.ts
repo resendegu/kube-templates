@@ -465,6 +465,7 @@ export class Postgres {
                               echo Granting privileges on database ${database.name} to user ${user}...
                               psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON DATABASE "${database.name}" TO "${user}"'
                               psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "${user}"' ${database.name}
+                              psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO "${user}"' ${database.name}
                             `
                           )
                           .join("\n")}
