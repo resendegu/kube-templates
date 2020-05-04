@@ -24,28 +24,28 @@ export class Redis {
     return generateYaml([
       new Service(this.metadata, {
         selector: {
-          app: this.metadata.name
+          app: this.metadata.name,
         },
         ports: [
           {
             name: "redis",
-            port: 6379
-          }
-        ]
+            port: 6379,
+          },
+        ],
       }),
       new StatefulSet(this.metadata, {
         serviceName: this.metadata.name,
         replicas: 1,
         selector: {
           matchLabels: {
-            app: this.metadata.name
-          }
+            app: this.metadata.name,
+          },
         },
         template: {
           metadata: {
             labels: {
-              app: this.metadata.name
-            }
+              app: this.metadata.name,
+            },
           },
           spec: {
             automountServiceAccountToken: false,
@@ -58,50 +58,53 @@ export class Redis {
                   "redis-server",
                   ...Object.entries(this.spec.options ?? {})
                     .map(([key, value]) => [
-                      `--${key.replace(/[A-Z]/g, x => `-${x.toLowerCase()}`)}`,
+                      `--${key.replace(
+                        /[A-Z]/g,
+                        (x) => `-${x.toLowerCase()}`
+                      )}`,
                       `${
                         value === true ? "yes" : value === false ? "no" : value
-                      }`
+                      }`,
                     ])
-                    .reduce((a, b) => [...a, ...b], [])
+                    .reduce((a, b) => [...a, ...b], []),
                 ],
                 ports: [
                   {
                     name: "redis",
-                    containerPort: 6379
-                  }
+                    containerPort: 6379,
+                  },
                 ],
                 resources: {
                   limits: {
                     cpu: this.spec.cpu.limit,
-                    memory: this.spec.memory
+                    memory: this.spec.memory,
                   },
                   requests: {
                     cpu: this.spec.cpu.request,
-                    memory: this.spec.memory
-                  }
+                    memory: this.spec.memory,
+                  },
                 },
                 readinessProbe: {
                   exec: {
-                    command: ["redis-cli", "ping"]
+                    command: ["redis-cli", "ping"],
                   },
                   failureThreshold: 1,
-                  periodSeconds: 3
+                  periodSeconds: 3,
                 },
                 livenessProbe: {
                   exec: {
-                    command: ["redis-cli", "ping"]
+                    command: ["redis-cli", "ping"],
                   },
                   failureThreshold: 2,
                   periodSeconds: 5,
-                  initialDelaySeconds: 10
-                }
-              }
-            ]
-          }
+                  initialDelaySeconds: 10,
+                },
+              },
+            ],
+          },
         },
-        volumeClaimTemplates: []
-      })
+        volumeClaimTemplates: [],
+      }),
     ]);
   }
 }

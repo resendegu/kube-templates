@@ -2,11 +2,14 @@ import { generateYaml } from "./helpers";
 import { ObjectMeta, Secret } from "./kubernetes";
 
 interface ReplicatedSecretSpec {
-  from: string
+  from: string;
 }
 
 export class ReplicatedSecret {
-  constructor(private metadata: ObjectMeta, private spec: ReplicatedSecretSpec) {}
+  constructor(
+    private metadata: ObjectMeta,
+    private spec: ReplicatedSecretSpec
+  ) {}
 
   get yaml() {
     return generateYaml([
@@ -14,9 +17,9 @@ export class ReplicatedSecret {
         ...this.metadata,
         annotations: {
           ...(this.metadata.annotations ?? {}),
-          "replicator.v1.mittwald.de/replicate-from": this.spec.from
-        }
-      })
+          "replicator.v1.mittwald.de/replicate-from": this.spec.from,
+        },
+      }),
     ]);
   }
 }

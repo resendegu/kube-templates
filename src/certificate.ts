@@ -1,6 +1,6 @@
+import { CertManagerCertificate } from "./certmanager";
 import { generateYaml } from "./helpers";
 import { ObjectMeta, Secret } from "./kubernetes";
-import { CertManagerCertificate } from "./certmanager";
 
 interface CertificateSpec {
   domain: string;
@@ -9,7 +9,10 @@ interface CertificateSpec {
 }
 
 export class Certificate {
-  constructor(private metadata: Omit<ObjectMeta, "name"> & { name?: string }, private spec: CertificateSpec) {}
+  constructor(
+    private metadata: Omit<ObjectMeta, "name"> & { name?: string },
+    private spec: CertificateSpec
+  ) {}
 
   get yaml() {
     const domainSlash = this.spec.domain.replace(/\./gu, "-");
@@ -18,26 +21,26 @@ export class Certificate {
       new CertManagerCertificate(
         {
           name: domainSlash,
-          ...this.metadata
+          ...this.metadata,
         },
         {
           secretName: `cert-${domainSlash}`,
           commonName: this.spec.domain,
           issuerRef: {
             name: "letsencrypt",
-            kind: "ClusterIssuer"
+            kind: "ClusterIssuer",
           },
           dnsNames: [this.spec.domain, "*." + this.spec.domain],
           acme: {
             config: [
               {
                 dns01: {
-                  provider: this.spec.provider ?? "cloudflare"
+                  provider: this.spec.provider ?? "cloudflare",
                 },
-                domains: [this.spec.domain, "*." + this.spec.domain]
-              }
-            ]
-          }
+                domains: [this.spec.domain, "*." + this.spec.domain],
+              },
+            ],
+          },
         }
       ),
       new Secret({
@@ -48,11 +51,12 @@ export class Certificate {
           ...(this.spec.replicationAllowedNamespaces
             ? {
                 "replicator.v1.mittwald.de/replication-allowed": "true",
-                "replicator.v1.mittwald.de/replication-allowed-namespaces": this.spec.replicationAllowedNamespaces.source
+                "replicator.v1.mittwald.de/replication-allowed-namespaces": this
+                  .spec.replicationAllowedNamespaces.source,
               }
-            : {})
-        }
-      })
+            : {}),
+        },
+      }),
     ]);
   }
 }

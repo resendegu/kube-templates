@@ -1,18 +1,23 @@
 import { safeDump } from "js-yaml";
 
 export function generateYaml(objects: any[]) {
-  return objects.map(obj => {
-    if ("yaml" in obj) {
-      return obj.yaml;
-    }
+  return objects
+    .map((obj) => {
+      if ("yaml" in obj) {
+        return obj.yaml;
+      }
 
-    obj = stripUndefinedProperties(obj);
-    return "---\n" + safeDump(obj, {
-      noRefs: true,
-      sortKeys: true,
-      noArrayIndent: true
-    });
-  }).join("\n");
+      obj = stripUndefinedProperties(obj);
+      return (
+        "---\n" +
+        safeDump(obj, {
+          noRefs: true,
+          sortKeys: true,
+          noArrayIndent: true,
+        })
+      );
+    })
+    .join("\n");
 }
 
 function stripUndefinedProperties(obj: any): any {
@@ -23,11 +28,9 @@ function stripUndefinedProperties(obj: any): any {
     for (const prop of Object.keys(obj)) {
       const value = obj[prop];
 
-      if (value === undefined)
-        continue;
+      if (value === undefined) continue;
 
-      if (Array.isArray(value) && value.length === 0)
-        continue;
+      if (Array.isArray(value) && value.length === 0) continue;
 
       newObj[prop] = stripUndefinedProperties(value);
     }
@@ -54,7 +57,7 @@ export function parseMemory(memory: string | number) {
 
   const str = memory
     .replace(/\s/gu, "")
-    .replace(/e(\d+)$/, n => new Array(n).fill("0").join(""));
+    .replace(/e(\d+)$/, (n) => new Array(n).fill("0").join(""));
 
   let i = 0;
   for (const letter of ["K", "M", "G", "T", "P", "E"]) {
