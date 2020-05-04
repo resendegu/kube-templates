@@ -78,7 +78,7 @@ interface PodSpec {
   restartPolicy?: "Always" | "OnFailure" | "Never";
   runtimeClassName?: string;
   schedulerName?: string;
-  // securityContext?: PodSecurityContext
+  securityContext?: PodSecurityContext;
   serviceAccountName?: string;
   shareProcessNamespace?: boolean;
   subdomain?: string;
@@ -86,6 +86,20 @@ interface PodSpec {
   tolerations?: Toleration[];
   // topologySpreadConstraints?: TopologySpreadConstraint[]
   volumes?: Volume[];
+}
+
+interface PodSecurityContext {
+  fsGroup?: number;
+  runAsGroup?: number;
+  runAsNonRoot?: boolean;
+  runAsUser?: number;
+  seLinuxOptions?: {
+    level?: string;
+    role?: string;
+    type?: string;
+    user?: string;
+  };
+  supplementalGroups?: number[];
 }
 
 interface Toleration {
