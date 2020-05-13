@@ -194,7 +194,7 @@ interface PostgresSpec {
     autovacuumVacuumScaleFactor?: number;
     autovacuumAnalyzeScaleFactor?: number;
     autovacuumFreezeMaxAge?: number;
-    autovacuumMultixactFreezeMaxAge: number;
+    autovacuumMultixactFreezeMaxAge?: number;
     autovacuumVacuumCostDelay?: string | -1;
     autovacuumVacuumCostLimit?: number;
     clientMinMessages?:
