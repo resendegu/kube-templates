@@ -445,7 +445,7 @@ export class Postgres {
                   echo Setting password for user postgres
                   psql -h 127.0.0.1 -U postgres -c "ALTER USER postgres ENCRYPTED PASSWORD '$POSTGRES_PASSWORD'"
 
-                  USERS=$(psql -h 127.0.0.1 -U postgres -c 'SELECT usename FROM pg_user WHERE NOT usesuper' | tail -n+3 | sed '$d' | sed '$d')
+                  USERS=$(psql -h 127.0.0.1 -U postgres -c "SELECT usename FROM pg_user WHERE NOT usesuper AND usename != 'pganalyze'" | tail -n+3 | sed '$d' | sed '$d')
                   DATABASES=$(psql -h 127.0.0.1 -U postgres -c 'SELECT datname FROM pg_database WHERE NOT datistemplate' | tail -n+3 | sed '$d' | sed '$d')
                   for user in $USERS
                   do
