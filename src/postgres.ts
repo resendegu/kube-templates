@@ -9,7 +9,7 @@ interface PostgresSpec {
     limit: string | number;
   };
   memory: string | number;
-  postgresUserPassword?: string;
+  postgresUserPassword?: string | { secretName: string; key: string };
   databases?: (
     | {
         name: string;
@@ -308,7 +308,23 @@ export class Postgres {
                 env: [
                   {
                     name: "POSTGRES_PASSWORD",
-                    value: this.spec.postgresUserPassword ?? "postgres",
+                    ...(this.spec.postgresUserPassword
+                      ? typeof this.spec.postgresUserPassword === "object"
+                        ? {
+                            valueFrom: {
+                              secretKeyRef: {
+                                name: this.spec.postgresUserPassword.secretName,
+                                key: this.spec.postgresUserPassword.key,
+                              },
+                            },
+                          }
+                        : {
+                            value: `${this.spec.postgresUserPassword}`,
+                          }
+                      : {
+                          value: "postgres",
+                        }
+                      ),
                   },
                 ],
                 imagePullPolicy: "Always",
@@ -375,6 +391,28 @@ export class Postgres {
                 name: "setup",
                 image: `postgres:${this.spec.version}-alpine`,
                 imagePullPolicy: "Always",
+                env: [
+                  {
+                    name: "POSTGRES_PASSWORD",
+                    ...(this.spec.postgresUserPassword
+                      ? typeof this.spec.postgresUserPassword === "object"
+                        ? {
+                            valueFrom: {
+                              secretKeyRef: {
+                                name: this.spec.postgresUserPassword.secretName,
+                                key: this.spec.postgresUserPassword.key,
+                              },
+                            },
+                          }
+                        : {
+                            value: `${this.spec.postgresUserPassword}`,
+                          }
+                      : {
+                          value: "postgres",
+                        }
+                      ),
+                  },
+                ],
                 command: [
                   "/bin/bash",
                   "-ec",
@@ -405,9 +443,7 @@ export class Postgres {
                   fi
 
                   echo Setting password for user postgres
-                  psql -h 127.0.0.1 -U postgres -c "ALTER USER postgres ENCRYPTED PASSWORD '"'${
-                    this.spec.postgresUserPassword ?? "postgres"
-                  }'"'"
+                  psql -h 127.0.0.1 -U postgres -c "ALTER USER postgres ENCRYPTED PASSWORD '$POSTGRES_PASSWORD'"
 
                   USERS=$(psql -h 127.0.0.1 -U postgres -c 'SELECT usename FROM pg_user WHERE NOT usesuper' | tail -n+3 | sed '$d' | sed '$d')
                   DATABASES=$(psql -h 127.0.0.1 -U postgres -c 'SELECT datname FROM pg_database WHERE NOT datistemplate' | tail -n+3 | sed '$d' | sed '$d')
