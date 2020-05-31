@@ -575,6 +575,28 @@ interface CronJobSpec {
   suspend?: boolean;
 }
 
+interface NamespaceSpec {
+  finalizers?: string[];
+}
+
+export class Namespace {
+  constructor(
+    public metadata: NonNamespacedObjectMeta,
+    public spec?: NamespaceSpec
+  ) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "v1",
+        kind: "Namespace",
+        metadata: this.metadata,
+        spec: this.spec,
+      },
+    ]);
+  }
+}
+
 export class Deployment {
   constructor(public metadata: ObjectMeta, public spec: DeploymentSpec) {}
 
