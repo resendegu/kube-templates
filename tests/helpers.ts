@@ -21,7 +21,7 @@ export function deleteObject(kind: string, name: string) {
 }
 
 export function apply({ yaml }: { readonly yaml: string }) {
-  const path = `/tmp/kube.${new Date().getTime()}.${Math.random()}.yaml`;
+  const path = `/tmp/kube.${randomSuffix()}.yaml`;
   writeFileSync(path, yaml);
   try {
     return kubectl("apply", "-f", path);
