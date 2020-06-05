@@ -49,6 +49,6 @@ describe("permissions", () => {
     deleteObject("Pod", "postgres-0", namespace);
     waitPodReady(namespace, "postgres-0");
 
-    await expect(queryPostgres(namespace, "postgres-0", "DROP INDEX test_name_idx;", username, database, password)).rejects.toBeFalsy();
+    await queryPostgres(namespace, "postgres-0", "DROP INDEX test_name_idx;", username, database, password);
   });
 });
