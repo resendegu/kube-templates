@@ -1,9 +1,10 @@
+import faker from "faker";
 import { Namespace } from "../../src/kubernetes";
 import { Postgres } from "../../src/postgres";
 import { apply, deleteObject, randomSuffix, waitPodReady } from "../helpers";
 import { queryPostgres } from "./helpers";
 
-describe("basic", () => {
+describe("permissions", () => {
   const namespace = `test-${randomSuffix()}`;
 
   beforeAll(() => {
@@ -19,6 +20,8 @@ describe("basic", () => {
   });
 
   test("Create basic database", async () => {
+    const [username, password, database] = faker.random.words(3).split(" ");
+
     apply(
       new Postgres(
         {
@@ -32,18 +35,20 @@ describe("basic", () => {
           },
           memory: "64Mi",
           version: "12",
+          users: [{ username, password }],
+          databases: [{ name: database, users: [username] }],
         }
       )
     );
 
     waitPodReady(namespace, "postgres-0");
 
-    expect(
-      await queryPostgres(namespace, "postgres-0", "SELECT true AS ok")
-    ).toEqual([
-      {
-        ok: true,
-      },
-    ]);
+    await queryPostgres(namespace, "postgres-0", "CREATE TABLE test (id SERIAL PRIMARY KEY, name TEXT);", username, database, password);
+    await queryPostgres(namespace, "postgres-0", "CREATE INDEX test_name_idx ON test (name);", username, database, password);
+
+    deleteObject("Pod", "postgres-0", namespace);
+    waitPodReady(namespace, "postgres-0");
+
+    expect(queryPostgres(namespace, "postgres-0", "DROP INDEX test_name_idx;", username, database, password)).not.toThrow();
   });
 });
