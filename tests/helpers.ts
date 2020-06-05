@@ -18,7 +18,7 @@ export function kubectl(...args: string[]) {
 
 export function deleteObject(kind: string, name: string, namespace?: string) {
   if (namespace) {
-    return rawKubectl("delete", "-n", namespace, kind, name);
+    return rawKubectl(`--namespace=${namespace}`, "delete", kind, name);
   }
 
   return rawKubectl("delete", kind, name);

@@ -20,7 +20,7 @@ describe("permissions", () => {
   });
 
   test("Index delete after restart", async () => {
-    const [username, password, database] = faker.random.words(3).split(" ");
+    const [username, password, database] = faker.random.words(3).split(" ").map(s => s.toLowerCase());
 
     apply(
       new Postgres(
@@ -47,7 +47,7 @@ describe("permissions", () => {
     await queryPostgres(namespace, "postgres-0", "CREATE INDEX test_name_idx ON test (name);", username, database, password);
 
     deleteObject("Pod", "postgres-0", namespace);
-    sleep(10000);
+    sleep(3);
     waitPodReady(namespace, "postgres-0");
 
     await queryPostgres(namespace, "postgres-0", "DROP INDEX test_name_idx;", username, database, password);
