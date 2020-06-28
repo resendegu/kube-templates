@@ -31,6 +31,7 @@ interface StatelessAppSpec {
   ports?: ((
     | {
         type: "http";
+        ingressClass?: "public" | "private" | "internal";
         publicUrl?: string;
         tlsCert?: string;
         timeout?: number;
@@ -183,6 +184,11 @@ export class StatelessApp {
 
       if (hasPath) {
         annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$2";
+      }
+
+      if (process.env.CUBOS_DEV_GKE) {
+        annotations["kubernetes.io/ingress.class"] =
+          portSpec.ingressClass ?? "private";
       }
     }
 
