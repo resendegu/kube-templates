@@ -2,8 +2,8 @@ image: node
 
 stages:
   - build
-  - test
   - deploy
+  - test
 
 Build Library:
   stage: build
