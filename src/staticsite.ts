@@ -25,7 +25,7 @@ export class StaticSite {
         : "storage.googleapis.com";
 
     const annotations = this.metadata.annotations ?? {};
-    if (process.env.CUBOS_DEV_GKE) {
+    if (process.env.CUBOS_DEV_GKE && !process.env.PRODUCTION) {
       annotations["kubernetes.io/ingress.class"] =
         this.spec.ingressClass ?? "private";
     }
