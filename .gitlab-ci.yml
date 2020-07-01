@@ -40,4 +40,4 @@ Test:
     - npx ts-node tests/setup.ts
     - printf "FROM node:alpine\nCOPY . /app" > Dockerfile
     - docker build -t testimage .
-    - docker run --rm --net=kind --entrypoint="" testimage sh -c "cd /app; cp ./kubectl /bin/kubectl; npx jest --runInBand"
+    - docker run --rm --net=kind --entrypoint="" testimage sh -c "cd /app; cp ./kubectl /bin/kubectl; npx jest -w10"
