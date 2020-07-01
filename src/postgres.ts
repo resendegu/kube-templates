@@ -503,7 +503,6 @@ export class Postgres {
                               psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "${user}"' ${database.name}
                               psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO "${user}"' ${database.name}
                               psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO "${user}"' ${database.name}
-                              psql -h 127.0.0.1 -U postgres -c 'REASSIGN OWNED BY postgres TO "${user}"' ${database.name}
                             `
                           )
                           .join("\n")}
