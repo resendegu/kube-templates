@@ -1,6 +1,6 @@
 import { generateYaml, parseMemory } from "./helpers";
 import { Container, ObjectMeta, Service, StatefulSet } from "./kubernetes";
-import { randomBytes } from "crypto";
+import { createHash } from "crypto";
 
 interface PostgresSpec {
   readReplicas?: number;
@@ -11,6 +11,7 @@ interface PostgresSpec {
   };
   memory: string | number;
   postgresUserPassword?: string | { secretName: string; key: string };
+  replicaPassword?: string;
   databases?: (
     | {
         name: string;
@@ -265,7 +266,9 @@ export class Postgres {
 
     const replicationCredentials = {
       user: "postgres-replica",
-      pass: randomBytes(16).toString("hex"),
+      pass:
+        this.spec.replicaPassword ??
+        createHash("sha256").update(JSON.stringify(this.spec)).digest("hex"),
     };
 
     const replicaReplicationOptions = this.spec.readReplicas
