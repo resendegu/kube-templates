@@ -2,7 +2,7 @@ import { generateYaml, parseMemory } from "./helpers";
 import { Container, ObjectMeta, Service, StatefulSet } from "./kubernetes";
 
 interface PostgresSpec {
-  // readReplicas?: number;
+  readReplicas?: number;
   version: string;
   cpu: {
     request: string | number;
@@ -238,6 +238,11 @@ interface PostgresSpec {
     transformNullEquals?: boolean;
     exitOnError?: boolean;
     dataSyncRetry?: boolean;
+    maxWalSenders?: number;
+    maxReplicationSlots?: number;
+    walKeepSegments?: number;
+    walSenderTimeout?: number;
+    trackCommitTimestamp?: boolean;
   };
 }
 
@@ -245,11 +250,46 @@ export class Postgres {
   constructor(private metadata: ObjectMeta, private spec: PostgresSpec) {}
 
   get yaml() {
+    const masterReplicationOptions = this.spec.readReplicas
+      ? {
+          walLevel: "replica",
+          maxWalSenders: 2 * this.spec.readReplicas,
+          maxReplicationSlots: this.spec.readReplicas,
+          walKeepSegments: 16,
+          walRecycle: true,
+          walSenderTimeout: 60000,
+          trackCommitTimestamp: false,
+        }
+      : {};
+
+    const replicaReplicationOptions = this.spec.readReplicas
+      ? {
+          primaryConnInfo: "TODO", // TO DO
+          hotStandby: true,
+          maxStandbyStreamingDelay: 30000,
+          walReceiverStatusInterval: 10,
+          hotStandbyFeedback: false,
+          walReceiverTimeout: 60000,
+          walRetrieveRetryInterval: 5000,
+          recoveryMinApplyDelay: 0,
+        }
+      : {};
+
     const options = {
       maxConnections: Math.max(
         100,
         parseMemory(this.spec.memory) / (8 * 1024 * 1024)
       ),
+      ...masterReplicationOptions,
+      ...(this.spec.options ?? {}),
+    };
+
+    const replicaOptions = {
+      maxConnections: Math.max(
+        100,
+        parseMemory(this.spec.memory) / (8 * 1024 * 1024)
+      ),
+      ...replicaReplicationOptions,
       ...(this.spec.options ?? {}),
     };
 
@@ -323,8 +363,7 @@ export class Postgres {
                           }
                       : {
                           value: "postgres",
-                        }
-                      ),
+                        }),
                   },
                 ],
                 imagePullPolicy: "Always",
@@ -409,8 +448,7 @@ export class Postgres {
                           }
                       : {
                           value: "postgres",
-                        }
-                      ),
+                        }),
                   },
                 ],
                 command: [
@@ -560,6 +598,174 @@ export class Postgres {
           },
         ],
       }),
+
+      ...(this.spec.readReplicas
+        ? [
+            new Service(this.metadata, {
+              selector: {
+                app: `${this.metadata.name}-replica`,
+              },
+              ports: [
+                {
+                  name: "postgres-replica",
+                  port: 5432,
+                },
+              ],
+            }),
+            new StatefulSet(this.metadata, {
+              serviceName: `${this.metadata.name}-replica`,
+              replicas: this.spec.readReplicas,
+              selector: {
+                matchLabels: {
+                  app: `${this.metadata.name}-replica`,
+                },
+              },
+              template: {
+                metadata: {
+                  labels: {
+                    app: `${this.metadata.name}-replica`,
+                  },
+                },
+                spec: {
+                  initContainers: this.spec.initContainers,
+                  automountServiceAccountToken: false,
+                  containers: [
+                    {
+                      name: "postgres-replica",
+                      image: `postgres:${this.spec.version}-alpine`,
+                      args: [
+                        "postgres",
+                        ...Object.entries(replicaOptions)
+                          .map(([key, value]) => [
+                            "-c",
+                            `${key.replace(
+                              /[A-Z]/g,
+                              (x) => `_${x.toLowerCase()}`
+                            )}=` +
+                              `${
+                                value === true
+                                  ? "yes"
+                                  : value === false
+                                  ? "no"
+                                  : value
+                              }`,
+                          ])
+                          .reduce((a, b) => [...a, ...b], []),
+                      ],
+                      env: [
+                        {
+                          name: "POSTGRES_PASSWORD",
+                          ...(this.spec.postgresUserPassword
+                            ? typeof this.spec.postgresUserPassword === "object"
+                              ? {
+                                  valueFrom: {
+                                    secretKeyRef: {
+                                      name: this.spec.postgresUserPassword
+                                        .secretName,
+                                      key: this.spec.postgresUserPassword.key,
+                                    },
+                                  },
+                                }
+                              : {
+                                  value: `${this.spec.postgresUserPassword}`,
+                                }
+                            : {
+                                value: "postgres",
+                              }),
+                        },
+                      ],
+                      imagePullPolicy: "Always",
+                      ports: [
+                        {
+                          name: "postgres-replica",
+                          containerPort: 5432,
+                        },
+                      ],
+                      volumeMounts: [
+                        {
+                          mountPath: "/var/lib/postgresql/data",
+                          name: "data",
+                          subPath: "data",
+                        },
+                        {
+                          mountPath: "/dev/shm",
+                          name: "shm",
+                        },
+                      ],
+                      resources: {
+                        limits: {
+                          cpu: this.spec.cpu.limit,
+                          memory: this.spec.memory,
+                        },
+                        requests: {
+                          cpu: this.spec.cpu.request,
+                          memory: this.spec.memory,
+                        },
+                      },
+                      readinessProbe: {
+                        exec: {
+                          command: [
+                            "psql",
+                            "-h",
+                            "127.0.0.1",
+                            "-U",
+                            "postgres",
+                            "-c",
+                            "SELECT 1",
+                          ],
+                        },
+                        failureThreshold: 1,
+                        periodSeconds: 3,
+                      },
+                      livenessProbe: {
+                        exec: {
+                          command: [
+                            "psql",
+                            "-h",
+                            "127.0.0.1",
+                            "-U",
+                            "postgres",
+                            "-c",
+                            "SELECT 1",
+                          ],
+                        },
+                        failureThreshold: 2,
+                        periodSeconds: 5,
+                        initialDelaySeconds: 10,
+                      },
+                    },
+                  ],
+                  volumes: [
+                    {
+                      name: "shm",
+                      emptyDir: {
+                        medium: "Memory" as const,
+                      },
+                    },
+                  ],
+                },
+              },
+              volumeClaimTemplates: [
+                {
+                  metadata: {
+                    name: "data",
+                  },
+                  spec: {
+                    accessModes: ["ReadWriteOnce"],
+                    resources: {
+                      requests: {
+                        storage: "2Gi",
+                      },
+                    },
+                    storageClassName: process.env.PRODUCTION
+                      ? "ssd-regional"
+                      : "ssd",
+                  },
+                },
+              ],
+            }),
+          ]
+        : []),
     ]);
   }
 }
