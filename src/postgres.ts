@@ -776,9 +776,7 @@ export class Postgres {
                         storage: "2Gi",
                       },
                     },
-                    storageClassName: process.env.PRODUCTION
-                      ? "ssd-regional"
-                      : "ssd",
+                    storageClassName: "ssd",
                   },
                 },
               ],
