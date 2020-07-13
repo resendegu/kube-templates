@@ -1,5 +1,6 @@
 import { generateYaml, parseMemory } from "./helpers";
 import { Container, ObjectMeta, Service, StatefulSet } from "./kubernetes";
+import { randomBytes } from "crypto";
 
 interface PostgresSpec {
   readReplicas?: number;
@@ -262,9 +263,14 @@ export class Postgres {
         }
       : {};
 
+    const replicationCredentials = {
+      user: "postgres-replica",
+      pass: randomBytes(16).toString("hex"),
+    };
+
     const replicaReplicationOptions = this.spec.readReplicas
       ? {
-          primaryConnInfo: "TODO", // TO DO
+          primaryConnInfo: `host=${this.metadata.name} port=5432 user=${replicationCredentials.user} password=${replicationCredentials.pass}`,
           hotStandby: true,
           maxStandbyStreamingDelay: 30000,
           walReceiverStatusInterval: 10,
@@ -519,6 +525,16 @@ export class Postgres {
                       `
                     )
                     .join("\n")}
+                  
+                  ${
+                    this.spec.readReplicas
+                      ? `
+                      echo Creating replication user...
+                      psql -h 127.0.0.1 -U postgres -c "CREATE USER "'"${replicationCredentials.user}"'" ENCRYPTED PASSWORD '"'${replicationCredentials.pass}'"'" REPLICATION SUPERUSER || true
+                      psql -h 127.0.0.1 -U postgres -c "ALTER USER "'"${replicationCredentials.user}"'" ENCRYPTED PASSWORD '"'${replicationCredentials.pass}'"'" REPLICATION SUPERUSER || true
+                  `
+                      : ""
+                  }
 
                   ${(this.spec.databases ?? [])
                     .map((databaseOrName) =>
