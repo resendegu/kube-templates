@@ -271,7 +271,9 @@ export class Postgres {
       user: "replicator",
       pass:
         this.spec.replicaPassword ??
-        createHash("sha256").update(JSON.stringify(this.spec)).digest("hex"),
+        createHash("sha256")
+          .update(JSON.stringify(this.metadata))
+          .digest("hex"),
     };
 
     const replicaReplicationOptions = this.spec.readReplicas
