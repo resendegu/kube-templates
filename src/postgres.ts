@@ -243,6 +243,8 @@ interface PostgresSpec {
     walSenderTimeout?: number;
     trackCommitTimestamp?: boolean;
     listenAddresses?: string;
+    maxWalSenders?: number;
+    walKeepSegments?: number;
   };
 }
 
@@ -253,7 +255,7 @@ export class Postgres {
     const commonReplicationOptions = this.spec.readReplicas
       ? {
           walLevel: "replica",
-          maxWalSenders: 2 * this.spec.readReplicas,
+          maxWalSenders: 20,
           walKeepSegments: 16,
         }
       : {};
@@ -261,7 +263,7 @@ export class Postgres {
     const masterReplicationOptions = this.spec.readReplicas
       ? {
           listenAddresses: `*`,
-          maxReplicationSlots: 2 * this.spec.readReplicas,
+          maxReplicationSlots: 20,
         }
       : {};
 
