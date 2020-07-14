@@ -62,7 +62,6 @@ interface PostgresSpec {
     maxParallelWorkers?: number;
     oldSnapshotThreshold?: string | 0 | -1;
     backendFlushAfter?: number;
-    walLevel?: "replica" | "minimal" | "logical";
     fsync?: boolean;
     synchronousCommit?: boolean | "local" | "remoteWrite" | "remoteApply";
     walSyncMethod?:
@@ -240,11 +239,10 @@ interface PostgresSpec {
     transformNullEquals?: boolean;
     exitOnError?: boolean;
     dataSyncRetry?: boolean;
-    maxWalSenders?: number;
     maxReplicationSlots?: number;
-    walKeepSegments?: number;
     walSenderTimeout?: number;
     trackCommitTimestamp?: boolean;
+    listenAddresses?: string;
   };
 }
 
@@ -264,9 +262,6 @@ export class Postgres {
       ? {
           listenAddresses: `*`,
           maxReplicationSlots: 2 * this.spec.readReplicas,
-          walRecycle: true,
-          walSenderTimeout: 60000,
-          trackCommitTimestamp: false,
         }
       : {};
 
@@ -281,12 +276,6 @@ export class Postgres {
       ? {
           primaryConninfo: `host=${this.metadata.name} port=5432 user=${replicationCredentials.user} password=${replicationCredentials.pass}`,
           hotStandby: "on",
-          maxStandbyStreamingDelay: 30000,
-          walReceiverStatusInterval: 10,
-          hotStandbyFeedback: "off",
-          walReceiverTimeout: 60000,
-          walRetrieveRetryInterval: 5000,
-          recoveryMinApplyDelay: 0,
         }
       : {};
 
