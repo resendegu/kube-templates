@@ -293,6 +293,15 @@ export class Postgres {
       ...(this.spec.options ?? {}),
     };
 
+    const loggingConfigs = {
+      logTruncateOnRotation: "on",
+      logRotationAge: "1d",
+      logFilename: "postgresql-%a.log",
+      logRotationSize: 0,
+      loggingCollector: "on",
+      logDirectory: "/var/lib/postgresql/log",
+    };
+
     const replicaOptions = {
       maxConnections: Math.max(
         100,
@@ -301,6 +310,7 @@ export class Postgres {
       ...replicaReplicationOptions,
       ...commonReplicationOptions,
       ...(this.spec.options ?? {}),
+      ...loggingConfigs,
     };
 
     return generateYaml([
@@ -761,6 +771,7 @@ export class Postgres {
                           if [ ! -f /var/lib/postgresql/data/standby.signal ]; then
                               echo Signal not found. Cleaning up...
                               rm -rf /var/lib/postgresql/data/*
+                              rm -rf /var/lib/postgresql/log/*
                               echo Proceeding to base backup from master...
                               pg_basebackup -h ${this.metadata.name} -U ${replicationCredentials.user} -p 5432 -D /var/lib/postgresql/data -Fp -Xs -P -R
                           fi
@@ -856,6 +867,10 @@ export class Postgres {
                             mountPath: "/dev/shm",
                             name: "shm",
                           },
+                          {
+                            mountPath: "/var/lib/postgresql/log",
+                            name: "logs",
+                          },
                         ],
                         resources: {
                           limits: {
@@ -906,6 +921,10 @@ export class Postgres {
                         emptyDir: {
                           medium: "Memory" as const,
                         },
+                      },
+                      {
+                        name: "logs",
+                        emptyDir: {},
                       },
                     ],
                   },
