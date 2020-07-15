@@ -757,9 +757,13 @@ export class Postgres {
                           `
                           echo Configuring Replica...
                           
-                          echo Proceeding to initial backup...
-
-                          pg_basebackup -h ${this.metadata.name} -U ${replicationCredentials.user} -p 5432 -D /var/lib/postgresql/data -Fp -Xs -P -R
+                          echo Checking if standby signal exists...
+                          if [ ! -f /var/lib/postgresql/data/standby.signal ]; then
+                              echo Signal not found. Cleaning up...
+                              rm -rf /var/lib/postgresql/data/*
+                              echo Proceeding to base backup from master...
+                              pg_basebackup -h ${this.metadata.name} -U ${replicationCredentials.user} -p 5432 -D /var/lib/postgresql/data -Fp -Xs -P -R
+                          fi
                           
                           echo Done.
                         `,
