@@ -912,11 +912,11 @@ export class Postgres {
                         resources: {
                           limits: {
                             cpu: "100m",
-                            memory: "256Mi",
+                            memory: "16Mi",
                           },
                           requests: {
                             cpu: 0,
-                            memory: "128Mi",
+                            memory: "16Mi",
                           },
                         },
                         volumeMounts: [
