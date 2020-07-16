@@ -313,6 +313,18 @@ export class Postgres {
       ...loggingConfigs,
     };
 
+    const users = [
+      ...(this.spec.readReplicas
+        ? [
+            {
+              username: replicationCredentials.user,
+              password: replicationCredentials.pass,
+            },
+          ]
+        : []),
+      ...(this.spec.users ?? []),
+    ];
+
     const replicaStringOptions = Object.entries(replicaOptions)
       .map(([key, value]) => [
         "-c",
@@ -602,7 +614,7 @@ export class Postgres {
 
                     ${
                       // Only drop users that should not exist
-                      (this.spec.users ?? [])
+                      (users ?? [])
                         .map(
                           (user) => `
                           [ "$user" == '${user.username}' ] && continue
@@ -615,25 +627,29 @@ export class Postgres {
                     psql -h 127.0.0.1 -U postgres -c "DROP USER $user"
                   done
 
-                  ${(this.spec.users ?? [])
+                  ${(users ?? [])
                     .map(
                       (user) => `
                         echo Creating user ${user.username}...
-                        psql -h 127.0.0.1 -U postgres -c "CREATE USER "'"${user.username}"'" ENCRYPTED PASSWORD '"'${user.password}'"'" || true
-                        psql -h 127.0.0.1 -U postgres -c "ALTER USER "'"${user.username}"'" ENCRYPTED PASSWORD '"'${user.password}'"'"
+                        psql -h 127.0.0.1 -U postgres -c "CREATE USER "'"${
+                          user.username
+                        }"'" ${
+                        this.spec.readReplicas &&
+                        user.username === replicationCredentials.user
+                          ? "REPLICATION "
+                          : ""
+                      }ENCRYPTED PASSWORD '"'${user.password}'"'" || true
+                        psql -h 127.0.0.1 -U postgres -c "ALTER USER "'"${
+                          user.username
+                        }"'"${
+                        this.spec.readReplicas &&
+                        user.username === replicationCredentials.user
+                          ? "REPLICATION "
+                          : ""
+                      } ENCRYPTED PASSWORD '"'${user.password}'"'"
                       `
                     )
                     .join("\n")}
-                  
-                  ${
-                    this.spec.readReplicas
-                      ? `
-                      echo Creating replication user...
-                      psql -h 127.0.0.1 -U postgres -c "CREATE USER "'"${replicationCredentials.user}"'" ENCRYPTED PASSWORD '"'${replicationCredentials.pass}'"' REPLICATION" || true
-                      psql -h 127.0.0.1 -U postgres -c "ALTER USER "'"${replicationCredentials.user}"'" ENCRYPTED PASSWORD '"'${replicationCredentials.pass}'"' REPLICATION" || true
-                  `
-                      : ""
-                  }
 
                   ${(this.spec.databases ?? [])
                     .map((databaseOrName) =>
