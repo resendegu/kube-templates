@@ -820,7 +820,7 @@ export class Postgres {
                             chown -R postgres:postgres /var/lib/postgresql/log
                             chmod 700 -R /var/lib/postgresql/data
                             chmod 700 -R /var/lib/postgresql/log
-                            
+                            sed -i -r -e "s/^postgres:(.*):\/sbin\/nologin$/postgres:\1:\/bin\/sh/" /etc/passwd
                             su postgres -c "postgres ${replicaStringOptions}"
                           `,
                         ],
