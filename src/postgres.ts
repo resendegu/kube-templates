@@ -400,6 +400,8 @@ export class Postgres {
                       `
                         echo Configuring Master...
 
+                        sed -i -r -e "s/^postgres:(.*):\\/sbin\\/nologin$/postgres:\\1:\\/bin\\/sh/" /etc/passwd
+
                         echo Check if directory is empty...
                         if [ ! -f /var/lib/postgresql/data/postgresql.conf ]; then
                             echo Directory is empty. Initializing database...
@@ -820,7 +822,7 @@ export class Postgres {
                             chown -R postgres:postgres /var/lib/postgresql/log
                             chmod 700 -R /var/lib/postgresql/data
                             chmod 700 -R /var/lib/postgresql/log
-                            sed -i -r -e "s/^postgres:(.*):\/sbin\/nologin$/postgres:\1:\/bin\/sh/" /etc/passwd
+                            sed -i -r -e "s/^postgres:(.*):\\/sbin\\/nologin$/postgres:\\1:\\/bin\\/sh/" /etc/passwd
                             su postgres -c "postgres ${replicaStringOptions}"
                           `,
                         ],
