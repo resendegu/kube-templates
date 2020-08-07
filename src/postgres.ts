@@ -911,7 +911,7 @@ export class Postgres {
                         resources: {
                           limits: {
                             cpu: "100m",
-                            memory: "16Mi",
+                            memory: "32Mi",
                           },
                           requests: {
                             cpu: 0,
