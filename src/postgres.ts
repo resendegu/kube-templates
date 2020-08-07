@@ -892,12 +892,12 @@ export class Postgres {
                           "/usr/local/bin/bash",
                           "-ec",
                           `
-                          function analyze {
+                          while true; do
                             FILES=$(ls /var/lib/postgresql/log)
                             for file in $FILES
                             do
                               echo Analyzing $file
-                              if echo $(cat /var/lib/postgresql/log/$file) | grep "requested WAL segment.*has already been removed"; then
+                              if grep "requested WAL segment.*has already been removed" /var/lib/postgresql/log/$file; then
                                 echo Replica is too far behind. Cleaning up...
                                 rm -rf /var/lib/postgresql/data/*
                                 rm -rf /var/lib/postgresql/log/*
@@ -905,16 +905,13 @@ export class Postgres {
                               fi
                             done
                             sleep 30
-                            analyze
-                          }
-                          
-                          analyze
+                          done
                         `,
                         ],
                         resources: {
                           limits: {
                             cpu: "100m",
-                            memory: "16Mi",
+                            memory: "32Mi",
                           },
                           requests: {
                             cpu: 0,
