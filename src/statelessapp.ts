@@ -32,7 +32,7 @@ interface StatelessAppSpec {
     | {
         type: "http";
         ingressClass?: "public" | "private" | "internal";
-        publicUrl?: string;
+        publicUrl?: string | string[];
         tlsCert?: string;
         timeout?: number;
         maxBodySize?: string;
@@ -91,11 +91,17 @@ export class StatelessApp {
           portSpec.endpoints = [];
         }
 
-        portSpec.endpoints.push({
-          maxBodySize: portSpec.maxBodySize,
-          publicUrl: portSpec.publicUrl,
-          tlsCert: portSpec.tlsCert,
-        });
+        const publicUrls = Array.isArray(portSpec.publicUrl)
+          ? portSpec.publicUrl
+          : [portSpec.publicUrl];
+
+        for (const publicUrl of publicUrls) {
+          portSpec.endpoints.push({
+            maxBodySize: portSpec.maxBodySize,
+            tlsCert: portSpec.tlsCert,
+            publicUrl,
+          });
+        }
       }
 
       let maxBodySizeBytes = null;
