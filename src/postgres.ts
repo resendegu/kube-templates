@@ -1,6 +1,6 @@
+import { createHash } from "crypto";
 import { generateYaml, parseMemory } from "./helpers";
 import { Container, ObjectMeta, Service, StatefulSet } from "./kubernetes";
-import { createHash } from "crypto";
 
 interface PostgresSpec {
   readReplicas?: number;
@@ -283,11 +283,15 @@ export class Postgres {
         }
       : {};
 
+    const mem = parseMemory(this.spec.memory);
+    const MB = 1024 * 1024;
+    const GB = 1024 * MB;
+
     const options = {
-      maxConnections: Math.max(
-        100,
-        parseMemory(this.spec.memory) / (8 * 1024 * 1024)
-      ),
+      maxConnections: Math.max(100, mem / (8 * MB)),
+      sharedBuffers:
+        Math.ceil((mem * (mem > 1 * GB ? 0.25 : 0.15)) / MB) + "MB",
+      effectiveCacheSize: Math.ceil(mem / 2 / MB) + "MB",
       ...masterReplicationOptions,
       ...commonReplicationOptions,
       ...(this.spec.options ?? {}),
@@ -408,10 +412,10 @@ export class Postgres {
                             chown postgres:postgres /var/lib/postgresql/data
                             su postgres -c "initdb -D /var/lib/postgresql/data"
                         fi
-                        
+
                         echo Adding replication user to pg_hba...
                         echo "host replication ${replicationCredentials.user} 0.0.0.0/0 trust" >> /var/lib/postgresql/data/pg_hba.conf
-                        
+
                         echo Done.
                       `,
                     ],
@@ -815,7 +819,7 @@ export class Postgres {
                                 echo Proceeding to base backup from master...
                                 pg_basebackup -h ${this.metadata.name} -U ${replicationCredentials.user} -p 5432 -D /var/lib/postgresql/data -Fp -Xs -P -R
                             fi
-                            
+
                             echo Done.
 
                             chown -R postgres:postgres /var/lib/postgresql/data
