@@ -4,6 +4,7 @@ import { ObjectMeta, Secret } from "./kubernetes";
 
 interface CertificateSpec {
   domain: string;
+  challengeType?: "http" | "dns";
   provider?: string;
   replicationAllowedNamespaces?: RegExp;
 }
@@ -30,17 +31,33 @@ export class Certificate {
             name: "letsencrypt",
             kind: "ClusterIssuer",
           },
-          dnsNames: [this.spec.domain, "*." + this.spec.domain],
-          acme: {
-            config: [
-              {
-                dns01: {
-                  provider: this.spec.provider ?? "cloudflare",
+          ...((this.spec.challengeType ?? "dns") === "dns"
+            ? {
+                dnsNames: [this.spec.domain, "*." + this.spec.domain],
+                acme: {
+                  config: [
+                    {
+                      dns01: {
+                        provider: this.spec.provider ?? "cloudflare",
+                      },
+                      domains: [this.spec.domain, "*." + this.spec.domain],
+                    },
+                  ],
                 },
-                domains: [this.spec.domain, "*." + this.spec.domain],
-              },
-            ],
-          },
+              }
+            : {
+                dnsNames: [this.spec.domain],
+                acme: {
+                  config: [
+                    {
+                      http01: {
+                        ingressClass: "public",
+                      },
+                      domains: [this.spec.domain],
+                    },
+                  ],
+                },
+              }),
         }
       ),
       new Secret({
