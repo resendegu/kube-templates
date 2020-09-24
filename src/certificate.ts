@@ -50,9 +50,7 @@ export class Certificate {
                 acme: {
                   config: [
                     {
-                      http01: {
-                        ingressClass: "public",
-                      },
+                      http01: {},
                       domains: [this.spec.domain],
                     },
                   ],

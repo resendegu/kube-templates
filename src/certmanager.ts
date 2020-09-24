@@ -49,7 +49,8 @@ type HTTP01SolverConfig =
     }
   | {
       ingressClass: string;
-    };
+    }
+  | {};
 
 export class CertManagerCertificate {
   constructor(public metadata: ObjectMeta, public spec: CertificateSpec) {}
