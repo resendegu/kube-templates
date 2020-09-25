@@ -10,6 +10,7 @@ interface StaticSiteSpec {
   notFoundRedirect?: string;
   notFoundStatus?: number;
   tlsCert: string;
+  additionalConfigurationSnippet?: string;
 }
 
 export class StaticSite {
@@ -61,6 +62,7 @@ export class StaticSite {
                     };`
                   : ""
               }
+              ${this.spec.additionalConfigurationSnippet ?? ""}
             `,
           },
         },
