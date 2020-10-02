@@ -47,7 +47,7 @@ interface DeploymentStrategy {
 }
 
 interface PodTemplateSpec {
-  metadata: BasicObjectMeta;
+  metadata?: BasicObjectMeta;
   spec: PodSpec;
 }
 
@@ -561,7 +561,7 @@ interface JobSpec {
 }
 
 interface JobTemplateSpec {
-  metadata?: Omit<ObjectMeta, "name" | "namespace">;
+  metadata?: BasicObjectMeta;
   spec: JobSpec;
 }
 
