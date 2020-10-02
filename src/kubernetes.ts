@@ -561,7 +561,7 @@ interface JobSpec {
 }
 
 interface JobTemplateSpec {
-  metadata: ObjectMeta;
+  metadata?: Omit<ObjectMeta, "name" | "namespace">;
   spec: JobSpec;
 }
 
