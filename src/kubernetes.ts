@@ -562,7 +562,7 @@ interface JobSpec {
 
 interface JobTemplateSpec {
   metadata?: BasicObjectMeta;
-  spec: JobSpec;
+  spec: Omit<JobSpec, "selector">;
 }
 
 interface CronJobSpec {
