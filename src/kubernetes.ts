@@ -561,7 +561,7 @@ interface JobSpec {
 }
 
 interface JobTemplateSpec {
-  metadata?: BasicObjectMeta;
+  metadata?: ObjectMeta;
   spec: Omit<JobSpec, "selector">;
 }
 
