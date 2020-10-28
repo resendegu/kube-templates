@@ -23,6 +23,7 @@ interface PostgresSpec {
     username: string;
     password: string;
   }[];
+  monitoring?: { type: "pgAnalyze"; apiKey: string; monitorPostgresDatabase?: boolean; };
   initContainers?: Container[];
   options?: {
     maxConnections?: number;
@@ -245,6 +246,8 @@ interface PostgresSpec {
     listenAddresses?: string;
     maxWalSenders?: number;
     walKeepSegments?: number;
+    sharedPreloadLibraries?: string;
+    "pgStatStatements.track"?: "all" | "top" | "none";
   };
 }
 
@@ -252,6 +255,7 @@ export class Postgres {
   constructor(private metadata: ObjectMeta, private spec: PostgresSpec) {}
 
   get yaml() {
+    const additionalContainers: Container[] = [];
     const commonReplicationOptions = this.spec.readReplicas
       ? {
           walLevel: "replica",
@@ -286,6 +290,70 @@ export class Postgres {
     const mem = parseMemory(this.spec.memory);
     const MB = 1024 * 1024;
     const GB = 1024 * MB;
+
+    if (this.spec.monitoring?.type === "pgAnalyze") {
+      this.spec.options ??= {};
+      this.spec.options.sharedPreloadLibraries = this.spec.options.sharedPreloadLibraries ? `${this.spec.options.sharedPreloadLibraries},pg_stat_statements` : "pg_stat_statements";
+      this.spec.options.trackActivityQuerySize = 2048;
+      this.spec.options["pgStatStatements.track"] = "all";
+
+      this.spec.users ??= [];
+      this.spec.users.push({
+        username: "pganalyze",
+        password: "pganalyze",
+      });
+
+      additionalContainers.push(
+        ...(this.spec.databases ?? [])
+          .map((databaseOrName) => (typeof databaseOrName === "string" ? { name: databaseOrName } : databaseOrName))
+          .concat(...(this.spec.monitoring!.monitorPostgresDatabase ? [{ name: "postgres" }] : []))
+          .map<Container>((database) => ({
+            name: `pganalyze-${database.name}`,
+            image: "quay.io/pganalyze/collector:v0.33.1",
+            command: ["/usr/local/bin/gosu"],
+            args: [
+              "pganalyze",
+              "/home/pganalyze/collector",
+              "--statefile=/state/pganalyze-collector.state",
+              "--no-log-timestamps",
+              "--no-logs",
+              "--no-system-information",
+            ],
+            env: [
+              {
+                name: "PGA_API_KEY",
+                value: this.spec.monitoring!.apiKey,
+              },
+              {
+                name: "DB_HOST",
+                value: this.metadata.name,
+              },
+              {
+                name: "DB_NAME",
+                value: database.name,
+              },
+              {
+                name: "DB_USERNAME",
+                value: "pganalyze",
+              },
+              {
+                name: "DB_PASSWORD",
+                value: "pganalyze",
+              },
+            ],
+            resources: {
+              limits: {
+                cpu: "200m",
+                memory: "50Mi",
+              },
+              requests: {
+                cpu: "10m",
+                memory: "50Mi",
+              },
+            },
+          }))
+      );
+    }
 
     const options = {
       maxConnections: Math.max(100, mem / (8 * MB)),
@@ -343,6 +411,7 @@ export class Postgres {
       ])
       .reduce((a, b) => [...a, ...b], [])
       .join(" ");
+
     return generateYaml([
       new Service(this.metadata, {
         selector: {
@@ -355,6 +424,7 @@ export class Postgres {
           },
         ],
       }),
+
       new StatefulSet(this.metadata, {
         serviceName: this.metadata.name,
         replicas: 1,
@@ -684,6 +754,28 @@ export class Postgres {
                     )
                     .join("\n")}
 
+                  ${this.spec.monitoring?.type === "pgAnalyze" ? (this.spec.databases ?? [])
+                    .map((databaseOrName) =>
+                      typeof databaseOrName === "string"
+                        ? { name: databaseOrName }
+                        : databaseOrName
+                    )
+                    .concat(...(this.spec.monitoring!.monitorPostgresDatabase ? [{ name: "postgres" }] : []))
+                    .map(
+                      (database) => `
+                        echo Setting up PgAnalyze on database ${database.name}...
+                        psql -h 127.0.0.1 -U postgres -c 'CREATE EXTENSION IF NOT EXISTS pg_stat_statements WITH SCHEMA public;' ${database.name}
+                        psql -h 127.0.0.1 -U postgres -c 'CREATE SCHEMA IF NOT EXISTS pganalyze;' ${database.name}
+                        echo -e "CREATE OR REPLACE FUNCTION pganalyze.get_stat_statements(showtext boolean = true) RETURNS SETOF pg_stat_statements AS\\n\\$\\$\\n/* pganalyze-collector */ SELECT * FROM public.pg_stat_statements(showtext);\\n\\$\\$ LANGUAGE sql VOLATILE SECURITY DEFINER;" | psql -h 127.0.0.1 -U postgres ${database.name}
+                        echo -e "CREATE OR REPLACE FUNCTION pganalyze.get_stat_activity() RETURNS SETOF pg_stat_activity AS\\n\\$\\$\\n  /* pganalyze-collector */ SELECT * FROM pg_catalog.pg_stat_activity;\\n\\$\\$ LANGUAGE sql VOLATILE SECURITY DEFINER;" | psql -h 127.0.0.1 -U postgres ${database.name}
+                        echo -e "CREATE OR REPLACE FUNCTION pganalyze.get_column_stats() RETURNS SETOF pg_stats AS\\n\\$\\$\\n  /* pganalyze-collector */ SELECT schemaname, tablename, attname, inherited, null_frac, avg_width,\\n  n_distinct, NULL::anyarray, most_common_freqs, NULL::anyarray, correlation, NULL::anyarray,\\n  most_common_elem_freqs, elem_count_histogram\\n  FROM pg_catalog.pg_stats;\\n\\$\\$ LANGUAGE sql VOLATILE SECURITY DEFINER;" | psql -h 127.0.0.1 -U postgres ${database.name}
+                        echo -e "CREATE OR REPLACE FUNCTION pganalyze.get_stat_replication() RETURNS SETOF pg_stat_replication AS\\n\\$\\$\\n  /* pganalyze-collector */ SELECT * FROM pg_catalog.pg_stat_replication;\\n\\$\\$ LANGUAGE sql VOLATILE SECURITY DEFINER;" | psql -h 127.0.0.1 -U postgres ${database.name}
+                        psql -h 127.0.0.1 -U postgres -c "REVOKE ALL ON SCHEMA public FROM pganalyze;" ${database.name}
+                        psql -h 127.0.0.1 -U postgres -c "GRANT USAGE ON SCHEMA pganalyze TO pganalyze;" ${database.name}
+                      `
+                    )
+                    .join("\n") : ""}
+
                   echo Done.
                   touch /ready
                   keep_alive
@@ -707,6 +799,7 @@ export class Postgres {
                   periodSeconds: 3,
                 },
               },
+              ...additionalContainers,
             ],
             volumes: [
               {
