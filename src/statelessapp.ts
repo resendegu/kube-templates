@@ -288,8 +288,8 @@ export class StatelessApp {
             ...(process.env.PRODUCTION &&
             this.spec.replicas !== undefined &&
             ((Array.isArray(this.spec.replicas) &&
-              this.spec.replicas[0] >= 3) ||
-              this.spec.replicas >= 3) &&
+              this.spec.replicas[0] >= 2) ||
+              this.spec.replicas >= 2) &&
             !(this.spec.disablePreemptibility ?? false)
               ? {
                   tolerations: [
