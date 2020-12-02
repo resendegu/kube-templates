@@ -156,7 +156,7 @@ export class Mongo {
               accessModes: ["ReadWriteOnce"],
               resources: {
                 requests: {
-                  storage: "2Gi",
+                  storage: "1Gi",
                 },
               },
               storageClassName: "ssd",
