@@ -179,7 +179,7 @@ export class Rethink {
               accessModes: ["ReadWriteOnce"],
               resources: {
                 requests: {
-                  storage: "1Gi",
+                  storage: "2Gi",
                 },
               },
               storageClassName: "ssd",

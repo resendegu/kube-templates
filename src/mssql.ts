@@ -3,15 +3,7 @@ import { Container, ObjectMeta, Service, StatefulSet } from "./kubernetes";
 
 interface MSSQLSpec {
   version: string;
-  productId:
-    | "Evaluation"
-    | "Developer"
-    | "Express"
-    | "Web"
-    | "Standard"
-    | "Enterprise"
-    | "EnterpriseCore"
-    | string;
+  productId: "Evaluation" | "Developer" | "Express" | "Web" | "Standard" | "Enterprise" | "EnterpriseCore" | string;
   cpu: {
     request: string | number;
     limit: string | number;
@@ -141,17 +133,7 @@ export class MSSQL {
                 },
                 readinessProbe: {
                   exec: {
-                    command: [
-                      "/opt/mssql-tools/bin/sqlcmd",
-                      "-S",
-                      "127.0.0.1",
-                      "-U",
-                      "SA",
-                      "-P",
-                      this.spec.sysAdminPassword,
-                      "-Q",
-                      "SELECT 1",
-                    ],
+                    command: ["/opt/mssql-tools/bin/sqlcmd", "-S", "127.0.0.1", "-U", "SA", "-P", this.spec.sysAdminPassword, "-Q", "SELECT 1"],
                   },
                   initialDelaySeconds: 10,
                   failureThreshold: 1,
@@ -159,17 +141,7 @@ export class MSSQL {
                 },
                 livenessProbe: {
                   exec: {
-                    command: [
-                      "/opt/mssql-tools/bin/sqlcmd",
-                      "-S",
-                      "127.0.0.1",
-                      "-U",
-                      "SA",
-                      "-P",
-                      this.spec.sysAdminPassword,
-                      "-Q",
-                      "SELECT 1",
-                    ],
+                    command: ["/opt/mssql-tools/bin/sqlcmd", "-S", "127.0.0.1", "-U", "SA", "-P", this.spec.sysAdminPassword, "-Q", "SELECT 1"],
                   },
                   failureThreshold: 2,
                   periodSeconds: 5,
@@ -193,7 +165,7 @@ export class MSSQL {
               accessModes: ["ReadWriteOnce"],
               resources: {
                 requests: {
-                  storage: "1Gi",
+                  storage: "2Gi",
                 },
               },
               storageClassName: process.env.PRODUCTION ? "ssd-regional" : "ssd",

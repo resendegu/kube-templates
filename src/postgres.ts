@@ -23,11 +23,7 @@ interface PostgresSpec {
     username: string;
     password: string;
   }[];
-  monitoring?: {
-    type: "pgAnalyze";
-    apiKey: string;
-    monitorPostgresDatabase?: boolean;
-  };
+  monitoring?: { type: "pgAnalyze"; apiKey: string; monitorPostgresDatabase?: boolean; };
   initContainers?: Container[];
   options?: {
     maxConnections?: number;
@@ -297,10 +293,7 @@ export class Postgres {
 
     if (this.spec.monitoring?.type === "pgAnalyze") {
       this.spec.options ??= {};
-      this.spec.options.sharedPreloadLibraries = this.spec.options
-        .sharedPreloadLibraries
-        ? `${this.spec.options.sharedPreloadLibraries},pg_stat_statements`
-        : "pg_stat_statements";
+      this.spec.options.sharedPreloadLibraries = this.spec.options.sharedPreloadLibraries ? `${this.spec.options.sharedPreloadLibraries},pg_stat_statements` : "pg_stat_statements";
       this.spec.options.trackActivityQuerySize = 2048;
       this.spec.options["pgStatStatements.track"] = "all";
 
@@ -312,16 +305,8 @@ export class Postgres {
 
       additionalContainers.push(
         ...(this.spec.databases ?? [])
-          .map((databaseOrName) =>
-            typeof databaseOrName === "string"
-              ? { name: databaseOrName }
-              : databaseOrName
-          )
-          .concat(
-            ...(this.spec.monitoring!.monitorPostgresDatabase
-              ? [{ name: "postgres" }]
-              : [])
-          )
+          .map((databaseOrName) => (typeof databaseOrName === "string" ? { name: databaseOrName } : databaseOrName))
+          .concat(...(this.spec.monitoring!.monitorPostgresDatabase ? [{ name: "postgres" }] : []))
           .map<Container>((database) => ({
             name: `pganalyze-${database.name}`,
             image: "quay.io/pganalyze/collector:v0.33.1",
@@ -769,21 +754,15 @@ export class Postgres {
                     )
                     .join("\n")}
 
-                  ${
-                    this.spec.monitoring?.type === "pgAnalyze"
-                      ? (this.spec.databases ?? [])
-                          .map((databaseOrName) =>
-                            typeof databaseOrName === "string"
-                              ? { name: databaseOrName }
-                              : databaseOrName
-                          )
-                          .concat(
-                            ...(this.spec.monitoring!.monitorPostgresDatabase
-                              ? [{ name: "postgres" }]
-                              : [])
-                          )
-                          .map(
-                            (database) => `
+                  ${this.spec.monitoring?.type === "pgAnalyze" ? (this.spec.databases ?? [])
+                    .map((databaseOrName) =>
+                      typeof databaseOrName === "string"
+                        ? { name: databaseOrName }
+                        : databaseOrName
+                    )
+                    .concat(...(this.spec.monitoring!.monitorPostgresDatabase ? [{ name: "postgres" }] : []))
+                    .map(
+                      (database) => `
                         echo Setting up PgAnalyze on database ${database.name}...
                         psql -h 127.0.0.1 -U postgres -c 'CREATE EXTENSION IF NOT EXISTS pg_stat_statements WITH SCHEMA public;' ${database.name}
                         psql -h 127.0.0.1 -U postgres -c 'CREATE SCHEMA IF NOT EXISTS pganalyze;' ${database.name}
@@ -794,10 +773,8 @@ export class Postgres {
                         psql -h 127.0.0.1 -U postgres -c "REVOKE ALL ON SCHEMA public FROM pganalyze;" ${database.name}
                         psql -h 127.0.0.1 -U postgres -c "GRANT USAGE ON SCHEMA pganalyze TO pganalyze;" ${database.name}
                       `
-                          )
-                          .join("\n")
-                      : ""
-                  }
+                    )
+                    .join("\n") : ""}
 
                   echo Done.
                   touch /ready
@@ -843,7 +820,7 @@ export class Postgres {
               accessModes: ["ReadWriteOnce"],
               resources: {
                 requests: {
-                  storage: "1Gi",
+                  storage: "2Gi",
                 },
               },
               storageClassName: process.env.PRODUCTION ? "ssd-regional" : "ssd",
@@ -1074,7 +1051,7 @@ export class Postgres {
                       accessModes: ["ReadWriteOnce"],
                       resources: {
                         requests: {
-                          storage: "1Gi",
+                          storage: "2Gi",
                         },
                       },
                       storageClassName: "ssd",
