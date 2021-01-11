@@ -59,7 +59,7 @@ export class MySQL {
               {
                 name: "mysql",
                 image: `mysql:${this.spec.version}`,
-                args: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci", this.spec.version.startsWith("5.6") ? "" : "--log_error_verbosity=1"],
+                args: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci", ...(this.spec.version.startsWith("5.6") ? [] : ["--log_error_verbosity=1"])],
                 env: [
                   {
                     name: "MYSQL_ROOT_PASSWORD",
