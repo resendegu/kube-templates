@@ -31,7 +31,7 @@ describe("WordPress + MariaDB", () => {
             limit: 1,
             request: 0,
           },
-          memory: "64Mi",
+          memory: "128Mi",
           version: "10.5",
           rootPassword: "admin",
         }
