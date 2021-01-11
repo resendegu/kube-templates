@@ -21,15 +21,8 @@ export class Mongo {
   constructor(private metadata: ObjectMeta, private spec: MongoSpec) {}
 
   get yaml() {
-    const serviceMetadata = this.spec.serviceMetadata
-      ? {
-          ...this.spec.serviceMetadata,
-          ...this.metadata,
-        }
-      : this.metadata;
-
-    return generateYaml([
-      new Service(serviceMetadata, {
+ 	  return generateYaml([
+      new Service(_.merge(this.metadata, this.spec.serviceMetadata), {
         selector: {
           app: this.metadata.name,
         },
