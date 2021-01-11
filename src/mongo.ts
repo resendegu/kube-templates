@@ -13,17 +13,29 @@ interface MongoSpec {
     username: string;
     password: string;
   };
+  serviceType?: "ExternalName" | "ClusterIP" | "NodePort" | "LoadBalancer";
+  serviceMetadata?: {
+    [annotation: string]: string;
+  };
 }
 
 export class Mongo {
   constructor(private metadata: ObjectMeta, private spec: MongoSpec) {}
 
   get yaml() {
+    const serviceMetadata = this.spec.serviceMetadata
+      ? {
+          ...this.spec.serviceMetadata,
+          ...this.metadata,
+        }
+      : this.metadata;
+
     return generateYaml([
-      new Service(this.metadata, {
+      new Service(serviceMetadata, {
         selector: {
           app: this.metadata.name,
         },
+        type: this.spec.serviceType ?? "ClusterIP",
         ports: [
           {
             name: "mongo",
