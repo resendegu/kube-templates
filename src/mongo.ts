@@ -14,9 +14,7 @@ interface MongoSpec {
     password: string;
   };
   serviceType?: "ExternalName" | "ClusterIP" | "NodePort" | "LoadBalancer";
-  serviceMetadata?: {
-    [annotation: string]: string;
-  };
+  serviceMetadata?: BasicObjectMeta;
 }
 
 export class Mongo {
