@@ -126,10 +126,10 @@ export class MariaDB {
               accessModes: ["ReadWriteOnce"],
               resources: {
                 requests: {
-                  storage: "2Gi",
+                  storage: "1Gi",
                 },
               },
-              storageClassName: process.env.PRODUCTION ? "ssd-regional" : "ssd",
+              storageClassName: process.env.PRODUCTION ? "ssd-regional" : "standard",
             },
           },
         ],
