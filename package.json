@@ -7,7 +7,9 @@
     "test": "ts-node tests/setup.ts && jest -w10"
   },
   "dependencies": {
-    "js-yaml": "^3.14.0"
+    "@types/lodash": "^4.14.167",
+    "js-yaml": "^3.14.0",
+    "lodash": "^4.17.20"
   },
   "devDependencies": {
     "@types/deasync": "^0.1.1",

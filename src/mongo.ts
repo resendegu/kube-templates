@@ -1,5 +1,11 @@
 import { generateYaml } from "./helpers";
-import { ObjectMeta, Service, StatefulSet } from "./kubernetes";
+import * as _ from "lodash";
+import {
+  BasicObjectMeta,
+  ObjectMeta,
+  Service,
+  StatefulSet,
+} from "./kubernetes";
 
 interface MongoSpec {
   // readReplicas?: number;
@@ -21,7 +27,7 @@ export class Mongo {
   constructor(private metadata: ObjectMeta, private spec: MongoSpec) {}
 
   get yaml() {
- 	  return generateYaml([
+    return generateYaml([
       new Service(_.merge(this.metadata, this.spec.serviceMetadata), {
         selector: {
           app: this.metadata.name,
