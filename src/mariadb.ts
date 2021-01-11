@@ -59,7 +59,7 @@ export class MariaDB {
               {
                 name: "mariadb",
                 image: `mariadb:${this.spec.version}`,
-                args: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"],
+                args: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci", "--log-warnings=0"],
                 env: [
                   {
                     name: "MYSQL_ROOT_PASSWORD",
@@ -99,7 +99,7 @@ export class MariaDB {
                 },
                 readinessProbe: {
                   exec: {
-                    command: ["mysqladmin" ,"ping", "-h", "localhost"],
+                    command: ["mysqladmin" ,"ping", "-h", "localhost", "-uroot", `-p${this.spec.rootPassword}`],
                   },
                   initialDelaySeconds: 5,
                   failureThreshold: 1,
@@ -107,7 +107,7 @@ export class MariaDB {
                 },
                 livenessProbe: {
                   exec: {
-                    command: ["mysqladmin" ,"ping", "-h", "localhost"],
+                    command: ["mysqladmin" ,"ping", "-h", "localhost", "-uroot", `-p${this.spec.rootPassword}`],
                   },
                   failureThreshold: 2,
                   periodSeconds: 5,

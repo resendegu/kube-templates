@@ -59,7 +59,7 @@ export class MySQL {
               {
                 name: "mysql",
                 image: `mysql:${this.spec.version}`,
-                args: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"],
+                args: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci", this.spec.version.startsWith("5.6") ? "" : "--log_error_verbosity=1"],
                 env: [
                   {
                     name: "MYSQL_ROOT_PASSWORD",
@@ -99,7 +99,7 @@ export class MySQL {
                 },
                 readinessProbe: {
                   exec: {
-                    command: ["mysqladmin" ,"ping", "-h", "localhost"],
+                    command: ["mysqladmin" ,"ping", "-h", "localhost", "-uroot", `-p${this.spec.rootPassword}`],
                   },
                   initialDelaySeconds: 5,
                   failureThreshold: 1,
@@ -107,7 +107,7 @@ export class MySQL {
                 },
                 livenessProbe: {
                   exec: {
-                    command: ["mysqladmin" ,"ping", "-h", "localhost"],
+                    command: ["mysqladmin" ,"ping", "-h", "localhost", "-uroot", `-p${this.spec.rootPassword}`],
                   },
                   failureThreshold: 2,
                   periodSeconds: 5,
