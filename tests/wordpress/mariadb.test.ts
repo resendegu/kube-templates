@@ -47,7 +47,7 @@ describe("WordPress + MariaDB", () => {
           namespace,
         },
         {
-          version: "5.8",
+          version: "5.6",
           cpu: {
             limit: 1,
             request: 0,
