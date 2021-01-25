@@ -88,6 +88,11 @@ interface PodSpec {
   volumes?: Volume[];
 }
 
+interface PodDisruptionBudgetSpec {
+  selector: LabelSelector,
+  maxUnavailable: number
+}
+
 interface PodSecurityContext {
   fsGroup?: number;
   runAsGroup?: number;
@@ -255,7 +260,7 @@ interface WeightedPodAffinityTerm {
 
 interface PodAffinityTerm {
   labelSelector?: LabelSelector;
-  namespaces: string[];
+  namespaces?: string[];
   topologyKey: string;
 }
 
@@ -521,7 +526,7 @@ interface StatefulSetSpec {
 }
 
 interface StatefulSetUpdateStrategy {
-  rollingUpdate: RollingUpdateStatefulSetStrategy;
+  rollingUpdate?: RollingUpdateStatefulSetStrategy;
   type: "RollingUpdate";
 }
 
@@ -718,5 +723,35 @@ export class CronJob {
         spec: this.spec,
       },
     ]);
+  }
+}
+
+export class PodDisruptionBudget {
+  constructor(public metadata: ObjectMeta, public spec: PodDisruptionBudgetSpec) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "policy/v1beta1",
+        kind: "PodDisruptionBudget",
+        metadata: this.metadata,
+        spec: this.spec
+      }
+    ])
+  }
+}
+
+export class Job {
+  constructor(public metadata: ObjectMeta, public spec: Omit<JobSpec, "selector">) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "batch/v1",
+        kind: "Job",
+        metadata: this.metadata,
+        spec: this.spec
+      }
+    ])
   }
 }
