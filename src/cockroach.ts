@@ -73,7 +73,7 @@ export class Cockroach {
           }
         ],
         publishNotReadyAddresses: true,
-        clusterIP: "none"
+        clusterIP: "None"
       }),
       new PodDisruptionBudget({
         ...this.metadata,
@@ -190,15 +190,7 @@ export class Cockroach {
                 command: [
                   "/bin/bash",
                   "-ecx",
-                  `exec
-                    /cockroach/cockroach
-                    start
-                    --logtostderr
-                    --insecure
-                    --advertise-host $(hostname -f)
-                    --http-addr 0.0.0.0
-                    --join ${this.metadata.name}-0.${this.metadata.name},${this.metadata.name}-1.${this.metadata.name},${this.metadata.name}-2.${this.metadata.name}
-                    --cache $(expr $MEMORY_LIMIT_MIB / 4)MiB`
+                  `exec /cockroach/cockroach start --logtostderr --insecure --advertise-host $(hostname -f) --http-addr 0.0.0.0 --join ${this.metadata.name}-0.${this.metadata.name},${this.metadata.name}-1.${this.metadata.name},${this.metadata.name}-2.${this.metadata.name} --cache $(expr $MEMORY_LIMIT_MIB / 4)MiB`
                 ],
                 resources: {
                   limits: {
