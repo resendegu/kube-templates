@@ -32,15 +32,17 @@ describe("cockroach", () => {
           },
           memory: "64Mi",
           version: "20.2.3",
-          replicas: 1
+          replicas: 3
         }
       )
     );
 
     waitPodReady(namespace, "cockroachdb-0");
+    waitPodReady(namespace, "cockroachdb-1");
+    waitPodReady(namespace, "cockroachdb-2");
 
     expect(
-      await queryCockroach(namespace, "cockroachdb-0", "SELECT true AS ok")
+      await queryCockroach(namespace, "svc/cockroachdb", "SELECT true AS ok")
     ).toEqual([
       {
         ok: true,
