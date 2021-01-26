@@ -15,6 +15,7 @@ interface CockroachSpec {
     limit: string | number;
   };
   memory: string | number;
+  replicas: number;
 }
 
 export class Cockroach {
@@ -91,7 +92,7 @@ export class Cockroach {
       }),
       new StatefulSet(this.metadata, {
         serviceName: this.metadata.name,
-        replicas: 3,
+        replicas: this.spec.replicas,
         selector: {
           matchLabels: {
             app: this.metadata.name,
@@ -190,7 +191,7 @@ export class Cockroach {
                 command: [
                   "/bin/bash",
                   "-ecx",
-                  `exec /cockroach/cockroach start --logtostderr --insecure --advertise-host $(hostname -f) --http-addr 0.0.0.0 --join ${this.metadata.name}-0.${this.metadata.name},${this.metadata.name}-1.${this.metadata.name},${this.metadata.name}-2.${this.metadata.name} --cache $(expr $MEMORY_LIMIT_MIB / 4)MiB`
+                  `exec /cockroach/cockroach start --logtostderr --insecure --advertise-host $(hostname -f) --http-addr 0.0.0.0 --join ${_.range(this.spec.replicas).map(i => `${this.metadata.name}-${i}.${this.metadata.name}`).join(",")} --cache $(expr $MEMORY_LIMIT_MIB / 4)MiB`
                 ],
                 resources: {
                   limits: {
