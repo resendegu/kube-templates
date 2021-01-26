@@ -3,7 +3,7 @@ import { Cockroach } from "../../src/cockroach";
 import { apply, deleteObject, randomSuffix, waitJobComplete, waitPodReady } from "../helpers";
 import { queryCockroach } from "./helpers";
 
-describe("cockroach", () => {
+describe("CockroachDB", () => {
   const namespace = `test-${randomSuffix()}`;
 
   beforeAll(() => {
@@ -38,6 +38,39 @@ describe("cockroach", () => {
     );
 
     waitPodReady(namespace, "cockroachdb-0");
+    waitJobComplete(namespace, "cluster-init");
+
+    expect(
+      await queryCockroach(namespace, "svc/cockroachdb", "SELECT true AS ok")
+    ).toEqual([
+      {
+        ok: true,
+      },
+    ]);
+  });
+
+  test("Create basic database with replicated instance", async () => {
+    apply(
+      new Cockroach(
+        {
+          name: "cockroachdb",
+          namespace,
+        },
+        {
+          cpu: {
+            limit: 2,
+            request: 1,
+          },
+          memory: "64Mi",
+          version: "20.2.3",
+          replicas: 3
+        }
+      )
+    );
+
+    waitPodReady(namespace, "cockroachdb-0");
+    waitPodReady(namespace, "cockroachdb-1");
+    waitPodReady(namespace, "cockroachdb-2");
     waitJobComplete(namespace, "cluster-init");
 
     expect(
