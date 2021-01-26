@@ -53,7 +53,7 @@ describe("CockroachDB", () => {
     apply(
       new Cockroach(
         {
-          name: "cockroachdb",
+          name: "cockroachdb2",
           namespace,
         },
         {
@@ -68,13 +68,13 @@ describe("CockroachDB", () => {
       )
     );
 
-    waitPodReady(namespace, "cockroachdb-0");
-    waitPodReady(namespace, "cockroachdb-1");
-    waitPodReady(namespace, "cockroachdb-2");
-    waitJobComplete(namespace, "cluster-init");
+    waitPodReady(namespace, "cockroachdb2-0");
+    waitPodReady(namespace, "cockroachdb2-1");
+    waitPodReady(namespace, "cockroachdb2-2");
+    waitJobComplete(namespace, "cockroachdb2-cluster-init");
 
     expect(
-      await queryCockroach(namespace, "svc/cockroachdb", "SELECT true AS ok")
+      await queryCockroach(namespace, "svc/cockroachdb2", "SELECT true AS ok")
     ).toEqual([
       {
         ok: true,
