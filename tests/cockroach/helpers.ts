@@ -7,7 +7,7 @@ export async function queryCockroach(
   query: string,
   database: string = "defaultdb"
 ) {
-  const forward = portForward(namespace, pod, 5432);
+  const forward = portForward(namespace, pod, 26257);
 
   try {
     const client = new Client({
