@@ -31,7 +31,7 @@ describe("cockroach", () => {
             request: 0,
           },
           memory: "64Mi",
-          version: "12",
+          version: "20.2.3",
           replicas: 1
         }
       )
