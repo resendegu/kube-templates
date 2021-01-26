@@ -27,8 +27,8 @@ describe("cockroach", () => {
         },
         {
           cpu: {
-            limit: 1,
-            request: 0,
+            limit: 2,
+            request: 1,
           },
           memory: "64Mi",
           version: "20.2.3",
