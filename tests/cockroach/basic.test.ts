@@ -81,4 +81,58 @@ describe("CockroachDB", () => {
       },
     ]);
   });
+
+  test("Update cockroach version", async () => {
+    apply(
+      new Cockroach(
+        {
+          name: "cockroachdb",
+          namespace,
+        },
+        {
+          cpu: {
+            limit: 2,
+            request: 1,
+          },
+          memory: "64Mi",
+          version: "20.1.9",
+          replicas: 1
+        }
+      )
+    );
+
+    waitPodReady(namespace, "cockroachdb-0");
+    waitJobComplete(namespace, "cluster-init");
+
+    expect(
+      (await queryCockroach(namespace, "cockroachdb-0", "SELECT version()"))[0]
+        .version
+    ).toMatch(/CockroachDB CCL v20.1.9/);
+
+    apply(
+      new Cockroach(
+        {
+          name: "cockroachdb",
+          namespace,
+        },
+        {
+          cpu: {
+            limit: 2,
+            request: 1,
+          },
+          memory: "64Mi",
+          version: "20.2.3",
+          replicas: 1
+        }
+      )
+    );
+
+    waitPodReady(namespace, "cockroachdb-0");
+    waitJobComplete(namespace, "cluster-init");
+
+    expect(
+      (await queryCockroach(namespace, "cockroachdb-0", "SELECT version()"))[0]
+        .version
+    ).toMatch(/CockroachDB CCL v20.2.3/);
+  });
 });
