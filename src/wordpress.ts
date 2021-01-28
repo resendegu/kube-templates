@@ -32,6 +32,8 @@ export class WordPress {
 
   get yaml() {
     const url = new URL(this.spec.ingress.publicUrl);
+    const maxUploadSize = this.spec.ingress.maxBodySize ? Math.ceil(parseMemory(this.spec.ingress.maxBodySize) / 1024 / 1024) + "m" : "2m";
+    const postMaxSize = this.spec.ingress.maxBodySize ? Math.ceil(parseMemory(this.spec.ingress.maxBodySize) / 1024 / 1024) + 8 + "m" : "10m";
 
     return generateYaml([
       new Service(
@@ -68,6 +70,34 @@ export class WordPress {
           },
           spec: {
             automountServiceAccountToken: false,
+            initContainers: [
+              {
+                name: "wordpress-setup",
+                image: `wordpress:${this.spec.version}`,
+                command: [
+                  "/bin/bash",
+                  "-ecx",
+                  `cp /usr/local/etc/php/conf.d/* /phpconf/ && echo -e "post_max_size=${postMaxSize}\\nupload_max_filesize=${maxUploadSize}\\n" > /phpconf/custom.ini`,
+                ],
+                args: [],
+                resources: {
+                  limits: {
+                    cpu: this.spec.cpu.limit,
+                    memory: this.spec.memory.limit,
+                  },
+                  requests: {
+                    cpu: this.spec.cpu.request,
+                    memory: this.spec.memory.request,
+                  },
+                },
+                volumeMounts: [
+                  {
+                    name: "php-config",
+                    mountPath: "/phpconf",
+                  },
+                ],
+              },
+            ],
             containers: [
               {
                 name: "wordpress",
@@ -105,6 +135,11 @@ export class WordPress {
                   {
                     mountPath: "/var/www/html",
                     name: "data",
+                    subPath: "www",
+                  },
+                  {
+                    mountPath: "/usr/local/etc/php/conf.d",
+                    name: "php-config",
                   },
                 ],
                 resources: {
@@ -135,6 +170,12 @@ export class WordPress {
                   failureThreshold: 2,
                   periodSeconds: 5,
                 },
+              },
+            ],
+            volumes: [
+              {
+                name: "php-config",
+                emptyDir: {},
               },
             ],
           },
