@@ -16,6 +16,7 @@ interface CockroachSpec {
   };
   memory: string | number;
   replicas: number;
+  clusterVersion: string;
 }
 
 export class Cockroach {
@@ -247,7 +248,7 @@ export class Cockroach {
             containers: [
               {
                 name: this.metadata.name != "cockroachdb" ? `${this.metadata.name}-cluster-init` : "cluster-init",
-                image: `cockroachdb/cockroach:latest`,
+                image: `cockroachdb/cockroach:v${this.spec.clusterVersion}`,
                 imagePullPolicy: "IfNotPresent",
                 command: [
                   "/cockroach/cockroach",

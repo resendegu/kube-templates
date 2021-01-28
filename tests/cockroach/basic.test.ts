@@ -32,7 +32,8 @@ describe("CockroachDB", () => {
           },
           memory: "64Mi",
           version: "20.2.3",
-          replicas: 1
+          replicas: 1,
+          clusterVersion: "20.2.3"
         }
       )
     );
@@ -63,7 +64,8 @@ describe("CockroachDB", () => {
           },
           memory: "64Mi",
           version: "20.2.3",
-          replicas: 3
+          replicas: 3,
+          clusterVersion: "20.2.3"
         }
       )
     );
@@ -96,7 +98,8 @@ describe("CockroachDB", () => {
           },
           memory: "64Mi",
           version: "20.1.9",
-          replicas: 1
+          replicas: 1,
+          clusterVersion: "20.1.9"
         }
       )
     );
@@ -126,7 +129,8 @@ describe("CockroachDB", () => {
           },
           memory: "64Mi",
           version: "20.2.3",
-          replicas: 1
+          replicas: 1,
+          clusterVersion: "20.1.9"
         }
       )
     );
