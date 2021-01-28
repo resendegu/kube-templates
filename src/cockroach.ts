@@ -247,7 +247,7 @@ export class Cockroach {
             containers: [
               {
                 name: this.metadata.name != "cockroachdb" ? `${this.metadata.name}-cluster-init` : "cluster-init",
-                image: `cockroachdb/cockroach:v${this.spec.version}`,
+                image: `cockroachdb/cockroach:latest`,
                 imagePullPolicy: "IfNotPresent",
                 command: [
                   "/cockroach/cockroach",
