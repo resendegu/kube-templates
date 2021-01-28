@@ -86,7 +86,7 @@ describe("CockroachDB", () => {
     apply(
       new Cockroach(
         {
-          name: "cockroachdb",
+          name: "cockroachdb3",
           namespace,
         },
         {
@@ -101,18 +101,18 @@ describe("CockroachDB", () => {
       )
     );
 
-    waitPodReady(namespace, "cockroachdb-0");
-    waitJobComplete(namespace, "cluster-init");
+    waitPodReady(namespace, "cockroachdb3-0");
+    waitJobComplete(namespace, "cockroachdb3-cluster-init");
 
     expect(
-      (await queryCockroach(namespace, "cockroachdb-0", "SELECT version()"))[0]
+      (await queryCockroach(namespace, "cockroachdb3-0", "SELECT version()"))[0]
         .version
     ).toMatch(/CockroachDB CCL v20.1.9/);
 
     apply(
       new Cockroach(
         {
-          name: "cockroachdb",
+          name: "cockroachdb3",
           namespace,
         },
         {
@@ -127,11 +127,11 @@ describe("CockroachDB", () => {
       )
     );
 
-    waitPodReady(namespace, "cockroachdb-0");
-    waitJobComplete(namespace, "cluster-init");
+    waitPodReady(namespace, "cockroachdb3-0");
+    waitJobComplete(namespace, "cockroachdb3-cluster-init");
 
     expect(
-      (await queryCockroach(namespace, "cockroachdb-0", "SELECT version()"))[0]
+      (await queryCockroach(namespace, "cockroachdb3-0", "SELECT version()"))[0]
         .version
     ).toMatch(/CockroachDB CCL v20.2.3/);
   });
