@@ -42,7 +42,7 @@ export function waitPodReady(namespace: string, pod: string, timeout = 60) {
     if (!podInfo) {
       throw new Error(`pod ${pod} does not exist`);
     }
-    console.log(JSON.stringify(podInfo));
+    // console.log(`POD -> ${JSON.stringify(podInfo)}`);
     if (
       podInfo.status.containerStatuses &&
       podInfo.status.containerStatuses.every((x: any) => x.ready)
@@ -64,6 +64,8 @@ export function waitJobComplete(namespace: string, job: string, timeout = 60) {
     if (!jobInfo) {
       throw new Error(`Job ${job} does not exist`);
     }
+
+    console.log(`JOB -> ${JSON.stringify(jobInfo)}`);
 
     if (jobInfo.status.succeeded === 1) {
       return;
