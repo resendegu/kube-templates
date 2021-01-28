@@ -17,6 +17,7 @@ interface CockroachSpec {
   memory: string | number;
   replicas: number;
   initClusterJob: boolean;
+  clusterVersion: string;
 }
 
 export class Cockroach {
@@ -145,7 +146,7 @@ export class Cockroach {
                 livenessProbe: {
                   httpGet: {
                     path: "/health",
-                    port: 8080
+                    port: "http"
                   },
                   initialDelaySeconds: 30,
                   periodSeconds: 5
@@ -153,7 +154,7 @@ export class Cockroach {
                 readinessProbe: {
                   httpGet: {
                     path: "/health?ready=1",
-                    port: 8080
+                    port: "http"
                   },
                   initialDelaySeconds: 10,
                   periodSeconds: 5,
@@ -232,8 +233,7 @@ export class Cockroach {
                 requests: {
                   storage: "2Gi",
                 },
-              },
-              storageClassName: "ssd",
+              }
             },
           },
         ]
@@ -243,6 +243,9 @@ export class Cockroach {
           new Job({
             ...this.metadata,
             name: this.metadata.name != "cockroachdb" ? `${this.metadata.name}-cluster-init` : "cluster-init",
+            labels: {
+              "app": this.metadata.name
+            }
           },
           {
             template: {
@@ -250,7 +253,7 @@ export class Cockroach {
                 containers: [
                   {
                     name: this.metadata.name != "cockroachdb" ? `${this.metadata.name}-cluster-init` : "cluster-init",
-                    image: `cockroachdb/cockroach:v${this.spec.version}`,
+                    image: `cockroachdb/cockroach:v${this.spec.clusterVersion}`,
                     imagePullPolicy: "IfNotPresent",
                     command: [
                       "/cockroach/cockroach",

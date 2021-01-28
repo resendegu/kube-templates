@@ -33,7 +33,8 @@ describe("CockroachDB", () => {
           memory: "64Mi",
           version: "20.2.3",
           replicas: 1,
-          initClusterJob: true
+          initClusterJob: true,
+          clusterVersion: "20.1.9"
         }
       )
     );
@@ -65,7 +66,8 @@ describe("CockroachDB", () => {
           memory: "64Mi",
           version: "20.2.3",
           replicas: 3,
-          initClusterJob: true
+          initClusterJob: true,
+          clusterVersion: "20.1.9"
         }
       )
     );
@@ -99,7 +101,8 @@ describe("CockroachDB", () => {
           memory: "64Mi",
           version: "20.1.9",
           replicas: 1,
-          initClusterJob: true
+          initClusterJob: true,
+          clusterVersion: "20.1.9"
         }
       )
     );
@@ -120,18 +123,20 @@ describe("CockroachDB", () => {
         },
         {
           cpu: {
-            limit: 2,
+            limit: 5,
             request: 1,
           },
           memory: "64Mi",
           version: "20.2.3",
           replicas: 1,
-          initClusterJob: false
+          initClusterJob: false,
+          clusterVersion: "20.1.9"
         }
       )
     );
 
     waitPodReady(namespace, "cockroachdb3-0");
+    waitJobComplete(namespace, "cockroachdb3-cluster-init");
 
     expect(
       (await queryCockroach(namespace, "svc/cockroachdb3", "SELECT version()"))[0]

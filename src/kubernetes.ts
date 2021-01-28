@@ -364,7 +364,7 @@ interface HTTPGetAction {
   host?: string;
   httpHeaders?: HTTPHeader[];
   path: string;
-  port?: number;
+  port?: number | string;
   scheme?: "HTTP" | "HTTPS";
 }
 
