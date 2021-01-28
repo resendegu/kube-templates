@@ -64,6 +64,7 @@ export function parseMemory(memory: string | number) {
     i += 1;
 
     const match = str.match(new RegExp(`^(\\d+)${letter}(i?)$`, "i"));
+
     if (match) {
       const base = parseInt(match[1], 10);
       const multiplier = Math.pow(match[2] ? 1024 : 1000, i);

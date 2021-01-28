@@ -20,7 +20,7 @@ interface WordPressSpec {
   };
   ingress: {
     class?: "public" | "private" | "internal";
-    publicUrl: string;
+    publicUrl?: string;
     tlsCert?: string;
     timeout?: number;
     maxBodySize?: string;
@@ -31,7 +31,9 @@ export class WordPress {
   constructor(private metadata: ObjectMeta, private spec: WordPressSpec) {}
 
   get yaml() {
-    const url = new URL(this.spec.ingress.publicUrl);
+    const url = this.spec.ingress.publicUrl ? new URL(this.spec.ingress.publicUrl) : null;
+    const maxUploadSize = this.spec.ingress.maxBodySize ? Math.ceil(parseMemory(this.spec.ingress.maxBodySize) / 1024 / 1024) + "M" : "2M";
+    const postMaxSize = this.spec.ingress.maxBodySize ? Math.ceil(parseMemory(this.spec.ingress.maxBodySize) / 1024 / 1024) + 8 + "M" : "10M";
 
     return generateYaml([
       new Service(
@@ -68,6 +70,34 @@ export class WordPress {
           },
           spec: {
             automountServiceAccountToken: false,
+            initContainers: [
+              {
+                name: "wordpress-setup",
+                image: `wordpress:${this.spec.version}`,
+                command: [
+                  "/bin/bash",
+                  "-ecx",
+                  `cp /usr/local/etc/php/conf.d/* /phpconf/ && echo -e "post_max_size=${postMaxSize}\\nupload_max_filesize=${maxUploadSize}\\n" > /phpconf/custom.ini`,
+                ],
+                args: [],
+                resources: {
+                  limits: {
+                    cpu: this.spec.cpu.limit,
+                    memory: this.spec.memory.limit,
+                  },
+                  requests: {
+                    cpu: this.spec.cpu.request,
+                    memory: this.spec.memory.request,
+                  },
+                },
+                volumeMounts: [
+                  {
+                    name: "php-config",
+                    mountPath: "/phpconf",
+                  },
+                ],
+              },
+            ],
             containers: [
               {
                 name: "wordpress",
@@ -105,6 +135,11 @@ export class WordPress {
                   {
                     mountPath: "/var/www/html",
                     name: "data",
+                    subPath: "www",
+                  },
+                  {
+                    mountPath: "/usr/local/etc/php/conf.d",
+                    name: "php-config",
                   },
                 ],
                 resources: {
@@ -137,6 +172,12 @@ export class WordPress {
                 },
               },
             ],
+            volumes: [
+              {
+                name: "php-config",
+                emptyDir: {},
+              },
+            ],
           },
         },
         volumeClaimTemplates: [
@@ -157,49 +198,53 @@ export class WordPress {
         ],
       }),
 
-      new Ingress(
-        {
-          name: this.metadata.name,
-          namespace: this.metadata.namespace,
-          annotations: {
-            ...(this.spec.ingress.maxBodySize
-              ? {
-                  "nginx.ingress.kubernetes.io/proxy-body-size": parseMemory(this.spec.ingress.maxBodySize).toString(),
-                }
-              : {}),
-            ...(this.spec.ingress.timeout
-              ? {
-                  "nginx.ingress.kubernetes.io/proxy-read-timeout": this.spec.ingress.timeout.toString(),
-                }
-              : {}),
-          },
-        },
-        {
-          tls: this.spec.ingress.tlsCert
-            ? [
-                {
-                  secretName: this.spec.ingress.tlsCert,
+      ...(url
+        ? [
+            new Ingress(
+              {
+                name: this.metadata.name,
+                namespace: this.metadata.namespace,
+                annotations: {
+                  ...(this.spec.ingress.maxBodySize
+                    ? {
+                        "nginx.ingress.kubernetes.io/proxy-body-size": parseMemory(this.spec.ingress.maxBodySize).toString(),
+                      }
+                    : {}),
+                  ...(this.spec.ingress.timeout
+                    ? {
+                        "nginx.ingress.kubernetes.io/proxy-read-timeout": this.spec.ingress.timeout.toString(),
+                      }
+                    : {}),
                 },
-              ]
-            : [],
-          rules: [
-            {
-              host: url.hostname,
-              http: {
-                paths: [
+              },
+              {
+                tls: this.spec.ingress.tlsCert
+                  ? [
+                      {
+                        secretName: this.spec.ingress.tlsCert,
+                      },
+                    ]
+                  : [],
+                rules: [
                   {
-                    path: url.pathname,
-                    backend: {
-                      serviceName: this.metadata.name,
-                      servicePort: 80,
+                    host: url.hostname,
+                    http: {
+                      paths: [
+                        {
+                          path: url.pathname,
+                          backend: {
+                            serviceName: this.metadata.name,
+                            servicePort: 80,
+                          },
+                        },
+                      ],
                     },
                   },
                 ],
-              },
-            },
-          ],
-        }
-      ),
+              }
+            ),
+          ]
+        : []),
     ]);
   }
 }
