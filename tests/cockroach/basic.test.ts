@@ -101,8 +101,12 @@ describe("CockroachDB", () => {
       )
     );
 
+    console.log("before first");
+
     waitPodReady(namespace, "cockroachdb3-0");
     waitJobComplete(namespace, "cockroachdb3-cluster-init");
+
+    console.log("after first");
 
     expect(
       (await queryCockroach(namespace, "cockroachdb3-0", "SELECT version()"))[0]
@@ -127,8 +131,12 @@ describe("CockroachDB", () => {
       )
     );
 
+    console.log("before second");
+
     waitPodReady(namespace, "cockroachdb3-0");
     waitJobComplete(namespace, "cockroachdb3-cluster-init");
+
+    console.log("after second");
 
     expect(
       (await queryCockroach(namespace, "cockroachdb3-0", "SELECT version()"))[0]
