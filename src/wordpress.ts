@@ -31,7 +31,7 @@ export class WordPress {
   constructor(private metadata: ObjectMeta, private spec: WordPressSpec) {}
 
   get yaml() {
-    const url = new URL(this.spec.ingress.publicUrl);
+    const url = this.spec.ingress.publicUrl ? new URL(this.spec.ingress.publicUrl) : null;
     const maxUploadSize = this.spec.ingress.maxBodySize ? Math.ceil(parseMemory(this.spec.ingress.maxBodySize) / 1024 / 1024) + "m" : "2m";
     const postMaxSize = this.spec.ingress.maxBodySize ? Math.ceil(parseMemory(this.spec.ingress.maxBodySize) / 1024 / 1024) + 8 + "m" : "10m";
 
@@ -198,49 +198,53 @@ export class WordPress {
         ],
       }),
 
-      new Ingress(
-        {
-          name: this.metadata.name,
-          namespace: this.metadata.namespace,
-          annotations: {
-            ...(this.spec.ingress.maxBodySize
-              ? {
-                  "nginx.ingress.kubernetes.io/proxy-body-size": parseMemory(this.spec.ingress.maxBodySize).toString(),
-                }
-              : {}),
-            ...(this.spec.ingress.timeout
-              ? {
-                  "nginx.ingress.kubernetes.io/proxy-read-timeout": this.spec.ingress.timeout.toString(),
-                }
-              : {}),
-          },
-        },
-        {
-          tls: this.spec.ingress.tlsCert
-            ? [
-                {
-                  secretName: this.spec.ingress.tlsCert,
+      ...(url
+        ? [
+            new Ingress(
+              {
+                name: this.metadata.name,
+                namespace: this.metadata.namespace,
+                annotations: {
+                  ...(this.spec.ingress.maxBodySize
+                    ? {
+                        "nginx.ingress.kubernetes.io/proxy-body-size": parseMemory(this.spec.ingress.maxBodySize).toString(),
+                      }
+                    : {}),
+                  ...(this.spec.ingress.timeout
+                    ? {
+                        "nginx.ingress.kubernetes.io/proxy-read-timeout": this.spec.ingress.timeout.toString(),
+                      }
+                    : {}),
                 },
-              ]
-            : [],
-          rules: [
-            {
-              host: url.hostname,
-              http: {
-                paths: [
+              },
+              {
+                tls: this.spec.ingress.tlsCert
+                  ? [
+                      {
+                        secretName: this.spec.ingress.tlsCert,
+                      },
+                    ]
+                  : [],
+                rules: [
                   {
-                    path: url.pathname,
-                    backend: {
-                      serviceName: this.metadata.name,
-                      servicePort: 80,
+                    host: url.hostname,
+                    http: {
+                      paths: [
+                        {
+                          path: url.pathname,
+                          backend: {
+                            serviceName: this.metadata.name,
+                            servicePort: 80,
+                          },
+                        },
+                      ],
                     },
                   },
                 ],
-              },
-            },
-          ],
-        }
-      ),
+              }
+            ),
+          ]
+        : []),
     ]);
   }
 }
