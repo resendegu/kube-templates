@@ -20,7 +20,7 @@ interface WordPressSpec {
   };
   ingress: {
     class?: "public" | "private" | "internal";
-    publicUrl: string;
+    publicUrl?: string;
     tlsCert?: string;
     timeout?: number;
     maxBodySize?: string;
@@ -32,8 +32,8 @@ export class WordPress {
 
   get yaml() {
     const url = this.spec.ingress.publicUrl ? new URL(this.spec.ingress.publicUrl) : null;
-    const maxUploadSize = this.spec.ingress.maxBodySize ? Math.ceil(parseMemory(this.spec.ingress.maxBodySize) / 1024 / 1024) + "m" : "2m";
-    const postMaxSize = this.spec.ingress.maxBodySize ? Math.ceil(parseMemory(this.spec.ingress.maxBodySize) / 1024 / 1024) + 8 + "m" : "10m";
+    const maxUploadSize = this.spec.ingress.maxBodySize ? Math.ceil(parseMemory(this.spec.ingress.maxBodySize) / 1024 / 1024) + "M" : "2M";
+    const postMaxSize = this.spec.ingress.maxBodySize ? Math.ceil(parseMemory(this.spec.ingress.maxBodySize) / 1024 / 1024) + 8 + "M" : "10M";
 
     return generateYaml([
       new Service(
