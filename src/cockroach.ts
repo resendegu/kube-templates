@@ -16,7 +16,7 @@ interface CockroachSpec {
   };
   memory: string | number;
   replicas: number;
-  clusterVersion: string;
+  initClusterJob: boolean;
 }
 
 export class Cockroach {
@@ -238,30 +238,34 @@ export class Cockroach {
           },
         ]
       }),
-      new Job({
-        ...this.metadata,
-        name: this.metadata.name != "cockroachdb" ? `${this.metadata.name}-cluster-init` : "cluster-init",
-      },
-      {
-        template: {
-          spec: {
-            containers: [
-              {
-                name: this.metadata.name != "cockroachdb" ? `${this.metadata.name}-cluster-init` : "cluster-init",
-                image: `cockroachdb/cockroach:v${this.spec.clusterVersion}`,
-                imagePullPolicy: "IfNotPresent",
-                command: [
-                  "/cockroach/cockroach",
-                  "init",
-                  "--insecure",
-                  `--host=${this.metadata.name}-0.${this.metadata.name}`
-                ]
-              }
-            ],
-            restartPolicy: "OnFailure"
+      ...(this.spec.initClusterJob ?
+        [
+          new Job({
+            ...this.metadata,
+            name: this.metadata.name != "cockroachdb" ? `${this.metadata.name}-cluster-init` : "cluster-init",
           },
-        },
-      })
+          {
+            template: {
+              spec: {
+                containers: [
+                  {
+                    name: this.metadata.name != "cockroachdb" ? `${this.metadata.name}-cluster-init` : "cluster-init",
+                    image: `cockroachdb/cockroach:v${this.spec.version}`,
+                    imagePullPolicy: "IfNotPresent",
+                    command: [
+                      "/cockroach/cockroach",
+                      "init",
+                      "--insecure",
+                      `--host=${this.metadata.name}-0.${this.metadata.name}`
+                    ]
+                  }
+                ],
+                restartPolicy: "OnFailure"
+              },
+            },
+          })
+        ]
+        : [])
     ]);
   }
 }
