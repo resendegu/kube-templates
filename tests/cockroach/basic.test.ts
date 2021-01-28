@@ -112,7 +112,7 @@ describe("CockroachDB", () => {
     console.log("after first");
 
     expect(
-      (await queryCockroach(namespace, "cockroachdb3-0", "SELECT version()"))[0]
+      (await queryCockroach(namespace, "svc/cockroachdb3", "SELECT version()"))[0]
         .version
     ).toMatch(/CockroachDB CCL v20.1.9/);
 
@@ -143,7 +143,7 @@ describe("CockroachDB", () => {
     console.log("after second");
 
     expect(
-      (await queryCockroach(namespace, "cockroachdb3-0", "SELECT version()"))[0]
+      (await queryCockroach(namespace, "svc/cockroachdb3", "SELECT version()"))[0]
         .version
     ).toMatch(/CockroachDB CCL v20.2.3/);
   });
