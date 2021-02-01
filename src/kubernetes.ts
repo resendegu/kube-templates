@@ -318,14 +318,14 @@ interface SecurityContext {
 }
 
 interface PodSecurityContext {
-  fsGroup: number;
-  runAsGroup: number;
-  runAsNonRoot: boolean;
-  runAsUser: number;
-  seLinuxOptions: SELinuxOptions;
-  supplementalGroups: number[];
-  sysctls: Array<{ name: string; value: string }>;
-  windowsOptions: WindowsSecurityContextOptions;
+  fsGroup?: number;
+  runAsGroup?: number;
+  runAsNonRoot?: boolean;
+  runAsUser?: number;
+  seLinuxOptions?: SELinuxOptions;
+  supplementalGroups?: number[];
+  sysctls?: Array<{ name: string; value: string }>;
+  windowsOptions?: WindowsSecurityContextOptions;
 }
 
 export interface Container {
