@@ -93,20 +93,6 @@ interface PodDisruptionBudgetSpec {
   maxUnavailable: number
 }
 
-interface PodSecurityContext {
-  fsGroup?: number;
-  runAsGroup?: number;
-  runAsNonRoot?: boolean;
-  runAsUser?: number;
-  seLinuxOptions?: {
-    level?: string;
-    role?: string;
-    type?: string;
-    user?: string;
-  };
-  supplementalGroups?: number[];
-}
-
 interface Toleration {
   effect: string;
   key: string;
