@@ -142,7 +142,7 @@ export type Volume = {
   {
       configMap: {
         defaultMode?: string;
-        items: KeyToPath[];
+        items?: KeyToPath[];
         name: string;
         optional?: boolean;
       };
@@ -174,9 +174,20 @@ export type Volume = {
   // | {
   //     glusterfs: GlusterfsVolumeSource;
   //   }
-  // | {
-  //     hostPath: HostPathVolumeSource;
-  //   }
+  | {
+      hostPath: {
+        path: string;
+        type?:
+          | ""
+          | "DirectoryOrCreate"
+          | "Directory"
+          | "FileOrCreate"
+          | "File"
+          | "Socket"
+          | "CharDevice"
+          | "BlockDevice";
+      };
+    }
   // | {
   //     iscsi: ISCSIVolumeSource;
   //   }
@@ -291,6 +302,46 @@ interface EnvFromSource {
   secretRef?: SecretEnvSource;
 }
 
+interface SELinuxOptions {
+  user?: string;
+  role?: string;
+  type?: string;
+  level?: string;
+}
+
+interface WindowsSecurityContextOptions {
+  gmsaCredentialSpec?: string;
+  gmsaCredentialSpecName?: string;
+  runAsUserName?: string;
+}
+
+interface SecurityContext {
+  allowPrivilegeEscalation?: boolean;
+  capabilities?: {
+    add?: string[];
+    drop?: string[];
+  };
+  privileged?: boolean;
+  procMount?: "Default" | "Unmasked";
+  readOnlyRootFilesystem?: boolean;
+  runAsGroup?: number;
+  runAsNonRoot?: boolean;
+  runAsUser?: number;
+  seLinuxOptions?: SELinuxOptions;
+  windowsOptions?: WindowsSecurityContextOptions;
+}
+
+interface PodSecurityContext {
+  fsGroup: number;
+  runAsGroup: number;
+  runAsNonRoot: boolean;
+  runAsUser: number;
+  seLinuxOptions: SELinuxOptions;
+  supplementalGroups: number[];
+  sysctls: Array<{ name: string; value: string }>;
+  windowsOptions: WindowsSecurityContextOptions;
+}
+
 export interface Container {
   args?: string[];
   command?: string[];
@@ -313,7 +364,7 @@ export interface Container {
       cpu?: string | number;
     };
   };
-  // securityContext?: SecurityContext
+  securityContext?: SecurityContext
   startupProbe?: Probe;
   stdin?: boolean;
   stdinOnce?: boolean;
@@ -705,6 +756,24 @@ export class Secret {
         apiVersion: "v1",
         data: data,
         kind: "Secret",
+        metadata: this.metadata,
+      },
+    ]);
+  }
+}
+
+export class ConfigMap {
+  constructor(
+    public metadata: ObjectMeta,
+    public data?: { [key: string]: string }
+  ) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "v1",
+        data: this.data,
+        kind: "ConfigMap",
         metadata: this.metadata,
       },
     ]);
