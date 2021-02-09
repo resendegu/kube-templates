@@ -268,21 +268,34 @@ export class StatelessApp {
           },
           spec: {
             affinity: {
-              podAntiAffinity: {
-                preferredDuringSchedulingIgnoredDuringExecution: [
-                  {
-                    weight: 100,
-                    podAffinityTerm: {
-                      labelSelector: {
-                        matchLabels: {
-                          app: this.metadata.name,
+              podAntiAffinity: process.env.PRODUCTION
+                ? {
+                    requiredDuringSchedulingIgnoredDuringExecution: [
+                      {
+                        labelSelector: {
+                          matchLabels: {
+                            app: this.metadata.name,
+                          },
+                        },
+                        topologyKey: "kubernetes.io/hostname",
+                      },
+                    ],
+                  }
+                : {
+                    preferredDuringSchedulingIgnoredDuringExecution: [
+                      {
+                        weight: 100,
+                        podAffinityTerm: {
+                          labelSelector: {
+                            matchLabels: {
+                              app: this.metadata.name,
+                            },
+                          },
+                          topologyKey: "kubernetes.io/hostname",
                         },
                       },
-                      topologyKey: "kubernetes.io/hostname",
-                    },
+                    ],
                   },
-                ],
-              },
             },
             ...(this.spec.image.startsWith("registry.cubos.io")
               ? {
