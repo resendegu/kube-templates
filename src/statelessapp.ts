@@ -7,7 +7,7 @@ import {
   ObjectMeta,
   Service,
   Volume,
-  VolumeMount
+  VolumeMount,
 } from "./kubernetes";
 
 interface StatelessAppSpec {
@@ -278,7 +278,6 @@ export class StatelessApp {
                           app: this.metadata.name,
                         },
                       },
-                      namespaces: [this.metadata.namespace],
                       topologyKey: "kubernetes.io/hostname",
                     },
                   },
