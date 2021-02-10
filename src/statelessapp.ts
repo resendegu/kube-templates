@@ -172,28 +172,27 @@ export class StatelessApp {
         }
       }
 
-      const annotations = ingress.metadata.annotations ?? {};
-      ingress.metadata.annotations = annotations;
+      ingress.metadata.annotations ??= {};
 
       // TODO: This shouldn't be global on entire Ingress. Should be per port.
       if (maxBodySizeBytes) {
-        annotations[
+        ingress.metadata.annotations[
           "nginx.ingress.kubernetes.io/proxy-body-size"
         ] = maxBodySizeBytes.toString();
       }
 
       if (portSpec.timeout) {
-        annotations[
+        ingress.metadata.annotations[
           "nginx.ingress.kubernetes.io/proxy-read-timeout"
         ] = portSpec.timeout.toString();
       }
 
       if (hasPath) {
-        annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$2";
+        ingress.metadata.annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$2";
       }
 
       if (process.env.CUBOS_DEV_GKE && !process.env.PRODUCTION) {
-        annotations["kubernetes.io/ingress.class"] =
+        ingress.metadata.annotations["kubernetes.io/ingress.class"] =
           portSpec.ingressClass ?? "private";
       }
     }
