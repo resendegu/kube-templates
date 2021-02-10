@@ -77,11 +77,6 @@ export class StatelessApp {
   constructor(private metadata: ObjectMeta, private spec: StatelessAppSpec) {}
 
   get yaml() {
-    console.log({
-      CUBOS_DEV_GKE: JSON.stringify(process.env.CUBOS_DEV_GKE),
-      PRODUCTION: JSON.stringify(process.env.PRODUCTION),
-    });
-  
     const ingress = new Ingress(clone(this.metadata), { rules: [], tls: [] });
 
     for (const portSpec of this.spec.ports ?? []) {
