@@ -267,7 +267,7 @@ export class StatelessApp {
           },
           spec: {
             affinity: {
-              podAntiAffinity: process.env.PRODUCTION
+              podAntiAffinity: process.env.PRODUCTION_CUBOS
                 ? {
                     requiredDuringSchedulingIgnoredDuringExecution: [
                       {
