@@ -207,7 +207,7 @@ export type Volume = {
   | {
       secret: {
         defaultMode?: number;
-        items: KeyToPath[];
+        items?: KeyToPath[];
         optional?: boolean;
         secretName: string;
       };
