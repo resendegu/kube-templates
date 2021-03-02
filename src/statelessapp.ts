@@ -296,7 +296,7 @@ export class StatelessApp {
                     ],
                   },
             },
-            ...(this.spec.image.startsWith("registry.cubos.io")
+            ...((this.spec.image.startsWith("registry.cubos.io") || this.spec.image.startsWith("registry.gitlab.com/mimic1"))
               ? {
                   imagePullSecrets: [
                     {
