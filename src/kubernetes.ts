@@ -127,7 +127,7 @@ export type Volume = {
   //   }
   {
       configMap: {
-        defaultMode?: string;
+        defaultMode?: number;
         items?: KeyToPath[];
         name: string;
         optional?: boolean;
@@ -206,7 +206,7 @@ export type Volume = {
   //   }
   | {
       secret: {
-        defaultMode?: string;
+        defaultMode?: number;
         items: KeyToPath[];
         optional?: boolean;
         secretName: string;
