@@ -10,6 +10,7 @@ interface RethinkSpec {
   };
   memory: string | number;
   cacheMb?: number;
+  storageClassName?: string;
 }
 
 export class Rethink {
@@ -182,7 +183,7 @@ export class Rethink {
                   storage: "2Gi",
                 },
               },
-              storageClassName: "ssd",
+              storageClassName: this.spec.storageClassName ?? "ssd",
             },
           },
         ],
