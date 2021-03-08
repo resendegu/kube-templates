@@ -21,6 +21,7 @@ interface MongoSpec {
   };
   serviceType?: "ExternalName" | "ClusterIP" | "NodePort" | "LoadBalancer";
   serviceMetadata?: BasicObjectMeta;
+  storageClassName?: string;
 }
 
 export class Mongo {
@@ -168,7 +169,7 @@ export class Mongo {
                   storage: "2Gi",
                 },
               },
-              storageClassName: "ssd",
+              storageClassName: this.spec.storageClassName ?? "ssd",
             },
           },
         ],

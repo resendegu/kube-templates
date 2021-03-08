@@ -25,6 +25,7 @@ interface PostgresSpec {
   }[];
   monitoring?: { type: "pgAnalyze"; apiKey: string; monitorPostgresDatabase?: boolean; };
   initContainers?: Container[];
+  storageClassName?: string;
   options?: {
     maxConnections?: number;
     superuserReservedConnections?: number;
@@ -823,7 +824,7 @@ export class Postgres {
                   storage: "2Gi",
                 },
               },
-              storageClassName: process.env.PRODUCTION ? "ssd-regional" : "ssd",
+              storageClassName: this.spec.storageClassName ?? process.env.PRODUCTION ? "ssd-regional" : "ssd",
             },
           },
         ],
@@ -1054,7 +1055,7 @@ export class Postgres {
                           storage: "2Gi",
                         },
                       },
-                      storageClassName: "ssd",
+                      storageClassName: this.spec.storageClassName ?? "ssd",
                     },
                   },
                 ],
