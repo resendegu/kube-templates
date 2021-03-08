@@ -32,6 +32,7 @@ interface StatelessAppSpec {
     | {
         type: "http";
         ingressClass?: "public" | "private" | "internal";
+        ingressAnnotations?: Record<string, string>;
         publicUrl?: string | string[];
         tlsCert?: string;
         timeout?: number;
@@ -172,7 +173,10 @@ export class StatelessApp {
         }
       }
 
-      ingress.metadata.annotations ??= {};
+      ingress.metadata.annotations = {
+        ...ingress.metadata.annotations,
+        ...portSpec.ingressAnnotations,
+      };
 
       // TODO: This shouldn't be global on entire Ingress. Should be per port.
       if (maxBodySizeBytes) {
