@@ -824,7 +824,7 @@ export class Postgres {
                   storage: "2Gi",
                 },
               },
-              storageClassName: this.spec.storageClassName ?? process.env.PRODUCTION ? "ssd-regional" : "ssd",
+              storageClassName: this.spec.storageClassName ?? (process.env.PRODUCTION ? "ssd-regional" : "ssd"),
             },
           },
         ],
