@@ -810,3 +810,18 @@ export class Job {
     ])
   }
 }
+
+export class PersistentVolumeClaim {
+  constructor(public metadata: ObjectMeta, public spec: PersistentVolumeClaimSpec) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "v1",
+        kind: "PersistentVolumeClaim",
+        metadata: this.metadata,
+        spec: this.spec,
+      },
+    ]);
+  }
+}
