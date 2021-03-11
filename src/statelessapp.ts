@@ -50,6 +50,7 @@ interface StatelessAppSpec {
     name?: string;
     port: number;
     containerPort?: number;
+    serviceType?: "ExternalName" | "ClusterIP" | "NodePort" | "LoadBalancer";
   })[];
   check?: (
     | {
@@ -412,10 +413,11 @@ export class StatelessApp {
         ? []
         : [
             new Service(this.metadata, {
+              type: this.spec.ports![0].serviceType ?? "ClusterIP",
               selector: {
                 app: this.metadata.name,
               },
-              ports: (this.spec.ports ?? []).map((portSpec) => ({
+              ports: this.spec.ports!.map((portSpec) => ({
                 name: portSpec.name ?? `port${portSpec.port}`,
                 port: portSpec.port,
                 targetPort: portSpec.containerPort ?? portSpec.port,
