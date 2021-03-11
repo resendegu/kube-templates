@@ -413,7 +413,7 @@ export class StatelessApp {
         ? []
         : [
             new Service(this.metadata, {
-              type: this.spec.ports![0].serviceType ?? "ClusterIP",
+              type: this.spec.ports![0].serviceType,
               selector: {
                 app: this.metadata.name,
               },
