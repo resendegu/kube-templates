@@ -31,7 +31,7 @@ interface StatelessAppSpec {
   ports?: ((
     | {
         type: "http";
-        ingressClass?: "public" | "private" | "internal";
+        ingressClass?: string;
         ingressAnnotations?: Record<string, string>;
         publicUrl?: string | string[];
         tlsCert?: string;
