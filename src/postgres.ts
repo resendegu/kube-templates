@@ -1,6 +1,6 @@
 import { createHash } from "crypto";
 import { generateYaml, parseMemory } from "./helpers";
-import { Container, ObjectMeta, Service, StatefulSet } from "./kubernetes";
+import { Container, ObjectMeta, Service, StatefulSet, Toleration } from "./kubernetes";
 
 interface PostgresSpec {
   readReplicas?: number;
@@ -26,6 +26,10 @@ interface PostgresSpec {
   monitoring?: { type: "pgAnalyze"; apiKey: string; monitorPostgresDatabase?: boolean; };
   initContainers?: Container[];
   storageClassName?: string;
+  nodeSelector?: {
+    [annotation: string]: string;
+  };
+  tolerations?: Toleration[];
   options?: {
     maxConnections?: number;
     superuserReservedConnections?: number;
@@ -810,6 +814,8 @@ export class Postgres {
                 },
               },
             ],
+            tolerations: this.spec.tolerations,
+            nodeSelector: this.spec.nodeSelector,
           },
         },
         volumeClaimTemplates: [
