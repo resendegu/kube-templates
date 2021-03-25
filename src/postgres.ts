@@ -26,6 +26,7 @@ interface PostgresSpec {
   monitoring?: { type: "pgAnalyze"; apiKey: string; monitorPostgresDatabase?: boolean; };
   initContainers?: Container[];
   storageClassName?: string;
+  storageRequest?: string;
   nodeSelector?: {
     [annotation: string]: string;
   };
@@ -827,7 +828,7 @@ export class Postgres {
               accessModes: ["ReadWriteOnce"],
               resources: {
                 requests: {
-                  storage: "2Gi",
+                  storage: this.spec.storageRequest ?? "2Gi",
                 },
               },
               storageClassName: this.spec.storageClassName ?? (process.env.PRODUCTION ? "ssd-regional" : "ssd"),
@@ -1058,7 +1059,7 @@ export class Postgres {
                       accessModes: ["ReadWriteOnce"],
                       resources: {
                         requests: {
-                          storage: "2Gi",
+                          storage: this.spec.storageRequest ?? "2Gi",
                         },
                       },
                       storageClassName: this.spec.storageClassName ?? "ssd",
