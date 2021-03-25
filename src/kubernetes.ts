@@ -93,7 +93,7 @@ interface PodDisruptionBudgetSpec {
   maxUnavailable: number
 }
 
-interface Toleration {
+export interface Toleration {
   effect: string;
   key: string;
   operator?: "Exists" | "Equal";
