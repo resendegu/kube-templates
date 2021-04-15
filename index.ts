@@ -1,4 +1,5 @@
 export * from "./src/certificate";
+export * from "./src/certificate-v1";
 export * from "./src/certmanager";
 export { env } from "./src/helpers";
 export * from "./src/kubernetes";
