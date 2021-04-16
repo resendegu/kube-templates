@@ -196,7 +196,7 @@ export class StatelessApp {
         ingress.metadata.annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$2";
       }
 
-      if (process.env.CUBOS_DEV_GKE && !process.env.PRODUCTION) {
+      if (process.env.CUBOS_DEV_GKE && process.env.CUBOS_INTERNAL_CLUSTER && !process.env.PRODUCTION) {
         ingress.metadata.annotations["kubernetes.io/ingress.class"] =
           portSpec.ingressClass ?? "private";
       }
