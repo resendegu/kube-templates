@@ -319,7 +319,7 @@ export class StatelessApp {
                 }
               : {}),
             automountServiceAccountToken: false,
-            ...(process.env.PRODUCTION &&
+            ...(process.env.PRODUCTION_CUBOS &&
             this.spec.replicas !== undefined &&
             ((Array.isArray(this.spec.replicas) &&
               this.spec.replicas[0] >= 2) ||
