@@ -9,6 +9,7 @@ interface MySQLSpec {
   };
   memory: string | number;
   rootPassword: string;
+  storageClassName?: string;
   initContainers?: Container[];
 }
 
@@ -129,7 +130,7 @@ export class MySQL {
                   storage: "1Gi",
                 },
               },
-              storageClassName: process.env.PRODUCTION ? "ssd-regional" : "standard",
+              storageClassName: this.spec.storageClassName ?? (process.env.PRODUCTION ? "ssd-regional" : "standard"),
             },
           },
         ],
