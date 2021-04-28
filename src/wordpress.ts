@@ -25,6 +25,7 @@ interface WordPressSpec {
     timeout?: number;
     maxBodySize?: string;
   };
+  storageClassName?: string;
 }
 
 export class WordPress {
@@ -192,7 +193,7 @@ export class WordPress {
                   storage: "1Gi",
                 },
               },
-              storageClassName: process.env.PRODUCTION ? "ssd-regional" : "standard",
+              storageClassName: this.spec.storageClassName ?? (process.env.PRODUCTION ? "ssd-regional" : "standard"),
             },
           },
         ],
