@@ -11,6 +11,7 @@ interface RethinkSpec {
   memory: string | number;
   cacheMb?: number;
   storageClassName?: string;
+  imagePullPolicy?: "Always" | "Never" | "IfNotPresent";
 }
 
 export class Rethink {
@@ -82,7 +83,7 @@ export class Rethink {
               {
                 name: "create",
                 image: `rethinkdb:${this.spec.version}`,
-                imagePullPolicy: "Always",
+                imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
                 command: [
                   "bash",
                   "-ec",
@@ -105,7 +106,7 @@ export class Rethink {
               {
                 name: "rethinkdb",
                 image: `rethinkdb:${this.spec.version}`,
-                imagePullPolicy: "Always",
+                imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
                 command: [
                   "bash",
                   "-ec",
