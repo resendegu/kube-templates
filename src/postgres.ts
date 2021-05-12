@@ -31,6 +31,7 @@ interface PostgresSpec {
     [annotation: string]: string;
   };
   tolerations?: Toleration[];
+  imagePullPolicy?: "Always" | "Never" | "IfNotPresent";
   options?: {
     maxConnections?: number;
     superuserReservedConnections?: number;
@@ -451,7 +452,7 @@ export class Postgres {
                   {
                     name: "pg-init",
                     image: `postgres:${this.spec.version}-alpine`,
-                    imagePullPolicy: "Always",
+                    imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
                     env: [
                       {
                         name: "POSTGRES_PASSWORD",
@@ -565,7 +566,7 @@ export class Postgres {
                         }),
                   },
                 ],
-                imagePullPolicy: "Always",
+                imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
                 ports: [
                   {
                     name: "postgres",
@@ -628,7 +629,7 @@ export class Postgres {
               {
                 name: "setup",
                 image: `postgres:${this.spec.version}-alpine`,
-                imagePullPolicy: "Always",
+                imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
                 env: [
                   {
                     name: "POSTGRES_PASSWORD",
@@ -899,7 +900,7 @@ export class Postgres {
                                 }),
                           },
                         ],
-                        imagePullPolicy: "Always",
+                        imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
                         ports: [
                           {
                             name: "pg-replica",
@@ -991,7 +992,7 @@ export class Postgres {
                       {
                         name: "pg-monitor",
                         image: `bash:5.0.18`,
-                        imagePullPolicy: "Always",
+                        imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
                         env: [],
                         command: [
                           "/usr/local/bin/bash",
