@@ -93,7 +93,7 @@ interface PodDisruptionBudgetSpec {
   maxUnavailable: number
 }
 
-interface Toleration {
+export interface Toleration {
   effect: string;
   key: string;
   operator?: "Exists" | "Equal";
@@ -127,7 +127,7 @@ export type Volume = {
   //   }
   {
       configMap: {
-        defaultMode?: string;
+        defaultMode?: number;
         items?: KeyToPath[];
         name: string;
         optional?: boolean;
@@ -206,8 +206,8 @@ export type Volume = {
   //   }
   | {
       secret: {
-        defaultMode?: string;
-        items: KeyToPath[];
+        defaultMode?: number;
+        items?: KeyToPath[];
         optional?: boolean;
         secretName: string;
       };
@@ -808,5 +808,20 @@ export class Job {
         spec: this.spec
       }
     ])
+  }
+}
+
+export class PersistentVolumeClaim {
+  constructor(public metadata: ObjectMeta, public spec: PersistentVolumeClaimSpec) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "v1",
+        kind: "PersistentVolumeClaim",
+        metadata: this.metadata,
+        spec: this.spec,
+      },
+    ]);
   }
 }

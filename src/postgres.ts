@@ -1,6 +1,6 @@
 import { createHash } from "crypto";
 import { generateYaml, parseMemory } from "./helpers";
-import { Container, ObjectMeta, Service, StatefulSet } from "./kubernetes";
+import { Container, ObjectMeta, Service, StatefulSet, Toleration } from "./kubernetes";
 
 interface PostgresSpec {
   readReplicas?: number;
@@ -25,6 +25,13 @@ interface PostgresSpec {
   }[];
   monitoring?: { type: "pgAnalyze"; apiKey: string; monitorPostgresDatabase?: boolean; };
   initContainers?: Container[];
+  storageClassName?: string;
+  storageRequest?: string;
+  nodeSelector?: {
+    [annotation: string]: string;
+  };
+  tolerations?: Toleration[];
+  imagePullPolicy?: "Always" | "Never" | "IfNotPresent";
   options?: {
     maxConnections?: number;
     superuserReservedConnections?: number;
@@ -445,7 +452,7 @@ export class Postgres {
                   {
                     name: "pg-init",
                     image: `postgres:${this.spec.version}-alpine`,
-                    imagePullPolicy: "Always",
+                    imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
                     env: [
                       {
                         name: "POSTGRES_PASSWORD",
@@ -559,7 +566,7 @@ export class Postgres {
                         }),
                   },
                 ],
-                imagePullPolicy: "Always",
+                imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
                 ports: [
                   {
                     name: "postgres",
@@ -622,7 +629,7 @@ export class Postgres {
               {
                 name: "setup",
                 image: `postgres:${this.spec.version}-alpine`,
-                imagePullPolicy: "Always",
+                imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
                 env: [
                   {
                     name: "POSTGRES_PASSWORD",
@@ -809,6 +816,8 @@ export class Postgres {
                 },
               },
             ],
+            tolerations: this.spec.tolerations,
+            nodeSelector: this.spec.nodeSelector,
           },
         },
         volumeClaimTemplates: [
@@ -820,10 +829,10 @@ export class Postgres {
               accessModes: ["ReadWriteOnce"],
               resources: {
                 requests: {
-                  storage: "2Gi",
+                  storage: this.spec.storageRequest ?? "2Gi",
                 },
               },
-              storageClassName: process.env.PRODUCTION ? "ssd-regional" : "ssd",
+              storageClassName: this.spec.storageClassName ?? (process.env.PRODUCTION ? "ssd-regional" : "ssd"),
             },
           },
         ],
@@ -891,7 +900,7 @@ export class Postgres {
                                 }),
                           },
                         ],
-                        imagePullPolicy: "Always",
+                        imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
                         ports: [
                           {
                             name: "pg-replica",
@@ -983,7 +992,7 @@ export class Postgres {
                       {
                         name: "pg-monitor",
                         image: `bash:5.0.18`,
-                        imagePullPolicy: "Always",
+                        imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
                         env: [],
                         command: [
                           "/usr/local/bin/bash",
@@ -1051,10 +1060,10 @@ export class Postgres {
                       accessModes: ["ReadWriteOnce"],
                       resources: {
                         requests: {
-                          storage: "2Gi",
+                          storage: this.spec.storageRequest ?? "2Gi",
                         },
                       },
-                      storageClassName: "ssd",
+                      storageClassName: this.spec.storageClassName ?? "ssd",
                     },
                   },
                 ],

@@ -31,7 +31,8 @@ interface StatelessAppSpec {
   ports?: ((
     | {
         type: "http";
-        ingressClass?: "public" | "private" | "internal";
+        ingressClass?: string;
+        ingressAnnotations?: Record<string, string>;
         publicUrl?: string | string[];
         tlsCert?: string;
         timeout?: number;
@@ -49,6 +50,7 @@ interface StatelessAppSpec {
     name?: string;
     port: number;
     containerPort?: number;
+    serviceType?: "ExternalName" | "ClusterIP" | "NodePort" | "LoadBalancer";
   })[];
   check?: (
     | {
@@ -152,7 +154,7 @@ export class StatelessApp {
           },
           path:
             pathname === "/"
-              ? pathname
+              ? (portSpec.ingressClass === "alb" ? "/*" : pathname)
               : (pathname.endsWith("/")
                   ? pathname.substring(0, pathname.length - 1)
                   : pathname) + "(/|$)(.*)",
@@ -172,7 +174,10 @@ export class StatelessApp {
         }
       }
 
-      ingress.metadata.annotations ??= {};
+      ingress.metadata.annotations = {
+        ...ingress.metadata.annotations,
+        ...portSpec.ingressAnnotations,
+      };
 
       // TODO: This shouldn't be global on entire Ingress. Should be per port.
       if (maxBodySizeBytes) {
@@ -191,7 +196,7 @@ export class StatelessApp {
         ingress.metadata.annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$2";
       }
 
-      if (process.env.CUBOS_DEV_GKE && !process.env.PRODUCTION) {
+      if (process.env.CUBOS_DEV_GKE && process.env.CUBOS_INTERNAL_CLUSTER && !process.env.PRODUCTION) {
         ingress.metadata.annotations["kubernetes.io/ingress.class"] =
           portSpec.ingressClass ?? "private";
       }
@@ -296,7 +301,7 @@ export class StatelessApp {
                     ],
                   },
             },
-            ...(this.spec.image.startsWith("registry.cubos.io")
+            ...((this.spec.image.startsWith("registry.cubos.io") || this.spec.image.startsWith("registry.gitlab.com/mimic1"))
               ? {
                   imagePullSecrets: [
                     {
@@ -314,7 +319,7 @@ export class StatelessApp {
                 }
               : {}),
             automountServiceAccountToken: false,
-            ...(process.env.PRODUCTION &&
+            ...(process.env.PRODUCTION_CUBOS &&
             this.spec.replicas !== undefined &&
             ((Array.isArray(this.spec.replicas) &&
               this.spec.replicas[0] >= 2) ||
@@ -408,10 +413,11 @@ export class StatelessApp {
         ? []
         : [
             new Service(this.metadata, {
+              type: this.spec.ports![0].serviceType,
               selector: {
                 app: this.metadata.name,
               },
-              ports: (this.spec.ports ?? []).map((portSpec) => ({
+              ports: this.spec.ports!.map((portSpec) => ({
                 name: portSpec.name ?? `port${portSpec.port}`,
                 port: portSpec.port,
                 targetPort: portSpec.containerPort ?? portSpec.port,

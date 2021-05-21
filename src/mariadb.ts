@@ -9,6 +9,7 @@ interface MariaDBSpec {
   };
   memory: string | number;
   rootPassword: string;
+  storageClassName?: string;
   initContainers?: Container[];
 }
 
@@ -129,7 +130,7 @@ export class MariaDB {
                   storage: "1Gi",
                 },
               },
-              storageClassName: process.env.PRODUCTION ? "ssd-regional" : "standard",
+              storageClassName: this.spec.storageClassName ?? (process.env.PRODUCTION ? "ssd-regional" : "standard"),
             },
           },
         ],
