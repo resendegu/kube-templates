@@ -769,7 +769,34 @@ export class Postgres {
                       psql -h 127.0.0.1 -U postgres -c 'CREATE DATABASE "${
                         database.name
                       }"' || true
-                      #psql -h 127.0.0.1 -U postgres -c 'REASSIGN OWNED BY "postgres" TO "__db_owner_${database.name}"' "${database.name}"
+
+                      echo Setting owner of tables...
+                      psql -h 127.0.0.1 -U postgres -c '
+                        SELECT '"'"'ALTER TABLE '"'"' || schemaname || '"'"'."'"'"' || tablename || '"'"'" OWNER TO "__db_owner_${database.name}";'"'"'
+                        FROM pg_tables WHERE NOT schemaname IN ('"'"'pg_catalog'"'"', '"'"'information_schema'"'"')
+                        ORDER BY schemaname, tablename;
+                      ' || true
+
+                      echo Setting owner of sequences...
+                      psql -h 127.0.0.1 -U postgres -c '
+                        SELECT '"'"'ALTER SEQUENCE '"'"'|| sequence_schema || '"'"'."'"'"' || sequence_name ||'"'"'" OWNER TO "__db_owner_${database.name}";'"'"'
+                        FROM information_schema.sequences WHERE NOT sequence_schema IN ('"'"'pg_catalog'"'"', '"'"'information_schema'"'"')
+                        ORDER BY sequence_schema, sequence_name;
+                      ' || true
+
+                      echo Setting owner of views...
+                      psql -h 127.0.0.1 -U postgres -c '
+                        SELECT '"'"'ALTER VIEW '"'"'|| table_schema || '"'"'."'"'"' || table_name ||'"'"'" OWNER TO "__db_owner_${database.name}";'"'"'
+                        FROM information_schema.views WHERE NOT table_schema IN ('"'"'pg_catalog'"'"', '"'"'information_schema'"'"')
+                        ORDER BY table_schema, table_name;
+                      ' || true
+
+                      echo Setting owner of materialized views...
+                      psql -h 127.0.0.1 -U postgres -c '
+                        SELECT '"'"'ALTER TABLE '"'"'|| oid::regclass::text ||'"'"' OWNER TO "__db_owner_${database.name}";'"'"'
+                        FROM pg_class WHERE relkind = '"'"'m'"'"'
+                        ORDER BY oid;
+                      ' || true
 
                       ${(database.users ?? [])
                         .map(
