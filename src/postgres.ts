@@ -769,7 +769,7 @@ export class Postgres {
                       psql -h 127.0.0.1 -U postgres -c 'CREATE DATABASE "${
                         database.name
                       }"' || true
-                      psql -h 127.0.0.1 -U postgres -c 'REASSIGN OWNED BY "postgres" TO "__db_owner_${database.name}"' "${database.name}"
+                      #psql -h 127.0.0.1 -U postgres -c 'REASSIGN OWNED BY "postgres" TO "__db_owner_${database.name}"' "${database.name}"
 
                       ${(database.users ?? [])
                         .map(
