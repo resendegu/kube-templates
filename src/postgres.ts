@@ -775,7 +775,6 @@ export class Postgres {
                         DO $$$$BEGIN EXECUTE (
                           SELECT STRING_AGG('"'"'ALTER TABLE '"'"' || schemaname || '"'"'."'"'"' || tablename || '"'"'" OWNER TO "__db_owner_${database.name}"'"'"', '"'"';'"'"')
                           FROM pg_tables WHERE NOT schemaname IN ('"'"'pg_catalog'"'"', '"'"'information_schema'"'"')
-                          ORDER BY schemaname, tablename;
                         ); END$$$$
                       ' "${database.name}" || true
 
@@ -784,7 +783,6 @@ export class Postgres {
                         DO $$$$BEGIN EXECUTE (
                           SELECT STRING_AGG('"'"'ALTER SEQUENCE '"'"'|| sequence_schema || '"'"'."'"'"' || sequence_name ||'"'"'" OWNER TO "__db_owner_${database.name}"'"'"', '"'"';'"'"')
                           FROM information_schema.sequences WHERE NOT sequence_schema IN ('"'"'pg_catalog'"'"', '"'"'information_schema'"'"')
-                          ORDER BY sequence_schema, sequence_name;
                         ); END$$$$
                       ' "${database.name}" || true
 
@@ -793,7 +791,6 @@ export class Postgres {
                         DO $$$$BEGIN EXECUTE (
                           SELECT STRING_AGG('"'"'ALTER VIEW '"'"'|| table_schema || '"'"'."'"'"' || table_name ||'"'"'" OWNER TO "__db_owner_${database.name}"'"'"', '"'"';'"'"')
                           FROM information_schema.views WHERE NOT table_schema IN ('"'"'pg_catalog'"'"', '"'"'information_schema'"'"')
-                          ORDER BY table_schema, table_name;
                         ); END$$$$
                       ' "${database.name}" || true
 
@@ -802,7 +799,6 @@ export class Postgres {
                         DO $$$$BEGIN EXECUTE (
                           SELECT STRING_AGG('"'"'ALTER TABLE '"'"'|| oid::regclass::text ||'"'"' OWNER TO "__db_owner_${database.name}"'"'"', '"'"';'"'"')
                           FROM pg_class WHERE relkind = '"'"'m'"'"'
-                          ORDER BY oid;
                         ); END$$$$
                       ' "${database.name}" || true
 
