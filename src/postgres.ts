@@ -659,7 +659,7 @@ export class Postgres {
                 ],
                 command: [
                   "/bin/bash",
-                  "-ec",
+                  "-exc",
                   `
                   echo Wait for Postgres to be ready.
                   until psql -h 127.0.0.1 -U postgres -c 'SELECT 1'
@@ -772,31 +772,39 @@ export class Postgres {
 
                       echo Setting owner of tables...
                       psql -h 127.0.0.1 -U postgres -c '
-                        SELECT '"'"'ALTER TABLE '"'"' || schemaname || '"'"'."'"'"' || tablename || '"'"'" OWNER TO "__db_owner_${database.name}";'"'"'
-                        FROM pg_tables WHERE NOT schemaname IN ('"'"'pg_catalog'"'"', '"'"'information_schema'"'"')
-                        ORDER BY schemaname, tablename;
-                      ' || true
+                        DO $$BEGIN EXECUTE (
+                          SELECT '"'"'ALTER TABLE '"'"' || schemaname || '"'"'."'"'"' || tablename || '"'"'" OWNER TO "__db_owner_${database.name}";'"'"'
+                          FROM pg_tables WHERE NOT schemaname IN ('"'"'pg_catalog'"'"', '"'"'information_schema'"'"')
+                          ORDER BY schemaname, tablename;
+                        ); END$$
+                      ' "${database.name}" || true
 
                       echo Setting owner of sequences...
                       psql -h 127.0.0.1 -U postgres -c '
-                        SELECT '"'"'ALTER SEQUENCE '"'"'|| sequence_schema || '"'"'."'"'"' || sequence_name ||'"'"'" OWNER TO "__db_owner_${database.name}";'"'"'
-                        FROM information_schema.sequences WHERE NOT sequence_schema IN ('"'"'pg_catalog'"'"', '"'"'information_schema'"'"')
-                        ORDER BY sequence_schema, sequence_name;
-                      ' || true
+                        DO $$BEGIN EXECUTE (
+                          SELECT '"'"'ALTER SEQUENCE '"'"'|| sequence_schema || '"'"'."'"'"' || sequence_name ||'"'"'" OWNER TO "__db_owner_${database.name}";'"'"'
+                          FROM information_schema.sequences WHERE NOT sequence_schema IN ('"'"'pg_catalog'"'"', '"'"'information_schema'"'"')
+                          ORDER BY sequence_schema, sequence_name;
+                        ); END$$
+                      ' "${database.name}" || true
 
                       echo Setting owner of views...
                       psql -h 127.0.0.1 -U postgres -c '
-                        SELECT '"'"'ALTER VIEW '"'"'|| table_schema || '"'"'."'"'"' || table_name ||'"'"'" OWNER TO "__db_owner_${database.name}";'"'"'
-                        FROM information_schema.views WHERE NOT table_schema IN ('"'"'pg_catalog'"'"', '"'"'information_schema'"'"')
-                        ORDER BY table_schema, table_name;
-                      ' || true
+                        DO $$BEGIN EXECUTE (
+                          SELECT '"'"'ALTER VIEW '"'"'|| table_schema || '"'"'."'"'"' || table_name ||'"'"'" OWNER TO "__db_owner_${database.name}";'"'"'
+                          FROM information_schema.views WHERE NOT table_schema IN ('"'"'pg_catalog'"'"', '"'"'information_schema'"'"')
+                          ORDER BY table_schema, table_name;
+                        ); END$$
+                      ' "${database.name}" || true
 
                       echo Setting owner of materialized views...
                       psql -h 127.0.0.1 -U postgres -c '
-                        SELECT '"'"'ALTER TABLE '"'"'|| oid::regclass::text ||'"'"' OWNER TO "__db_owner_${database.name}";'"'"'
-                        FROM pg_class WHERE relkind = '"'"'m'"'"'
-                        ORDER BY oid;
-                      ' || true
+                        DO $$BEGIN EXECUTE (
+                          SELECT '"'"'ALTER TABLE '"'"'|| oid::regclass::text ||'"'"' OWNER TO "__db_owner_${database.name}";'"'"'
+                          FROM pg_class WHERE relkind = '"'"'m'"'"'
+                          ORDER BY oid;
+                        ); END$$
+                      ' "${database.name}" || true
 
                       ${(database.users ?? [])
                         .map(
@@ -804,8 +812,8 @@ export class Postgres {
                             echo Granting privileges on database ${database.name} to user ${user}...
                             psql -h 127.0.0.1 -U postgres -c 'GRANT "__db_owner_${database.name}" TO "${user}"'
                             psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON DATABASE "${database.name}" TO "${user}"'
-                            psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "${user}"' ${database.name}
-                            psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO "${user}"' ${database.name}
+                            psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "${user}"' "${database.name}"
+                            psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO "${user}"' "${database.name}"
                           `
                         )
                         .join("\n")}
