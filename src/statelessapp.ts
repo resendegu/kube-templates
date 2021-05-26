@@ -37,10 +37,12 @@ interface StatelessAppSpec {
         tlsCert?: string;
         timeout?: number;
         maxBodySize?: string;
+        limitRequestsPerSecond?: number;
         endpoints?: Array<{
           publicUrl?: string;
           tlsCert?: string;
           maxBodySize?: string;
+          limitRequestsPerSecond?: number;
         }>;
       }
     | {
@@ -99,6 +101,7 @@ export class StatelessApp {
 
         for (const publicUrl of publicUrls) {
           portSpec.endpoints.push({
+            limitRequestsPerSecond: portSpec.limitRequestsPerSecond,
             maxBodySize: portSpec.maxBodySize,
             tlsCert: portSpec.tlsCert,
             publicUrl,
@@ -107,6 +110,7 @@ export class StatelessApp {
       }
 
       let maxBodySizeBytes = null;
+      let limitRequestsPerSecond = null;
       let hasPath = false;
 
       for (const endpointSpec of portSpec.endpoints ?? []) {
@@ -172,6 +176,10 @@ export class StatelessApp {
             maxBodySizeBytes = endpointMaxBodySizeBytes;
           }
         }
+
+        if(endpointSpec.limitRequestsPerSecond) {
+          limitRequestsPerSecond = endpointSpec.limitRequestsPerSecond;
+        }
       }
 
       ingress.metadata.annotations = {
@@ -184,6 +192,12 @@ export class StatelessApp {
         ingress.metadata.annotations[
           "nginx.ingress.kubernetes.io/proxy-body-size"
         ] = maxBodySizeBytes.toString();
+      }
+
+      if (limitRequestsPerSecond) {
+        ingress.metadata.annotations[
+          "nginx.ingress.kubernetes.io/limit-rps"
+        ] = limitRequestsPerSecond.toString();
       }
 
       if (portSpec.timeout) {
