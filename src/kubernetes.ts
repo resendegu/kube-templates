@@ -720,7 +720,8 @@ export class HorizontalPodAutoscaler {
 export class Secret {
   constructor(
     public metadata: ObjectMeta,
-    public data?: { [key: string]: string | Buffer }
+    public data?: { [key: string]: string | Buffer },
+    public type?: string
   ) {}
 
   get yaml() {
@@ -743,6 +744,7 @@ export class Secret {
         data: data,
         kind: "Secret",
         metadata: this.metadata,
+        ...(this.type ? {type: this.type} : {})
       },
     ]);
   }
