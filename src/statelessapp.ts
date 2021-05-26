@@ -177,7 +177,7 @@ export class StatelessApp {
           }
         }
 
-        if(endpointSpec.limitRequestsPerSecond) {
+        if (endpointSpec.limitRequestsPerSecond) {
           limitRequestsPerSecond = endpointSpec.limitRequestsPerSecond;
         }
       }
