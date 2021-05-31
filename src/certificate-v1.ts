@@ -19,6 +19,20 @@ export class CertificateV1 {
     const domainSlash = this.spec.domain.replace(/\./gu, "-");
 
     return generateYaml([
+      new Secret({
+        ...this.metadata,
+        name: `cert-${domainSlash}`,
+        annotations: {
+          ...(this.metadata.annotations ?? {}),
+          ...(this.spec.replicationAllowedNamespaces
+            ? {
+                "replicator.v1.mittwald.de/replication-allowed": "true",
+                "replicator.v1.mittwald.de/replication-allowed-namespaces": this
+                  .spec.replicationAllowedNamespaces.source,
+              }
+            : {}),
+        },
+      }),
       new CertManagerV1Certificate(
         {
           name: domainSlash,
@@ -34,20 +48,6 @@ export class CertificateV1 {
           },
         }
       ),
-      new Secret({
-        ...this.metadata,
-        name: `cert-${domainSlash}`,
-        annotations: {
-          ...(this.metadata.annotations ?? {}),
-          ...(this.spec.replicationAllowedNamespaces
-            ? {
-                "replicator.v1.mittwald.de/replication-allowed": "true",
-                "replicator.v1.mittwald.de/replication-allowed-namespaces": this
-                  .spec.replicationAllowedNamespaces.source,
-              }
-            : {}),
-        },
-      }),
     ]);
   }
 }
