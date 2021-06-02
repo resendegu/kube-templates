@@ -2,8 +2,8 @@ image: node
 
 stages:
   - build
-  - test
   - deploy
+  - test
 
 Build Library:
   stage: build
@@ -38,6 +38,6 @@ Test:
     - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl && chmod +x ./kubectl && cp ./kubectl /bin/kubectl
     - npm ci
     - npx ts-node tests/setup.ts
-    - printf "FROM node:alpine\nCOPY . /app" > Dockerfile
+    - printf "FROM node:lts-alpine\nCOPY package.json package-lock.json ./\nRUN npm ci\nCOPY . /app" > Dockerfile
     - docker build -t testimage .
     - docker run --rm --net=kind --entrypoint="" testimage sh -c "cd /app; cp ./kubectl /bin/kubectl; npx jest -w10"

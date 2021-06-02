@@ -1,4 +1,4 @@
-import { safeDump } from "js-yaml";
+import { dump } from "js-yaml";
 
 export function generateYaml(objects: any[]) {
   return objects
@@ -10,7 +10,7 @@ export function generateYaml(objects: any[]) {
       obj = stripUndefinedProperties(obj);
       return (
         "---\n" +
-        safeDump(obj, {
+        dump(obj, {
           noRefs: true,
           sortKeys: true,
           noArrayIndent: true,
@@ -64,6 +64,7 @@ export function parseMemory(memory: string | number) {
     i += 1;
 
     const match = str.match(new RegExp(`^(\\d+)${letter}(i?)$`, "i"));
+
     if (match) {
       const base = parseInt(match[1], 10);
       const multiplier = Math.pow(match[2] ? 1024 : 1000, i);

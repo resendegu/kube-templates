@@ -59,6 +59,27 @@ export function waitPodReady(namespace: string, pod: string, timeout = 60) {
   }
 }
 
+export function waitJobComplete(namespace: string, job: string, timeout = 60) {
+  const start = new Date().getTime();
+  while (true) {
+    const jobInfo = kubectl("-n", namespace, "get", "job", job);
+
+    if (!jobInfo) {
+      throw new Error(`Job ${job} does not exist`);
+    }
+
+    if (jobInfo.status.succeeded === 1) {
+      return;
+    }
+
+    if (new Date().getTime() - start > timeout * 1000) {
+      throw new Error(`timeout while waiting for Job ${job} to become ready`);
+    }
+
+    sleep(1);
+  }
+}
+
 export function sleep(seconds: number) {
   deasync.sleep(seconds * 1000);
 }

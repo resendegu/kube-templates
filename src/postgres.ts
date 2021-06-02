@@ -1,8 +1,9 @@
+import { createHash } from "crypto";
 import { generateYaml, parseMemory } from "./helpers";
-import { Container, ObjectMeta, Service, StatefulSet } from "./kubernetes";
+import { Container, ObjectMeta, Service, StatefulSet, Toleration } from "./kubernetes";
 
 interface PostgresSpec {
-  // readReplicas?: number;
+  readReplicas?: number;
   version: string;
   cpu: {
     request: string | number;
@@ -10,6 +11,7 @@ interface PostgresSpec {
   };
   memory: string | number;
   postgresUserPassword?: string | { secretName: string; key: string };
+  replicaPassword?: string;
   databases?: (
     | {
         name: string;
@@ -21,7 +23,15 @@ interface PostgresSpec {
     username: string;
     password: string;
   }[];
+  monitoring?: { type: "pgAnalyze"; apiKey: string; monitorPostgresDatabase?: boolean; };
   initContainers?: Container[];
+  storageClassName?: string;
+  storageRequest?: string;
+  nodeSelector?: {
+    [annotation: string]: string;
+  };
+  tolerations?: Toleration[];
+  imagePullPolicy?: "Always" | "Never" | "IfNotPresent";
   options?: {
     maxConnections?: number;
     superuserReservedConnections?: number;
@@ -60,7 +70,6 @@ interface PostgresSpec {
     maxParallelWorkers?: number;
     oldSnapshotThreshold?: string | 0 | -1;
     backendFlushAfter?: number;
-    walLevel?: "replica" | "minimal" | "logical";
     fsync?: boolean;
     synchronousCommit?: boolean | "local" | "remoteWrite" | "remoteApply";
     walSyncMethod?:
@@ -238,6 +247,14 @@ interface PostgresSpec {
     transformNullEquals?: boolean;
     exitOnError?: boolean;
     dataSyncRetry?: boolean;
+    maxReplicationSlots?: number;
+    walSenderTimeout?: number;
+    trackCommitTimestamp?: boolean;
+    listenAddresses?: string;
+    maxWalSenders?: number;
+    walKeepSegments?: number;
+    sharedPreloadLibraries?: string;
+    "pgStatStatements.track"?: "all" | "top" | "none";
   };
 }
 
@@ -245,13 +262,168 @@ export class Postgres {
   constructor(private metadata: ObjectMeta, private spec: PostgresSpec) {}
 
   get yaml() {
+    const additionalContainers: Container[] = [];
+    const commonReplicationOptions = this.spec.readReplicas
+      ? {
+          walLevel: "replica",
+          maxWalSenders: 20,
+          walKeepSegments: 16,
+        }
+      : {};
+
+    const masterReplicationOptions = this.spec.readReplicas
+      ? {
+          listenAddresses: `*`,
+          maxReplicationSlots: 20,
+        }
+      : {};
+
+    const replicationCredentials = {
+      user: "replicator",
+      pass:
+        this.spec.replicaPassword ??
+        createHash("sha256")
+          .update(JSON.stringify(this.metadata))
+          .digest("hex"),
+    };
+
+    const replicaReplicationOptions = this.spec.readReplicas
+      ? {
+          primaryConninfo: `host=${this.metadata.name} port=5432 user=${replicationCredentials.user} password=${replicationCredentials.pass}`,
+          hotStandby: "on",
+        }
+      : {};
+
+    const mem = parseMemory(this.spec.memory);
+    const MB = 1024 * 1024;
+    const GB = 1024 * MB;
+
+    if (this.spec.monitoring?.type === "pgAnalyze") {
+      this.spec.options ??= {};
+      this.spec.options.sharedPreloadLibraries = this.spec.options.sharedPreloadLibraries ? `${this.spec.options.sharedPreloadLibraries},pg_stat_statements` : "pg_stat_statements";
+      this.spec.options.trackActivityQuerySize = 2048;
+      this.spec.options["pgStatStatements.track"] = "all";
+
+      this.spec.users ??= [];
+      this.spec.users.push({
+        username: "pganalyze",
+        password: "pganalyze",
+      });
+
+      additionalContainers.push(
+        ...(this.spec.databases ?? [])
+          .map((databaseOrName) => (typeof databaseOrName === "string" ? { name: databaseOrName } : databaseOrName))
+          .concat(...(this.spec.monitoring!.monitorPostgresDatabase ? [{ name: "postgres" }] : []))
+          .map<Container>((database) => ({
+            name: `pganalyze-${database.name}`,
+            image: "quay.io/pganalyze/collector:v0.33.1",
+            command: ["/usr/local/bin/gosu"],
+            args: [
+              "pganalyze",
+              "/home/pganalyze/collector",
+              "--statefile=/state/pganalyze-collector.state",
+              "--no-log-timestamps",
+              "--no-logs",
+              "--no-system-information",
+            ],
+            env: [
+              {
+                name: "PGA_API_KEY",
+                value: this.spec.monitoring!.apiKey,
+              },
+              {
+                name: "DB_HOST",
+                value: this.metadata.name,
+              },
+              {
+                name: "DB_NAME",
+                value: database.name,
+              },
+              {
+                name: "DB_USERNAME",
+                value: "pganalyze",
+              },
+              {
+                name: "DB_PASSWORD",
+                value: "pganalyze",
+              },
+            ],
+            resources: {
+              limits: {
+                cpu: "200m",
+                memory: "50Mi",
+              },
+              requests: {
+                cpu: "10m",
+                memory: "50Mi",
+              },
+            },
+          }))
+      );
+    }
+
     const options = {
+      maxConnections: Math.max(100, mem / (8 * MB)),
+      sharedBuffers:
+        Math.ceil((mem * (mem > 1 * GB ? 0.25 : 0.15)) / MB) + "MB",
+      effectiveCacheSize: Math.ceil(mem / 2 / MB) + "MB",
+      ...masterReplicationOptions,
+      ...commonReplicationOptions,
+      ...(this.spec.options ?? {}),
+    };
+
+    const loggingConfigs = {
+      logTruncateOnRotation: "on",
+      logRotationAge: "1d",
+      logFilename: "postgresql-%a.log",
+      logRotationSize: 0,
+      loggingCollector: "on",
+      logDirectory: "/var/lib/postgresql/log",
+    };
+
+    const replicaOptions = {
       maxConnections: Math.max(
         100,
         parseMemory(this.spec.memory) / (8 * 1024 * 1024)
       ),
+      ...replicaReplicationOptions,
+      ...commonReplicationOptions,
       ...(this.spec.options ?? {}),
+      ...loggingConfigs,
     };
+
+    const users = [
+      ...(this.spec.readReplicas
+        ? [
+            {
+              username: replicationCredentials.user,
+              password: replicationCredentials.pass,
+            },
+          ]
+        : []),
+      ...(this.spec.users ?? []),
+    ];
+
+    const replicaStringOptions = Object.entries(replicaOptions)
+      .map(([key, value]) => [
+        "-c",
+        `${key.replace(/[A-Z]/g, (x) => `_${x.toLowerCase()}`)}=` +
+          `'${
+            value === true
+              ? "yes"
+              : value === false
+              ? "no"
+              : value?.toString().replace(/'/g, "'\"'\"'")
+          }'`,
+      ])
+      .reduce((a, b) => [...a, ...b], [])
+      .join(" ");
+
+    const databases = (this.spec.databases ?? []).map((databaseOrName) =>
+      typeof databaseOrName === "string"
+        ? { name: databaseOrName }
+        : databaseOrName
+    );
 
     return generateYaml([
       new Service(this.metadata, {
@@ -265,6 +437,7 @@ export class Postgres {
           },
         ],
       }),
+
       new StatefulSet(this.metadata, {
         serviceName: this.metadata.name,
         replicas: 1,
@@ -280,7 +453,80 @@ export class Postgres {
             },
           },
           spec: {
-            initContainers: this.spec.initContainers,
+            initContainers: this.spec.readReplicas
+              ? [
+                  {
+                    name: "pg-init",
+                    image: `postgres:${this.spec.version}-alpine`,
+                    imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
+                    env: [
+                      {
+                        name: "POSTGRES_PASSWORD",
+                        ...(this.spec.postgresUserPassword
+                          ? typeof this.spec.postgresUserPassword === "object"
+                            ? {
+                                valueFrom: {
+                                  secretKeyRef: {
+                                    name: this.spec.postgresUserPassword
+                                      .secretName,
+                                    key: this.spec.postgresUserPassword.key,
+                                  },
+                                },
+                              }
+                            : {
+                                value: `${this.spec.postgresUserPassword}`,
+                              }
+                          : {
+                              value: "postgres",
+                            }),
+                      },
+                    ],
+                    command: [
+                      "/bin/bash",
+                      "-ec",
+                      `
+                        echo Configuring Master...
+
+                        sed -i -r -e "s/^postgres:(.*):\\/sbin\\/nologin$/postgres:\\1:\\/bin\\/sh/" /etc/passwd
+
+                        echo Check if directory is empty...
+                        if [ ! -f /var/lib/postgresql/data/postgresql.conf ]; then
+                            echo Directory is empty. Initializing database...
+                            chown postgres:postgres /var/lib/postgresql/data
+                            su postgres -c "initdb -D /var/lib/postgresql/data"
+                        fi
+
+                        echo Adding replication user to pg_hba...
+                        echo "host replication ${replicationCredentials.user} 0.0.0.0/0 trust" >> /var/lib/postgresql/data/pg_hba.conf
+
+                        echo Done.
+                      `,
+                    ],
+                    resources: {
+                      limits: {
+                        cpu: "100m",
+                        memory: "128Mi",
+                      },
+                      requests: {
+                        cpu: 0,
+                        memory: "128Mi",
+                      },
+                    },
+                    volumeMounts: [
+                      {
+                        mountPath: "/var/lib/postgresql/data",
+                        name: "data",
+                        subPath: "data",
+                      },
+                      {
+                        mountPath: "/dev/shm",
+                        name: "shm",
+                      },
+                    ],
+                  },
+                  ...(this.spec.initContainers ?? []),
+                ]
+              : this.spec.initContainers,
             automountServiceAccountToken: false,
             containers: [
               {
@@ -323,11 +569,10 @@ export class Postgres {
                           }
                       : {
                           value: "postgres",
-                        }
-                      ),
+                        }),
                   },
                 ],
-                imagePullPolicy: "Always",
+                imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
                 ports: [
                   {
                     name: "postgres",
@@ -390,7 +635,7 @@ export class Postgres {
               {
                 name: "setup",
                 image: `postgres:${this.spec.version}-alpine`,
-                imagePullPolicy: "Always",
+                imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
                 env: [
                   {
                     name: "POSTGRES_PASSWORD",
@@ -409,13 +654,12 @@ export class Postgres {
                           }
                       : {
                           value: "postgres",
-                        }
-                      ),
+                        }),
                   },
                 ],
                 command: [
                   "/bin/bash",
-                  "-ec",
+                  "-exc",
                   `
                   echo Wait for Postgres to be ready.
                   until psql -h 127.0.0.1 -U postgres -c 'SELECT 1'
@@ -452,14 +696,15 @@ export class Postgres {
                     for database in $DATABASES
                     do
                       echo Revoke $user on $database
-                      psql -h 127.0.0.1 -U postgres -c "REASSIGN OWNED BY $user TO postgres" $database
-                      psql -h 127.0.0.1 -U postgres -c "REVOKE ALL PRIVILEGES ON DATABASE $database FROM $user"
-                      psql -h 127.0.0.1 -U postgres -c "REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM $user" $database
+                      psql -h 127.0.0.1 -U postgres -c 'REASSIGN OWNED BY "'$user'" TO "postgres"' "$database"
+                      psql -h 127.0.0.1 -U postgres -c 'REVOKE "__db_owner_'$database'" FROM "'$user'"' || true
+                      psql -h 127.0.0.1 -U postgres -c 'REVOKE ALL PRIVILEGES ON DATABASE "'$database'" FROM "'$user'"'
+                      psql -h 127.0.0.1 -U postgres -c 'REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM "'$user'"' "$database"
                     done
 
                     ${
                       // Only drop users that should not exist
-                      (this.spec.users ?? [])
+                      (users ?? [])
                         .map(
                           (user) => `
                           [ "$user" == '${user.username}' ] && continue
@@ -468,47 +713,131 @@ export class Postgres {
                         .join("\n")
                     }
 
+                    ${
+                      // Don't drop owners of databases
+                      databases.map(
+                        (database) => `
+                        [ "$user" == '__db_owner_${database.name}' ] && continue
+                      `
+                      )
+                      .join("\n")
+                    }
+
                     echo Dropping user $user
                     psql -h 127.0.0.1 -U postgres -c "DROP USER $user"
                   done
 
-                  ${(this.spec.users ?? [])
+                  ${(users ?? [])
                     .map(
                       (user) => `
                         echo Creating user ${user.username}...
-                        psql -h 127.0.0.1 -U postgres -c "CREATE USER "'"${user.username}"'" ENCRYPTED PASSWORD '"'${user.password}'"'" || true
-                        psql -h 127.0.0.1 -U postgres -c "ALTER USER "'"${user.username}"'" ENCRYPTED PASSWORD '"'${user.password}'"'"
+                        psql -h 127.0.0.1 -U postgres -c "CREATE USER "'"${
+                          user.username
+                        }"'" ${
+                        this.spec.readReplicas &&
+                        user.username === replicationCredentials.user
+                          ? "REPLICATION "
+                          : ""
+                      }ENCRYPTED PASSWORD '"'${user.password}'"'" || true
+                        psql -h 127.0.0.1 -U postgres -c "ALTER USER "'"${
+                          user.username
+                        }"'"${
+                        this.spec.readReplicas &&
+                        user.username === replicationCredentials.user
+                          ? "REPLICATION "
+                          : ""
+                      } ENCRYPTED PASSWORD '"'${user.password}'"'"
                       `
                     )
                     .join("\n")}
 
-                  ${(this.spec.databases ?? [])
+                  ${databases
+                    .map(
+                      (database) => `
+                        echo Creating role '__db_owner_${database.name}'...
+                        psql -h 127.0.0.1 -U postgres -c "CREATE ROLE "'"__db_owner_${
+                          database.name
+                        }"' || true
+                      `
+                    )
+                    .join("\n")
+                  }
+
+                  ${databases.map(
+                    (database) => `
+                      echo Creating database ${database.name}...
+                      psql -h 127.0.0.1 -U postgres -c 'CREATE DATABASE "${
+                        database.name
+                      }"' || true
+
+                      echo Setting owner of tables...
+                      psql -h 127.0.0.1 -U postgres -c '
+                        DO $$$$BEGIN EXECUTE (
+                          SELECT STRING_AGG('"'"'ALTER TABLE '"'"' || schemaname || '"'"'."'"'"' || tablename || '"'"'" OWNER TO "__db_owner_${database.name}"'"'"', '"'"';'"'"')
+                          FROM pg_tables WHERE NOT schemaname IN ('"'"'pg_catalog'"'"', '"'"'information_schema'"'"')
+                        ); END$$$$
+                      ' "${database.name}" || true
+
+                      echo Setting owner of sequences...
+                      psql -h 127.0.0.1 -U postgres -c '
+                        DO $$$$BEGIN EXECUTE (
+                          SELECT STRING_AGG('"'"'ALTER SEQUENCE '"'"'|| sequence_schema || '"'"'."'"'"' || sequence_name ||'"'"'" OWNER TO "__db_owner_${database.name}"'"'"', '"'"';'"'"')
+                          FROM information_schema.sequences WHERE NOT sequence_schema IN ('"'"'pg_catalog'"'"', '"'"'information_schema'"'"')
+                        ); END$$$$
+                      ' "${database.name}" || true
+
+                      echo Setting owner of views...
+                      psql -h 127.0.0.1 -U postgres -c '
+                        DO $$$$BEGIN EXECUTE (
+                          SELECT STRING_AGG('"'"'ALTER VIEW '"'"'|| table_schema || '"'"'."'"'"' || table_name ||'"'"'" OWNER TO "__db_owner_${database.name}"'"'"', '"'"';'"'"')
+                          FROM information_schema.views WHERE NOT table_schema IN ('"'"'pg_catalog'"'"', '"'"'information_schema'"'"')
+                        ); END$$$$
+                      ' "${database.name}" || true
+
+                      echo Setting owner of materialized views...
+                      psql -h 127.0.0.1 -U postgres -c '
+                        DO $$$$BEGIN EXECUTE (
+                          SELECT STRING_AGG('"'"'ALTER TABLE '"'"'|| oid::regclass::text ||'"'"' OWNER TO "__db_owner_${database.name}"'"'"', '"'"';'"'"')
+                          FROM pg_class WHERE relkind = '"'"'m'"'"'
+                        ); END$$$$
+                      ' "${database.name}" || true
+
+                      ${(database.users ?? [])
+                        .map(
+                          (user) => `
+                            echo Granting privileges on database ${database.name} to user ${user}...
+                            psql -h 127.0.0.1 -U postgres -c 'GRANT "__db_owner_${database.name}" TO "${user}"'
+                            psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON DATABASE "${database.name}" TO "${user}"'
+                            psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "${user}"' "${database.name}"
+                            psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO "${user}"' "${database.name}"
+                          `
+                        )
+                        .join("\n")}
+                    `
+                  )
+                  .join("\n")}
+
+                  ${this.spec.monitoring?.type === "pgAnalyze" ? (this.spec.databases ?? [])
                     .map((databaseOrName) =>
                       typeof databaseOrName === "string"
                         ? { name: databaseOrName }
                         : databaseOrName
                     )
+                    .concat(...(this.spec.monitoring!.monitorPostgresDatabase ? [{ name: "postgres" }] : []))
                     .map(
                       (database) => `
-                        echo Creating database ${database.name}...
-                        psql -h 127.0.0.1 -U postgres -c 'CREATE DATABASE "${
-                          database.name
-                        }"' || true
-
-                        ${(database.users ?? [])
-                          .map(
-                            (user) => `
-                              echo Granting privileges on database ${database.name} to user ${user}...
-                              psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON DATABASE "${database.name}" TO "${user}"'
-                              psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "${user}"' ${database.name}
-                              psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO "${user}"' ${database.name}
-                              psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO "${user}"' ${database.name}
-                            `
-                          )
-                          .join("\n")}
+                        echo Setting up PgAnalyze on database ${database.name}...
+                        psql -h 127.0.0.1 -U postgres -c 'CREATE EXTENSION IF NOT EXISTS pg_stat_statements WITH SCHEMA public;' ${database.name}
+                        psql -h 127.0.0.1 -U postgres -c 'CREATE SCHEMA IF NOT EXISTS pganalyze;' ${database.name}
+                        echo -e "CREATE OR REPLACE FUNCTION pganalyze.get_stat_statements(showtext boolean = true) RETURNS SETOF pg_stat_statements AS\\n\\$\\$\\n/* pganalyze-collector */ SELECT * FROM public.pg_stat_statements(showtext);\\n\\$\\$ LANGUAGE sql VOLATILE SECURITY DEFINER;" | psql -h 127.0.0.1 -U postgres ${database.name}
+                        echo -e "CREATE OR REPLACE FUNCTION pganalyze.get_stat_activity() RETURNS SETOF pg_stat_activity AS\\n\\$\\$\\n  /* pganalyze-collector */ SELECT * FROM pg_catalog.pg_stat_activity;\\n\\$\\$ LANGUAGE sql VOLATILE SECURITY DEFINER;" | psql -h 127.0.0.1 -U postgres ${database.name}
+                        echo -e "CREATE OR REPLACE FUNCTION pganalyze.get_column_stats() RETURNS SETOF pg_stats AS\\n\\$\\$\\n  /* pganalyze-collector */ SELECT schemaname, tablename, attname, inherited, null_frac, avg_width,\\n  n_distinct, NULL::anyarray, most_common_freqs, NULL::anyarray, correlation, NULL::anyarray,\\n  most_common_elem_freqs, elem_count_histogram\\n  FROM pg_catalog.pg_stats;\\n\\$\\$ LANGUAGE sql VOLATILE SECURITY DEFINER;" | psql -h 127.0.0.1 -U postgres ${database.name}
+                        echo -e "CREATE OR REPLACE FUNCTION pganalyze.get_stat_replication() RETURNS SETOF pg_stat_replication AS\\n\\$\\$\\n  /* pganalyze-collector */ SELECT * FROM pg_catalog.pg_stat_replication;\\n\\$\\$ LANGUAGE sql VOLATILE SECURITY DEFINER;" | psql -h 127.0.0.1 -U postgres ${database.name}
+                        psql -h 127.0.0.1 -U postgres -c "REVOKE ALL ON SCHEMA public FROM pganalyze;" ${database.name}
+                        psql -h 127.0.0.1 -U postgres -c "GRANT USAGE ON SCHEMA pganalyze TO pganalyze;" ${database.name}
                       `
                     )
-                    .join("\n")}
+                    .join("\n") : ""}
 
                   echo Done.
                   touch /ready
@@ -533,6 +862,7 @@ export class Postgres {
                   periodSeconds: 3,
                 },
               },
+              ...additionalContainers,
             ],
             volumes: [
               {
@@ -542,6 +872,8 @@ export class Postgres {
                 },
               },
             ],
+            tolerations: this.spec.tolerations,
+            nodeSelector: this.spec.nodeSelector,
           },
         },
         volumeClaimTemplates: [
@@ -553,14 +885,248 @@ export class Postgres {
               accessModes: ["ReadWriteOnce"],
               resources: {
                 requests: {
-                  storage: "2Gi",
+                  storage: this.spec.storageRequest ?? "2Gi",
                 },
               },
-              storageClassName: process.env.PRODUCTION ? "ssd-regional" : "ssd",
+              storageClassName: this.spec.storageClassName ?? (process.env.PRODUCTION ? "ssd-regional" : "ssd"),
             },
           },
         ],
       }),
+
+      ...(this.spec.readReplicas
+        ? [
+            new Service(
+              { ...this.metadata, name: `${this.metadata.name}-replica` },
+              {
+                selector: {
+                  app: `${this.metadata.name}-replica`,
+                },
+                ports: [
+                  {
+                    name: "pg-replica",
+                    port: 5432,
+                  },
+                ],
+              }
+            ),
+            new StatefulSet(
+              { ...this.metadata, name: `${this.metadata.name}-replica` },
+              {
+                serviceName: `${this.metadata.name}-replica`,
+                replicas: this.spec.readReplicas,
+                selector: {
+                  matchLabels: {
+                    app: `${this.metadata.name}-replica`,
+                  },
+                },
+                template: {
+                  metadata: {
+                    labels: {
+                      app: `${this.metadata.name}-replica`,
+                    },
+                  },
+                  spec: {
+                    initContainers: this.spec.initContainers,
+                    automountServiceAccountToken: false,
+                    containers: [
+                      {
+                        name: "pg-replica",
+                        image: `postgres:${this.spec.version}-alpine`,
+                        env: [
+                          {
+                            name: "POSTGRES_PASSWORD",
+                            ...(this.spec.postgresUserPassword
+                              ? typeof this.spec.postgresUserPassword ===
+                                "object"
+                                ? {
+                                    valueFrom: {
+                                      secretKeyRef: {
+                                        name: this.spec.postgresUserPassword
+                                          .secretName,
+                                        key: this.spec.postgresUserPassword.key,
+                                      },
+                                    },
+                                  }
+                                : {
+                                    value: `${this.spec.postgresUserPassword}`,
+                                  }
+                              : {
+                                  value: "postgres",
+                                }),
+                          },
+                        ],
+                        imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
+                        ports: [
+                          {
+                            name: "pg-replica",
+                            containerPort: 5432,
+                          },
+                        ],
+                        command: [
+                          "/bin/bash",
+                          "-ec",
+                          `
+                            echo Configuring Replica...
+
+                            echo Checking if standby signal exists...
+                            if [ ! -f /var/lib/postgresql/data/standby.signal ]; then
+                                echo Signal not found. Cleaning up...
+                                rm -rf /var/lib/postgresql/data/*
+                                rm -rf /var/lib/postgresql/log/*
+                                echo Proceeding to base backup from master...
+                                pg_basebackup -h ${this.metadata.name} -U ${replicationCredentials.user} -p 5432 -D /var/lib/postgresql/data -Fp -Xs -P -R
+                            fi
+
+                            echo Done.
+
+                            chown -R postgres:postgres /var/lib/postgresql/data
+                            chown -R postgres:postgres /var/lib/postgresql/log
+                            chmod 700 -R /var/lib/postgresql/data
+                            chmod 700 -R /var/lib/postgresql/log
+                            sed -i -r -e "s/^postgres:(.*):\\/sbin\\/nologin$/postgres:\\1:\\/bin\\/sh/" /etc/passwd
+                            su postgres -c "postgres ${replicaStringOptions}"
+                          `,
+                        ],
+                        volumeMounts: [
+                          {
+                            mountPath: "/var/lib/postgresql/data",
+                            name: "data",
+                            subPath: "data",
+                          },
+                          {
+                            mountPath: "/dev/shm",
+                            name: "shm",
+                          },
+                          {
+                            mountPath: "/var/lib/postgresql/log",
+                            name: "logs",
+                          },
+                        ],
+                        resources: {
+                          limits: {
+                            cpu: this.spec.cpu.limit,
+                            memory: this.spec.memory,
+                          },
+                          requests: {
+                            cpu: this.spec.cpu.request,
+                            memory: this.spec.memory,
+                          },
+                        },
+                        readinessProbe: {
+                          exec: {
+                            command: [
+                              "psql",
+                              "-h",
+                              "127.0.0.1",
+                              "-U",
+                              "postgres",
+                              "-c",
+                              "SELECT 1",
+                            ],
+                          },
+                          failureThreshold: 1,
+                          periodSeconds: 3,
+                        },
+                        livenessProbe: {
+                          exec: {
+                            command: [
+                              "psql",
+                              "-h",
+                              "127.0.0.1",
+                              "-U",
+                              "postgres",
+                              "-c",
+                              "SELECT 1",
+                            ],
+                          },
+                          failureThreshold: 2,
+                          periodSeconds: 5,
+                          initialDelaySeconds: 10,
+                        },
+                      },
+                      {
+                        name: "pg-monitor",
+                        image: `bash:5.0.18`,
+                        imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
+                        env: [],
+                        command: [
+                          "/usr/local/bin/bash",
+                          "-ec",
+                          `
+                          while true; do
+                            FILES=$(ls /var/lib/postgresql/log)
+                            for file in $FILES
+                            do
+                              echo Analyzing $file
+                              if grep "requested WAL segment.*has already been removed" /var/lib/postgresql/log/$file; then
+                                echo Replica is too far behind. Cleaning up...
+                                rm -rf /var/lib/postgresql/data/*
+                                rm -rf /var/lib/postgresql/log/*
+                                exit 1
+                              fi
+                            done
+                            sleep 30
+                          done
+                        `,
+                        ],
+                        resources: {
+                          limits: {
+                            cpu: "100m",
+                            memory: "32Mi",
+                          },
+                          requests: {
+                            cpu: 0,
+                            memory: "16Mi",
+                          },
+                        },
+                        volumeMounts: [
+                          {
+                            mountPath: "/var/lib/postgresql/log",
+                            name: "logs",
+                          },
+                          {
+                            mountPath: "/var/lib/postgresql/data",
+                            name: "data",
+                            subPath: "data",
+                          },
+                        ],
+                      },
+                    ],
+                    volumes: [
+                      {
+                        name: "shm",
+                        emptyDir: {
+                          medium: "Memory" as const,
+                        },
+                      },
+                      {
+                        name: "logs",
+                        emptyDir: {},
+                      },
+                    ],
+                  },
+                },
+                volumeClaimTemplates: [
+                  {
+                    metadata: {
+                      name: "data",
+                    },
+                    spec: {
+                      accessModes: ["ReadWriteOnce"],
+                      resources: {
+                        requests: {
+                          storage: this.spec.storageRequest ?? "2Gi",
+                        },
+                      },
+                      storageClassName: this.spec.storageClassName ?? "ssd",
+                    },
+                  },
+                ],
+              }
+            ),
+          ]
+        : []),
     ]);
   }
 }

@@ -1,18 +1,18 @@
-import { CertManagerCertificate } from "./certmanager";
+import { CertManagerV1Certificate } from "./certmanager";
 import { generateYaml } from "./helpers";
 import { ObjectMeta, Secret } from "./kubernetes";
 
-interface CertificateSpec {
+interface CertificateV1Spec {
   domain: string;
-  challengeType?: "http" | "dns";
-  provider?: string;
+  wildcard?: boolean;
+  issuer?: string;
   replicationAllowedNamespaces?: RegExp;
 }
 
-export class Certificate {
+export class CertificateV1 {
   constructor(
     private metadata: Omit<ObjectMeta, "name"> & { name?: string },
-    private spec: CertificateSpec
+    private spec: CertificateV1Spec
   ) {}
 
   get yaml() {
@@ -33,7 +33,7 @@ export class Certificate {
             : {}),
         },
       }),
-      new CertManagerCertificate(
+      new CertManagerV1Certificate(
         {
           name: domainSlash,
           ...this.metadata,
@@ -41,35 +41,11 @@ export class Certificate {
         {
           secretName: `cert-${domainSlash}`,
           commonName: this.spec.domain,
+          dnsNames: [this.spec.domain, ...(this.spec.wildcard ? [`*.${this.spec.domain}`] : [])],
           issuerRef: {
-            name: "letsencrypt",
+            name: this.spec.issuer ?? "letsencrypt",
             kind: "ClusterIssuer",
           },
-          ...((this.spec.challengeType ?? "dns") === "dns"
-            ? {
-                dnsNames: [this.spec.domain, "*." + this.spec.domain],
-                acme: {
-                  config: [
-                    {
-                      dns01: {
-                        provider: this.spec.provider ?? "cloudflare",
-                      },
-                      domains: [this.spec.domain, "*." + this.spec.domain],
-                    },
-                  ],
-                },
-              }
-            : {
-                dnsNames: [this.spec.domain],
-                acme: {
-                  config: [
-                    {
-                      http01: {},
-                      domains: [this.spec.domain],
-                    },
-                  ],
-                },
-              }),
         }
       ),
     ]);

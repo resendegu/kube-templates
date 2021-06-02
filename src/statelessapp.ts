@@ -31,14 +31,18 @@ interface StatelessAppSpec {
   ports?: ((
     | {
         type: "http";
-        publicUrl?: string;
+        ingressClass?: string;
+        ingressAnnotations?: Record<string, string>;
+        publicUrl?: string | string[];
         tlsCert?: string;
         timeout?: number;
         maxBodySize?: string;
+        limitRequestsPerSecond?: number;
         endpoints?: Array<{
           publicUrl?: string;
           tlsCert?: string;
           maxBodySize?: string;
+          limitRequestsPerSecond?: number;
         }>;
       }
     | {
@@ -48,6 +52,7 @@ interface StatelessAppSpec {
     name?: string;
     port: number;
     containerPort?: number;
+    serviceType?: "ExternalName" | "ClusterIP" | "NodePort" | "LoadBalancer";
   })[];
   check?: (
     | {
@@ -90,14 +95,22 @@ export class StatelessApp {
           portSpec.endpoints = [];
         }
 
-        portSpec.endpoints.push({
-          maxBodySize: portSpec.maxBodySize,
-          publicUrl: portSpec.publicUrl,
-          tlsCert: portSpec.tlsCert,
-        });
+        const publicUrls = Array.isArray(portSpec.publicUrl)
+          ? portSpec.publicUrl
+          : [portSpec.publicUrl];
+
+        for (const publicUrl of publicUrls) {
+          portSpec.endpoints.push({
+            limitRequestsPerSecond: portSpec.limitRequestsPerSecond,
+            maxBodySize: portSpec.maxBodySize,
+            tlsCert: portSpec.tlsCert,
+            publicUrl,
+          });
+        }
       }
 
       let maxBodySizeBytes = null;
+      let limitRequestsPerSecond = null;
       let hasPath = false;
 
       for (const endpointSpec of portSpec.endpoints ?? []) {
@@ -145,7 +158,7 @@ export class StatelessApp {
           },
           path:
             pathname === "/"
-              ? pathname
+              ? (portSpec.ingressClass === "alb" ? "/*" : pathname)
               : (pathname.endsWith("/")
                   ? pathname.substring(0, pathname.length - 1)
                   : pathname) + "(/|$)(.*)",
@@ -163,26 +176,43 @@ export class StatelessApp {
             maxBodySizeBytes = endpointMaxBodySizeBytes;
           }
         }
+
+        if (endpointSpec.limitRequestsPerSecond) {
+          limitRequestsPerSecond = endpointSpec.limitRequestsPerSecond;
+        }
       }
 
-      const annotations = ingress.metadata.annotations ?? {};
-      ingress.metadata.annotations = annotations;
+      ingress.metadata.annotations = {
+        ...ingress.metadata.annotations,
+        ...portSpec.ingressAnnotations,
+      };
 
       // TODO: This shouldn't be global on entire Ingress. Should be per port.
       if (maxBodySizeBytes) {
-        annotations[
+        ingress.metadata.annotations[
           "nginx.ingress.kubernetes.io/proxy-body-size"
         ] = maxBodySizeBytes.toString();
       }
 
+      if (limitRequestsPerSecond) {
+        ingress.metadata.annotations[
+          "nginx.ingress.kubernetes.io/limit-rps"
+        ] = limitRequestsPerSecond.toString();
+      }
+
       if (portSpec.timeout) {
-        annotations[
+        ingress.metadata.annotations[
           "nginx.ingress.kubernetes.io/proxy-read-timeout"
         ] = portSpec.timeout.toString();
       }
 
       if (hasPath) {
-        annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$2";
+        ingress.metadata.annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$2";
+      }
+
+      if (process.env.CUBOS_DEV_GKE && process.env.CUBOS_INTERNAL_CLUSTER && !process.env.PRODUCTION) {
+        ingress.metadata.annotations["kubernetes.io/ingress.class"] =
+          portSpec.ingressClass ?? "private";
       }
     }
 
@@ -221,14 +251,25 @@ export class StatelessApp {
     for (const volume of this.spec.volumes ?? []) {
       const name = "vol-" + volume.mountPath.replace(/[^a-zA-Z0-9]/gu, "");
 
-      volumes.push({
-        name,
-        [volume.type]: {
-          [volume.type === "secret" ? "secretName" : "name"]: volume.name,
-          items: volume.items,
-          optional: volume.optional ?? false,
-        },
-      } as Volume);
+      if (volume.type === "secret") {
+        volumes.push({
+          name,
+          secret: {
+            secretName: volume.name,
+            items: volume.items,
+            optional: volume.optional ?? false,
+          },
+        });
+      } else {
+        volumes.push({
+          name,
+          [volume.type]: {
+            name: volume.name,
+            items: volume.items,
+            optional: volume.optional ?? false,
+          },
+        });
+      }
 
       volumeMounts.push({
         name,
@@ -255,7 +296,37 @@ export class StatelessApp {
             },
           },
           spec: {
-            ...(this.spec.image.startsWith("registry.cubos.io")
+            affinity: {
+              podAntiAffinity: process.env.PRODUCTION_CUBOS
+                ? {
+                    requiredDuringSchedulingIgnoredDuringExecution: [
+                      {
+                        labelSelector: {
+                          matchLabels: {
+                            app: this.metadata.name,
+                          },
+                        },
+                        topologyKey: "kubernetes.io/hostname",
+                      },
+                    ],
+                  }
+                : {
+                    preferredDuringSchedulingIgnoredDuringExecution: [
+                      {
+                        weight: 100,
+                        podAffinityTerm: {
+                          labelSelector: {
+                            matchLabels: {
+                              app: this.metadata.name,
+                            },
+                          },
+                          topologyKey: "kubernetes.io/hostname",
+                        },
+                      },
+                    ],
+                  },
+            },
+            ...((this.spec.image.startsWith("registry.cubos.io") || this.spec.image.startsWith("registry.gitlab.com/mimic1"))
               ? {
                   imagePullSecrets: [
                     {
@@ -273,11 +344,11 @@ export class StatelessApp {
                 }
               : {}),
             automountServiceAccountToken: false,
-            ...(process.env.PRODUCTION &&
+            ...(process.env.PRODUCTION_CUBOS &&
             this.spec.replicas !== undefined &&
             ((Array.isArray(this.spec.replicas) &&
-              this.spec.replicas[0] >= 3) ||
-              this.spec.replicas >= 3) &&
+              this.spec.replicas[0] >= 2) ||
+              this.spec.replicas >= 2) &&
             !(this.spec.disablePreemptibility ?? false)
               ? {
                   tolerations: [
@@ -367,10 +438,11 @@ export class StatelessApp {
         ? []
         : [
             new Service(this.metadata, {
+              type: this.spec.ports![0].serviceType,
               selector: {
                 app: this.metadata.name,
               },
-              ports: (this.spec.ports ?? []).map((portSpec) => ({
+              ports: this.spec.ports!.map((portSpec) => ({
                 name: portSpec.name ?? `port${portSpec.port}`,
                 port: portSpec.port,
                 targetPort: portSpec.containerPort ?? portSpec.port,

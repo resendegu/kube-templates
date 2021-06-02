@@ -47,7 +47,7 @@ interface DeploymentStrategy {
 }
 
 interface PodTemplateSpec {
-  metadata: BasicObjectMeta;
+  metadata?: BasicObjectMeta;
   spec: PodSpec;
 }
 
@@ -88,21 +88,12 @@ interface PodSpec {
   volumes?: Volume[];
 }
 
-interface PodSecurityContext {
-  fsGroup?: number;
-  runAsGroup?: number;
-  runAsNonRoot?: boolean;
-  runAsUser?: number;
-  seLinuxOptions?: {
-    level?: string;
-    role?: string;
-    type?: string;
-    user?: string;
-  };
-  supplementalGroups?: number[];
+interface PodDisruptionBudgetSpec {
+  selector: LabelSelector,
+  maxUnavailable: number
 }
 
-interface Toleration {
+export interface Toleration {
   effect: string;
   key: string;
   operator?: "Exists" | "Equal";
@@ -136,8 +127,8 @@ export type Volume = {
   //   }
   {
       configMap: {
-        defaultMode?: string;
-        items: KeyToPath[];
+        defaultMode?: number;
+        items?: KeyToPath[];
         name: string;
         optional?: boolean;
       };
@@ -169,9 +160,20 @@ export type Volume = {
   // | {
   //     glusterfs: GlusterfsVolumeSource;
   //   }
-  // | {
-  //     hostPath: HostPathVolumeSource;
-  //   }
+  | {
+      hostPath: {
+        path: string;
+        type?:
+          | ""
+          | "DirectoryOrCreate"
+          | "Directory"
+          | "FileOrCreate"
+          | "File"
+          | "Socket"
+          | "CharDevice"
+          | "BlockDevice";
+      };
+    }
   // | {
   //     iscsi: ISCSIVolumeSource;
   //   }
@@ -204,8 +206,8 @@ export type Volume = {
   //   }
   | {
       secret: {
-        defaultMode?: string;
-        items: KeyToPath[];
+        defaultMode?: number;
+        items?: KeyToPath[];
         optional?: boolean;
         secretName: string;
       };
@@ -255,7 +257,7 @@ interface WeightedPodAffinityTerm {
 
 interface PodAffinityTerm {
   labelSelector?: LabelSelector;
-  namespaces: string[];
+  namespaces?: string[];
   topologyKey: string;
 }
 
@@ -286,6 +288,46 @@ interface EnvFromSource {
   secretRef?: SecretEnvSource;
 }
 
+interface SELinuxOptions {
+  user?: string;
+  role?: string;
+  type?: string;
+  level?: string;
+}
+
+interface WindowsSecurityContextOptions {
+  gmsaCredentialSpec?: string;
+  gmsaCredentialSpecName?: string;
+  runAsUserName?: string;
+}
+
+interface SecurityContext {
+  allowPrivilegeEscalation?: boolean;
+  capabilities?: {
+    add?: string[];
+    drop?: string[];
+  };
+  privileged?: boolean;
+  procMount?: "Default" | "Unmasked";
+  readOnlyRootFilesystem?: boolean;
+  runAsGroup?: number;
+  runAsNonRoot?: boolean;
+  runAsUser?: number;
+  seLinuxOptions?: SELinuxOptions;
+  windowsOptions?: WindowsSecurityContextOptions;
+}
+
+interface PodSecurityContext {
+  fsGroup?: number;
+  runAsGroup?: number;
+  runAsNonRoot?: boolean;
+  runAsUser?: number;
+  seLinuxOptions?: SELinuxOptions;
+  supplementalGroups?: number[];
+  sysctls?: Array<{ name: string; value: string }>;
+  windowsOptions?: WindowsSecurityContextOptions;
+}
+
 export interface Container {
   args?: string[];
   command?: string[];
@@ -308,7 +350,7 @@ export interface Container {
       cpu?: string | number;
     };
   };
-  // securityContext?: SecurityContext
+  securityContext?: SecurityContext
   startupProbe?: Probe;
   stdin?: boolean;
   stdinOnce?: boolean;
@@ -521,7 +563,7 @@ interface StatefulSetSpec {
 }
 
 interface StatefulSetUpdateStrategy {
-  rollingUpdate: RollingUpdateStatefulSetStrategy;
+  rollingUpdate?: RollingUpdateStatefulSetStrategy;
   type: "RollingUpdate";
 }
 
@@ -561,8 +603,8 @@ interface JobSpec {
 }
 
 interface JobTemplateSpec {
-  metadata: ObjectMeta;
-  spec: JobSpec;
+  metadata?: ObjectMeta;
+  spec: Omit<JobSpec, "selector">;
 }
 
 interface CronJobSpec {
@@ -678,7 +720,8 @@ export class HorizontalPodAutoscaler {
 export class Secret {
   constructor(
     public metadata: ObjectMeta,
-    public data?: { [key: string]: string | Buffer }
+    public data?: { [key: string]: string | Buffer },
+    public type?: string
   ) {}
 
   get yaml() {
@@ -701,6 +744,25 @@ export class Secret {
         data: data,
         kind: "Secret",
         metadata: this.metadata,
+        ...(this.type ? {type: this.type} : {})
+      },
+    ]);
+  }
+}
+
+export class ConfigMap {
+  constructor(
+    public metadata: ObjectMeta,
+    public data?: { [key: string]: string }
+  ) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "v1",
+        data: this.data,
+        kind: "ConfigMap",
+        metadata: this.metadata,
       },
     ]);
   }
@@ -714,6 +776,51 @@ export class CronJob {
       {
         apiVersion: "batch/v1beta1",
         kind: "CronJob",
+        metadata: this.metadata,
+        spec: this.spec,
+      },
+    ]);
+  }
+}
+
+export class PodDisruptionBudget {
+  constructor(public metadata: ObjectMeta, public spec: PodDisruptionBudgetSpec) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "policy/v1beta1",
+        kind: "PodDisruptionBudget",
+        metadata: this.metadata,
+        spec: this.spec
+      }
+    ])
+  }
+}
+
+export class Job {
+  constructor(public metadata: ObjectMeta, public spec: Omit<JobSpec, "selector">) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "batch/v1",
+        kind: "Job",
+        metadata: this.metadata,
+        spec: this.spec
+      }
+    ])
+  }
+}
+
+export class PersistentVolumeClaim {
+  constructor(public metadata: ObjectMeta, public spec: PersistentVolumeClaimSpec) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "v1",
+        kind: "PersistentVolumeClaim",
         metadata: this.metadata,
         spec: this.spec,
       },

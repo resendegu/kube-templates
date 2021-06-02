@@ -5,10 +5,12 @@ import { Ingress, ObjectMeta, Service } from "./kubernetes";
 interface StaticSiteSpec {
   provider?: "gcs" | "s3";
   publicUrl: string;
+  ingressClass?: "public" | "private" | "internal";
   bucketName?: string;
   notFoundRedirect?: string;
   notFoundStatus?: number;
   tlsCert: string;
+  additionalConfigurationSnippet?: string;
 }
 
 export class StaticSite {
@@ -22,6 +24,12 @@ export class StaticSite {
       this.spec.provider === "s3"
         ? "s3.amazonaws.com"
         : "storage.googleapis.com";
+
+    const annotations = this.metadata.annotations ?? {};
+    if (process.env.CUBOS_DEV_GKE && !process.env.PRODUCTION) {
+      annotations["kubernetes.io/ingress.class"] =
+        this.spec.ingressClass ?? "private";
+    }
 
     return generateYaml([
       new Service(
@@ -39,7 +47,7 @@ export class StaticSite {
         {
           ...this.metadata,
           annotations: {
-            ...this.metadata.annotations,
+            ...annotations,
             "nginx.ingress.kubernetes.io/rewrite-target": `/${
               this.spec.bucketName ?? hostname
             }/$1`,
@@ -54,6 +62,7 @@ export class StaticSite {
                     };`
                   : ""
               }
+              ${this.spec.additionalConfigurationSnippet ?? ""}
             `,
           },
         },

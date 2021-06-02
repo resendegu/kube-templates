@@ -1,5 +1,11 @@
 import { generateYaml } from "./helpers";
-import { ObjectMeta, Service, StatefulSet } from "./kubernetes";
+import * as _ from "lodash";
+import {
+  BasicObjectMeta,
+  ObjectMeta,
+  Service,
+  StatefulSet,
+} from "./kubernetes";
 
 interface MongoSpec {
   // readReplicas?: number;
@@ -13,6 +19,9 @@ interface MongoSpec {
     username: string;
     password: string;
   };
+  serviceType?: "ExternalName" | "ClusterIP" | "NodePort" | "LoadBalancer";
+  serviceMetadata?: BasicObjectMeta;
+  storageClassName?: string;
 }
 
 export class Mongo {
@@ -20,10 +29,11 @@ export class Mongo {
 
   get yaml() {
     return generateYaml([
-      new Service(this.metadata, {
+      new Service(_.merge(this.metadata, this.spec.serviceMetadata), {
         selector: {
           app: this.metadata.name,
         },
+        type: this.spec.serviceType ?? "ClusterIP",
         ports: [
           {
             name: "mongo",
@@ -159,7 +169,7 @@ export class Mongo {
                   storage: "2Gi",
                 },
               },
-              storageClassName: "ssd",
+              storageClassName: this.spec.storageClassName ?? "ssd",
             },
           },
         ],
