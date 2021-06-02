@@ -1,4 +1,4 @@
-import { safeDump } from "js-yaml";
+import { dump } from "js-yaml";
 
 export function generateYaml(objects: any[]) {
   return objects
@@ -10,7 +10,7 @@ export function generateYaml(objects: any[]) {
       obj = stripUndefinedProperties(obj);
       return (
         "---\n" +
-        safeDump(obj, {
+        dump(obj, {
           noRefs: true,
           sortKeys: true,
           noArrayIndent: true,
