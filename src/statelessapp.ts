@@ -251,14 +251,25 @@ export class StatelessApp {
     for (const volume of this.spec.volumes ?? []) {
       const name = "vol-" + volume.mountPath.replace(/[^a-zA-Z0-9]/gu, "");
 
-      volumes.push({
-        name,
-        [volume.type]: {
-          [volume.type === "secret" ? "secretName" : "name"]: volume.name,
-          items: volume.items,
-          optional: volume.optional ?? false,
-        },
-      } as Volume);
+      if (volume.type === "secret") {
+        volumes.push({
+          name,
+          secret: {
+            secretName: volume.name,
+            items: volume.items,
+            optional: volume.optional ?? false,
+          },
+        });
+      } else {
+        volumes.push({
+          name,
+          [volume.type]: {
+            name: volume.name,
+            items: volume.items,
+            optional: volume.optional ?? false,
+          },
+        });
+      }
 
       volumeMounts.push({
         name,
