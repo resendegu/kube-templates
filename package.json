@@ -12,6 +12,7 @@
   },
   "devDependencies": {
     "@types/deasync": "^0.1.1",
+    "@types/faker": "^5.5.6",
     "@types/jest": "^26.0.23",
     "@types/js-yaml": "^4.0.1",
     "@types/lodash": "^4.14.170",
@@ -19,6 +20,7 @@
     "@types/pg": "^8.6.0",
     "axios": "^0.21.1",
     "deasync": "^0.1.21",
+    "faker": "^5.5.3",
     "jest": "^27.0.1",
     "pg": "^8.6.0",
     "ts-jest": "^27.0.1",
