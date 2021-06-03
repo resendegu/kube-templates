@@ -16,8 +16,12 @@ export function kubectl(...args: string[]) {
   return JSON.parse(rawKubectl("--output=json", ...args));
 }
 
-export function deleteObject(kind: string, name: string) {
-  rawKubectl("delete", kind, name);
+export function deleteObject(kind: string, name: string, namespace?: string) {
+  if (namespace) {
+    return rawKubectl(`--namespace=${namespace}`, "delete", kind, name);
+  }
+
+  return rawKubectl("delete", kind, name);
 }
 
 export function apply({ yaml }: { readonly yaml: string }) {

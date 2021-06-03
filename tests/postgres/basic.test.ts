@@ -3,7 +3,7 @@ import { Postgres } from "../../src/postgres";
 import { apply, deleteObject, randomSuffix, waitPodReady } from "../helpers";
 import { queryPostgres } from "./helpers";
 
-describe("postgres", () => {
+describe("basic", () => {
   const namespace = `test-${randomSuffix()}`;
 
   beforeAll(() => {
