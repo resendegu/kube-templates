@@ -38,11 +38,13 @@ interface StatelessAppSpec {
         timeout?: number;
         maxBodySize?: string;
         limitRequestsPerSecond?: number;
+        limitBurstMultiplier?: number;
         endpoints?: Array<{
           publicUrl?: string;
           tlsCert?: string;
           maxBodySize?: string;
           limitRequestsPerSecond?: number;
+          limitBurstMultiplier?: number;
         }>;
       }
     | {
@@ -101,6 +103,7 @@ export class StatelessApp {
 
         for (const publicUrl of publicUrls) {
           portSpec.endpoints.push({
+            limitBurstMultiplier: portSpec.limitBurstMultiplier,
             limitRequestsPerSecond: portSpec.limitRequestsPerSecond,
             maxBodySize: portSpec.maxBodySize,
             tlsCert: portSpec.tlsCert,
@@ -110,6 +113,7 @@ export class StatelessApp {
       }
 
       let maxBodySizeBytes = null;
+      let limitBurstMultiplier = null;
       let limitRequestsPerSecond = null;
       let hasPath = false;
 
@@ -158,7 +162,9 @@ export class StatelessApp {
           },
           path:
             pathname === "/"
-              ? (portSpec.ingressClass === "alb" ? "/*" : pathname)
+              ? portSpec.ingressClass === "alb"
+                ? "/*"
+                : pathname
               : (pathname.endsWith("/")
                   ? pathname.substring(0, pathname.length - 1)
                   : pathname) + "(/|$)(.*)",
@@ -175,6 +181,10 @@ export class StatelessApp {
           ) {
             maxBodySizeBytes = endpointMaxBodySizeBytes;
           }
+        }
+
+        if (endpointSpec.limitBurstMultiplier) {
+          limitBurstMultiplier = endpointSpec.limitBurstMultiplier;
         }
 
         if (endpointSpec.limitRequestsPerSecond) {
@@ -194,10 +204,15 @@ export class StatelessApp {
         ] = maxBodySizeBytes.toString();
       }
 
-      if (limitRequestsPerSecond) {
+      if (limitBurstMultiplier) {
         ingress.metadata.annotations[
-          "nginx.ingress.kubernetes.io/limit-rps"
-        ] = limitRequestsPerSecond.toString();
+          "nginx.ingress.kubernetes.io/limit-burst-multiplier"
+        ] = limitBurstMultiplier.toString();
+      }
+
+      if (limitRequestsPerSecond) {
+        ingress.metadata.annotations["nginx.ingress.kubernetes.io/limit-rps"] =
+          limitRequestsPerSecond.toString();
       }
 
       if (portSpec.timeout) {
@@ -207,10 +222,16 @@ export class StatelessApp {
       }
 
       if (hasPath) {
-        ingress.metadata.annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$2";
+        ingress.metadata.annotations[
+          "nginx.ingress.kubernetes.io/rewrite-target"
+        ] = "/$2";
       }
 
-      if (process.env.CUBOS_DEV_GKE && process.env.CUBOS_INTERNAL_CLUSTER && !process.env.PRODUCTION) {
+      if (
+        process.env.CUBOS_DEV_GKE &&
+        process.env.CUBOS_INTERNAL_CLUSTER &&
+        !process.env.PRODUCTION
+      ) {
         ingress.metadata.annotations["kubernetes.io/ingress.class"] =
           portSpec.ingressClass ?? "private";
       }
@@ -326,7 +347,8 @@ export class StatelessApp {
                     ],
                   },
             },
-            ...((this.spec.image.startsWith("registry.cubos.io") || this.spec.image.startsWith("registry.gitlab.com/mimic1"))
+            ...(this.spec.image.startsWith("registry.cubos.io") ||
+            this.spec.image.startsWith("registry.gitlab.com/mimic1")
               ? {
                   imagePullSecrets: [
                     {
