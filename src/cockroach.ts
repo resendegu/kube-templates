@@ -1,6 +1,7 @@
 import { generateYaml } from "./helpers";
 import * as _ from "lodash";
 import {
+  Container,
   Job,
   ObjectMeta,
   PodDisruptionBudget,
@@ -27,13 +28,17 @@ export class Cockroach {
 
   get yaml() {
     return generateYaml([
-      new Secret(
-        {
-          ...this.metadata,
-          name: `${this.metadata.name}-certs`,
-        },
-        { ...(this.spec.certs ?? {}) }
-      ),
+      ...(this.spec.certs
+        ? [
+            new Secret(
+              {
+                ...this.metadata,
+                name: `${this.metadata.name}-certs`,
+              },
+              { ...this.spec.certs }
+            ),
+          ]
+        : []),
       new Service(
         {
           ...this.metadata,
@@ -217,9 +222,11 @@ export class Cockroach {
                   "-ecx",
                   `exec /cockroach/cockroach start --logtostderr ${
                     this.spec.certs ? "--certs-dir /certs" : "--insecure"
-                  } --advertise-host $(hostname -f) --http-addr 0.0.0.0 --join ${_.range(
-                    this.spec.replicas
-                  )
+                  } --advertise-host ${
+                    this.spec.certs
+                      ? `$(hostname).${this.metadata.name}`
+                      : "$(hostname -f)"
+                  } --http-addr 0.0.0.0 --join ${_.range(this.spec.replicas)
                     .map(
                       (i) => `${this.metadata.name}-${i}.${this.metadata.name}`
                     )
@@ -247,7 +254,10 @@ export class Cockroach {
               },
               {
                 name: "certs",
-                secret: { secretName: `${this.metadata.name}-certs` },
+                secret: {
+                  secretName: `${this.metadata.name}-certs`,
+                  defaultMode: 0o600,
+                },
               },
             ],
           },
@@ -287,7 +297,10 @@ export class Cockroach {
               volumes: [
                 {
                   name: "certs",
-                  secret: { secretName: `${this.metadata.name}-certs` },
+                  secret: {
+                    secretName: `${this.metadata.name}-certs`,
+                    defaultMode: 0o600,
+                  },
                 },
               ],
               containers: [
