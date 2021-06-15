@@ -1,7 +1,6 @@
 import { generateYaml } from "./helpers";
 import * as _ from "lodash";
 import {
-  Container,
   Job,
   ObjectMeta,
   PodDisruptionBudget,
@@ -170,6 +169,7 @@ export class Cockroach {
                   httpGet: {
                     path: "/health",
                     port: 8080,
+                    scheme: this.spec.certs && "HTTPS",
                   },
                   initialDelaySeconds: 30,
                   periodSeconds: 5,
@@ -178,6 +178,7 @@ export class Cockroach {
                   httpGet: {
                     path: "/health?ready=1",
                     port: 8080,
+                    scheme: this.spec.certs && "HTTPS",
                   },
                   initialDelaySeconds: 10,
                   periodSeconds: 5,
@@ -200,7 +201,9 @@ export class Cockroach {
                 env: [
                   {
                     name: "COCKROACH_CHANNEL",
-                    value: "kubernetes-insecure",
+                    value: this.spec.certs
+                      ? "kubernetes-secure"
+                      : "kubernetes-insecure",
                   },
                   {
                     name: "GOMAXPROCS",
