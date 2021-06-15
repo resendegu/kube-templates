@@ -188,10 +188,14 @@ export class Cockroach {
                     mountPath: "/cockroach/cockroach-data",
                     name: "datadir",
                   },
-                  {
-                    mountPath: "/certs",
-                    name: "certs",
-                  },
+                  ...(this.spec.certs
+                    ? [
+                        {
+                          mountPath: "/certs",
+                          name: "certs",
+                        },
+                      ]
+                    : []),
                 ],
                 env: [
                   {
@@ -252,13 +256,17 @@ export class Cockroach {
                   claimName: "datadir",
                 },
               },
-              {
-                name: "certs",
-                secret: {
-                  secretName: `${this.metadata.name}-certs`,
-                  defaultMode: 0o600,
-                },
-              },
+              ...(this.spec.certs
+                ? [
+                    {
+                      name: "certs",
+                      secret: {
+                        secretName: `${this.metadata.name}-certs`,
+                        defaultMode: 0o600,
+                      },
+                    },
+                  ]
+                : []),
             ],
           },
         },
@@ -294,15 +302,17 @@ export class Cockroach {
         {
           template: {
             spec: {
-              volumes: [
-                {
-                  name: "certs",
-                  secret: {
-                    secretName: `${this.metadata.name}-certs`,
-                    defaultMode: 0o600,
-                  },
-                },
-              ],
+              volumes: this.spec.certs
+                ? [
+                    {
+                      name: "certs",
+                      secret: {
+                        secretName: `${this.metadata.name}-certs`,
+                        defaultMode: 0o600,
+                      },
+                    },
+                  ]
+                : [],
               containers: [
                 {
                   name:
@@ -311,12 +321,14 @@ export class Cockroach {
                       : "cluster-init",
                   image: `cockroachdb/cockroach:v${this.spec.version}`,
                   imagePullPolicy: "IfNotPresent",
-                  volumeMounts: [
-                    {
-                      mountPath: "/certs",
-                      name: "certs",
-                    },
-                  ],
+                  volumeMounts: this.spec.certs
+                    ? [
+                        {
+                          mountPath: "/certs",
+                          name: "certs",
+                        },
+                      ]
+                    : [],
                   command: [
                     "/cockroach/cockroach",
                     "init",

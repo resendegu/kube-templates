@@ -1,6 +1,6 @@
 import { Client } from "pg";
 import { join } from "path";
-import { portForward, } from "../helpers";
+import { portForward } from "../helpers";
 
 type Certificates =
   | "node.crt"
@@ -46,9 +46,9 @@ export async function queryCockroachSecure(
       "client.root.crt": clientCert,
       "client.root.key": clientKey,
       "ca.crt": rootCert,
-    } = certificates
+    } = certificates;
     const client = new Client({
-      connectionString: `postgres://root@locahost:${forward.port}/${database}?sslmode=verify-full&sslcert=${clientCert}&sslkey=${clientKey}&sslrootcert=${rootCert}`,
+      connectionString: `postgres://root@localhost:${forward.port}/${database}?sslmode=verify-full&sslcert=${clientCert}&sslkey=${clientKey}&sslrootcert=${rootCert}`,
     });
 
     await client.connect();

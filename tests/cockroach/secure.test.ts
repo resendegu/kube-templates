@@ -27,39 +27,39 @@ describe("CockroachDB Secure", () => {
   });
 
   test("Create secure database cluster", async () => {
-      apply(
-        new Cockroach(
-          {
-            name: "cockroachdb-safe",
-            namespace,
-          },
-          {
-            cpu: {
-              limit: 2,
-              request: 1,
-            },
-            memory: "64Mi",
-            version: "21.1.2",
-            replicas: 2,
-            certs: mapValues(certificates, (value) => readFileSync(value)),
-          }
-        )
-      );
-
-      waitPodReady(namespace, "cockroachdb-safe-0");
-      waitPodReady(namespace, "cockroachdb-safe-1");
-      waitJobComplete(namespace, "cockroachdb-safe-cluster-init");
-
-      expect(
-        await queryCockroachSecure(
-          namespace,
-          "svc/cockroachdb-safe",
-          "SELECT true AS ok"
-        )
-      ).toEqual([
+    apply(
+      new Cockroach(
         {
-          ok: true,
+          name: "cockroach-safe",
+          namespace,
         },
-      ]);
+        {
+          cpu: {
+            limit: 2,
+            request: 1,
+          },
+          memory: "64Mi",
+          version: "21.1.2",
+          replicas: 2,
+          certs: mapValues(certificates, (value) => readFileSync(value)),
+        }
+      )
+    );
+
+    waitPodReady(namespace, "cockroach-safe-0");
+    waitPodReady(namespace, "cockroach-safe-1");
+    waitJobComplete(namespace, "cockroach-safe-cluster-init");
+
+    expect(
+      await queryCockroachSecure(
+        namespace,
+        "svc/cockroach-safe",
+        "SELECT true AS ok"
+      )
+    ).toEqual([
+      {
+        ok: true,
+      },
+    ]);
   });
 });
