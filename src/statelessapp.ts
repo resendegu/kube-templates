@@ -3,6 +3,7 @@ import { URL } from "url";
 import { clone, env, generateYaml, parseMemory } from "./helpers";
 import type { ObjectMeta, Volume, VolumeMount } from "./kubernetes";
 import {
+  CronJob,
   Deployment,
   HorizontalPodAutoscaler,
   Ingress,
@@ -75,6 +76,24 @@ interface StatelessAppSpec {
     name: string;
     mountPath: string;
     items?: Array<{ key: string; path: string }>;
+  }>;
+  cron?: Array<{
+    name: string;
+    schedule: string;
+    command: string[];
+    envs?: {
+      [env: string]: string | number | { secretName: string; key: string };
+    };
+    forwardEnvs?: string[];
+    secretEnvs?: string[];
+    cpu?: {
+      request?: string | number;
+      limit?: string | number;
+    };
+    memory?: {
+      request?: string | number;
+      limit?: string | number;
+    };
   }>;
 }
 
@@ -457,6 +476,101 @@ export class StatelessApp {
           },
         },
       }),
+      ...(this.spec.cron ?? []).map(
+        (cron) =>
+          new CronJob(
+            {
+              ...this.metadata,
+              name: `${this.metadata.name}-${cron.name}`,
+            },
+            {
+              schedule: cron.schedule,
+              jobTemplate: {
+                spec: {
+                  template: {
+                    spec: {
+                      ...basicPodSpec,
+                      ...(this.spec.disablePreemptibility ?? false
+                        ? {}
+                        : {
+                            tolerations: [
+                              {
+                                key: "preemptible",
+                                operator: "Equal",
+                                value: "true",
+                                effect: "NoSchedule",
+                              },
+                            ],
+                            nodeSelector: {
+                              preemptible: "true",
+                            },
+                          }),
+                      volumes,
+                      containers: [
+                        {
+                          name: cron.name,
+                          image: this.spec.image,
+                          command: cron.command,
+                          env: [
+                            ...Object.entries({
+                              ...this.spec.envs,
+                              ...cron.envs,
+                            }).map(([name, value]) =>
+                              typeof value === "object"
+                                ? {
+                                    name,
+                                    valueFrom: {
+                                      secretKeyRef: {
+                                        name: value.secretName,
+                                        key: value.key,
+                                      },
+                                    },
+                                  }
+                                : {
+                                    name,
+                                    value: `${value}`,
+                                  }
+                            ),
+                            ...[
+                              ...(this.spec.forwardEnvs ?? []),
+                              ...(cron.forwardEnvs ?? []),
+                            ].map((key) => ({
+                              name: key,
+                              value: env[key],
+                            })),
+                          ],
+                          envFrom: [
+                            ...(this.spec.secretEnvs ?? []),
+                            ...(cron.secretEnvs ?? []),
+                          ].map((name) => ({
+                            secretRef: {
+                              name,
+                            },
+                          })),
+                          volumeMounts,
+                          resources: {
+                            limits: {
+                              cpu: cron.cpu?.limit ?? this.spec.cpu.limit,
+                              memory:
+                                cron.memory?.limit ?? this.spec.memory.limit,
+                            },
+                            requests: {
+                              cpu: cron.cpu?.request ?? this.spec.cpu.request,
+                              memory:
+                                cron.memory?.request ??
+                                this.spec.memory.request,
+                            },
+                          },
+                        },
+                      ],
+                      restartPolicy: "Never",
+                    },
+                  },
+                },
+              },
+            }
+          )
+      ),
       ...((this.spec.ports ?? []).length === 0
         ? []
         : [

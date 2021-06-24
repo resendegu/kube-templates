@@ -35,7 +35,7 @@ export async function queryCockroach(
   }
 }
 
-export const certificates:  = [
+export const certificates = [
   "node.crt",
   "client.root.crt",
   "client.root.key",
