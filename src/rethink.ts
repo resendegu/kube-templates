@@ -1,5 +1,6 @@
 import { generateYaml } from "./helpers";
-import { ObjectMeta, Service, StatefulSet } from "./kubernetes";
+import type { ObjectMeta } from "./kubernetes";
+import { Service, StatefulSet } from "./kubernetes";
 
 interface RethinkSpec {
   replicas?: number;
@@ -110,12 +111,14 @@ export class Rethink {
                 command: [
                   "bash",
                   "-ec",
-                  `touch /data/rethinkdb/log_file; tail -f /data/rethinkdb/log_file & rethinkdb serve ` +
-                    `--bind all ` +
-                    (this.spec.cacheMb
+                  `${
+                    `touch /data/rethinkdb/log_file; tail -f /data/rethinkdb/log_file & rethinkdb serve ` +
+                    `--bind all `
+                  }${
+                    this.spec.cacheMb
                       ? `--cache-size ${this.spec.cacheMb} `
-                      : "") +
-                    `--directory /data/rethinkdb ` +
+                      : ""
+                  }--directory /data/rethinkdb ` +
                     `$(echo "--join ${this.metadata.name}-"{0..${
                       (this.spec.replicas ?? 1) - 1
                     }} | sed "s/--join $(hostname)//") ` +

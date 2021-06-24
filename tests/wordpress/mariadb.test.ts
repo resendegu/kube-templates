@@ -72,7 +72,9 @@ describe("WordPress + MariaDB", () => {
 
     const [axios, close] = getAxiosClient(namespace, "wordpress-0", 80);
 
-    expect((await axios.get("/")).data).toMatch(/WordPress &rsaquo; Installation/u);
+    expect((await axios.get("/")).data).toMatch(
+      /WordPress &rsaquo; Installation/u
+    );
 
     close();
   });

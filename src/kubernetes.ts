@@ -89,8 +89,8 @@ interface PodSpec {
 }
 
 interface PodDisruptionBudgetSpec {
-  selector: LabelSelector,
-  maxUnavailable: number
+  selector: LabelSelector;
+  maxUnavailable: number;
 }
 
 export interface Toleration {
@@ -350,7 +350,7 @@ export interface Container {
       cpu?: string | number;
     };
   };
-  securityContext?: SecurityContext
+  securityContext?: SecurityContext;
   startupProbe?: Probe;
   stdin?: boolean;
   stdinOnce?: boolean;
@@ -556,10 +556,10 @@ interface StatefulSetSpec {
   serviceName: string;
   template: PodTemplateSpec;
   updateStrategy?: StatefulSetUpdateStrategy;
-  volumeClaimTemplates: {
+  volumeClaimTemplates: Array<{
     metadata: NonNamespacedObjectMeta;
     spec: PersistentVolumeClaimSpec;
-  }[];
+  }>;
 }
 
 interface StatefulSetUpdateStrategy {
@@ -572,7 +572,7 @@ interface RollingUpdateStatefulSetStrategy {
 }
 
 interface PersistentVolumeClaimSpec {
-  accessModes: ("ReadWriteOnce" | "ReadOnlyMany" | "ReadWriteMany")[];
+  accessModes: Array<"ReadWriteOnce" | "ReadOnlyMany" | "ReadWriteMany">;
   dataSource?: TypedLocalObjectReference;
   resources: {
     requests: {
@@ -725,12 +725,18 @@ export class Secret {
   ) {}
 
   get yaml() {
-    let data: any = undefined;
+    let data: any;
     const targetData = this.data;
+
     if (targetData) {
       data = {};
       for (const key in targetData) {
+        if (!targetData.hasOwnProperty(key)) {
+          continue;
+        }
+
         let value = targetData[key];
+
         if (!(value instanceof Buffer)) {
           value = Buffer.from(value);
         }
@@ -738,13 +744,14 @@ export class Secret {
         data[key] = value.toString("base64");
       }
     }
+
     return generateYaml([
       {
         apiVersion: "v1",
-        data: data,
+        data,
         kind: "Secret",
         metadata: this.metadata,
-        ...(this.type ? {type: this.type} : {})
+        ...(this.type ? { type: this.type } : {}),
       },
     ]);
   }
@@ -784,7 +791,10 @@ export class CronJob {
 }
 
 export class PodDisruptionBudget {
-  constructor(public metadata: ObjectMeta, public spec: PodDisruptionBudgetSpec) {}
+  constructor(
+    public metadata: ObjectMeta,
+    public spec: PodDisruptionBudgetSpec
+  ) {}
 
   get yaml() {
     return generateYaml([
@@ -792,14 +802,17 @@ export class PodDisruptionBudget {
         apiVersion: "policy/v1beta1",
         kind: "PodDisruptionBudget",
         metadata: this.metadata,
-        spec: this.spec
-      }
-    ])
+        spec: this.spec,
+      },
+    ]);
   }
 }
 
 export class Job {
-  constructor(public metadata: ObjectMeta, public spec: Omit<JobSpec, "selector">) {}
+  constructor(
+    public metadata: ObjectMeta,
+    public spec: Omit<JobSpec, "selector">
+  ) {}
 
   get yaml() {
     return generateYaml([
@@ -807,14 +820,17 @@ export class Job {
         apiVersion: "batch/v1",
         kind: "Job",
         metadata: this.metadata,
-        spec: this.spec
-      }
-    ])
+        spec: this.spec,
+      },
+    ]);
   }
 }
 
 export class PersistentVolumeClaim {
-  constructor(public metadata: ObjectMeta, public spec: PersistentVolumeClaimSpec) {}
+  constructor(
+    public metadata: ObjectMeta,
+    public spec: PersistentVolumeClaimSpec
+  ) {}
 
   get yaml() {
     return generateYaml([

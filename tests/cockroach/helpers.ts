@@ -1,17 +1,18 @@
 import { Client } from "pg";
+
 import { portForward } from "../helpers";
 
 export async function queryCockroach(
   namespace: string,
   pod: string,
   query: string,
-  database: string = "defaultdb"
+  database = "defaultdb"
 ) {
   const forward = portForward(namespace, pod, 26257);
 
   try {
     const client = new Client({
-        connectionString: `postgres://root@localhost:${forward.port}/${database}?sslmode=disable`,
+      connectionString: `postgres://root@localhost:${forward.port}/${database}?sslmode=disable`,
     });
 
     await client.connect();

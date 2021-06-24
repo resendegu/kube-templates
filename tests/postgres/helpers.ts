@@ -1,13 +1,14 @@
 import { Client } from "pg";
+
 import { portForward } from "../helpers";
 
 export async function queryPostgres(
   namespace: string,
   pod: string,
   query: string,
-  user: string = "postgres",
-  database: string = "postgres",
-  password: string = ""
+  user = "postgres",
+  database = "postgres",
+  password = ""
 ) {
   const forward = portForward(namespace, pod, 5432);
 
@@ -24,7 +25,7 @@ export async function queryPostgres(
     try {
       return (await client.query(query)).rows;
     } finally {
-      client.end();
+      await client.end();
     }
   } finally {
     forward.close();

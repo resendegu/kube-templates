@@ -1,11 +1,8 @@
-import { generateYaml } from "./helpers";
 import * as _ from "lodash";
-import {
-  BasicObjectMeta,
-  ObjectMeta,
-  Service,
-  StatefulSet,
-} from "./kubernetes";
+
+import { generateYaml } from "./helpers";
+import type { BasicObjectMeta, ObjectMeta } from "./kubernetes";
+import { Service, StatefulSet } from "./kubernetes";
 
 interface MongoSpec {
   // readReplicas?: number;

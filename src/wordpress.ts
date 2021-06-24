@@ -1,6 +1,8 @@
 import { URL } from "url";
+
 import { generateYaml, parseMemory } from "./helpers";
-import { Ingress, ObjectMeta, Service, StatefulSet } from "./kubernetes";
+import type { ObjectMeta } from "./kubernetes";
+import { Ingress, Service, StatefulSet } from "./kubernetes";
 
 interface WordPressSpec {
   version: string;
@@ -32,9 +34,20 @@ export class WordPress {
   constructor(private metadata: ObjectMeta, private spec: WordPressSpec) {}
 
   get yaml() {
-    const url = this.spec.ingress.publicUrl ? new URL(this.spec.ingress.publicUrl) : null;
-    const maxUploadSize = this.spec.ingress.maxBodySize ? Math.ceil(parseMemory(this.spec.ingress.maxBodySize) / 1024 / 1024) + "M" : "2M";
-    const postMaxSize = this.spec.ingress.maxBodySize ? Math.ceil(parseMemory(this.spec.ingress.maxBodySize) / 1024 / 1024) + 8 + "M" : "10M";
+    const url = this.spec.ingress.publicUrl
+      ? new URL(this.spec.ingress.publicUrl)
+      : null;
+    const maxUploadSize = this.spec.ingress.maxBodySize
+      ? `${Math.ceil(
+          parseMemory(this.spec.ingress.maxBodySize) / 1024 / 1024
+        )}M`
+      : "2M";
+    const postMaxSize = this.spec.ingress.maxBodySize
+      ? `${
+          Math.ceil(parseMemory(this.spec.ingress.maxBodySize) / 1024 / 1024) +
+          8
+        }M`
+      : "10M";
 
     return generateYaml([
       new Service(
@@ -193,7 +206,9 @@ export class WordPress {
                   storage: "1Gi",
                 },
               },
-              storageClassName: this.spec.storageClassName ?? (process.env.PRODUCTION ? "ssd-regional" : "standard"),
+              storageClassName:
+                this.spec.storageClassName ??
+                (process.env.PRODUCTION ? "ssd-regional" : "standard"),
             },
           },
         ],
@@ -208,12 +223,14 @@ export class WordPress {
                 annotations: {
                   ...(this.spec.ingress.maxBodySize
                     ? {
-                        "nginx.ingress.kubernetes.io/proxy-body-size": parseMemory(this.spec.ingress.maxBodySize).toString(),
+                        "nginx.ingress.kubernetes.io/proxy-body-size":
+                          parseMemory(this.spec.ingress.maxBodySize).toString(),
                       }
                     : {}),
                   ...(this.spec.ingress.timeout
                     ? {
-                        "nginx.ingress.kubernetes.io/proxy-read-timeout": this.spec.ingress.timeout.toString(),
+                        "nginx.ingress.kubernetes.io/proxy-read-timeout":
+                          this.spec.ingress.timeout.toString(),
                       }
                     : {}),
                 },

@@ -1,6 +1,7 @@
 import { CertManagerCertificate } from "./certmanager";
 import { generateYaml } from "./helpers";
-import { ObjectMeta, Secret } from "./kubernetes";
+import type { ObjectMeta } from "./kubernetes";
+import { Secret } from "./kubernetes";
 
 interface CertificateSpec {
   domain: string;
@@ -27,8 +28,8 @@ export class Certificate {
           ...(this.spec.replicationAllowedNamespaces
             ? {
                 "replicator.v1.mittwald.de/replication-allowed": "true",
-                "replicator.v1.mittwald.de/replication-allowed-namespaces": this
-                  .spec.replicationAllowedNamespaces.source,
+                "replicator.v1.mittwald.de/replication-allowed-namespaces":
+                  this.spec.replicationAllowedNamespaces.source,
               }
             : {}),
         },
@@ -47,14 +48,14 @@ export class Certificate {
           },
           ...((this.spec.challengeType ?? "dns") === "dns"
             ? {
-                dnsNames: [this.spec.domain, "*." + this.spec.domain],
+                dnsNames: [this.spec.domain, `*.${this.spec.domain}`],
                 acme: {
                   config: [
                     {
                       dns01: {
                         provider: this.spec.provider ?? "cloudflare",
                       },
-                      domains: [this.spec.domain, "*." + this.spec.domain],
+                      domains: [this.spec.domain, `*.${this.spec.domain}`],
                     },
                   ],
                 },

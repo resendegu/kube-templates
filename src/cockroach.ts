@@ -1,12 +1,8 @@
-import { generateYaml } from "./helpers";
 import * as _ from "lodash";
-import {
-  Job,
-  ObjectMeta,
-  PodDisruptionBudget,
-  Service,
-  StatefulSet,
-} from "./kubernetes";
+
+import { generateYaml } from "./helpers";
+import type { ObjectMeta } from "./kubernetes";
+import { Job, PodDisruptionBudget, Service, StatefulSet } from "./kubernetes";
 
 interface CockroachSpec {
   version: string;
@@ -23,86 +19,95 @@ export class Cockroach {
 
   get yaml() {
     return generateYaml([
-      new Service({
-        ...this.metadata,
-        name: `${this.metadata.name}-public`,
-        labels: {
-          "app": this.metadata.name
-        }
-      }, {
-        selector: {
-          app: this.metadata.name,
-        },
-        ports: [
-          {
-            name: "grpc",
-            port: 26257,
-            targetPort: 26257
-          },
-          {
-            name: "http",
-            port: 8080,
-            targetPort: 8080
-          }
-        ]
-      }),
-      new Service({
-        ...this.metadata,
-        labels: {
-          "app": this.metadata.name
-        },
-        annotations: {
-          "service.alpha.kubernetes.io/tolerate-unready-endpoints": "true",
-          "prometheus.io/scrape": "true",
-          "prometheus.io/path": "_status/vars",
-          "prometheus.io/port": "8080"
-        }
-      }, {
-        selector: {
-          app: this.metadata.name,
-        },
-        ports: [
-          {
-            name: "grpc",
-            port: 26257,
-            targetPort: 26257
-          },
-          {
-            name: "http",
-            port: 8080,
-            targetPort: 8080
-          }
-        ],
-        publishNotReadyAddresses: true,
-        clusterIP: "None"
-      }),
-      new PodDisruptionBudget({
-        ...this.metadata,
-        name: `${this.metadata.name}-budget`,
-        labels: {
-          "app": this.metadata.name
-        }
-      }, {
-        selector: {
-          matchLabels: {
-            "app": this.metadata.name
+      new Service(
+        {
+          ...this.metadata,
+          name: `${this.metadata.name}-public`,
+          labels: {
+            app: this.metadata.name,
           },
         },
-        maxUnavailable: 1
-      }),
+        {
+          selector: {
+            app: this.metadata.name,
+          },
+          ports: [
+            {
+              name: "grpc",
+              port: 26257,
+              targetPort: 26257,
+            },
+            {
+              name: "http",
+              port: 8080,
+              targetPort: 8080,
+            },
+          ],
+        }
+      ),
+      new Service(
+        {
+          ...this.metadata,
+          labels: {
+            app: this.metadata.name,
+          },
+          annotations: {
+            "service.alpha.kubernetes.io/tolerate-unready-endpoints": "true",
+            "prometheus.io/scrape": "true",
+            "prometheus.io/path": "_status/vars",
+            "prometheus.io/port": "8080",
+          },
+        },
+        {
+          selector: {
+            app: this.metadata.name,
+          },
+          ports: [
+            {
+              name: "grpc",
+              port: 26257,
+              targetPort: 26257,
+            },
+            {
+              name: "http",
+              port: 8080,
+              targetPort: 8080,
+            },
+          ],
+          publishNotReadyAddresses: true,
+          clusterIP: "None",
+        }
+      ),
+      new PodDisruptionBudget(
+        {
+          ...this.metadata,
+          name: `${this.metadata.name}-budget`,
+          labels: {
+            app: this.metadata.name,
+          },
+        },
+        {
+          selector: {
+            matchLabels: {
+              app: this.metadata.name,
+            },
+          },
+          maxUnavailable: 1,
+        }
+      ),
       new StatefulSet(this.metadata, {
         serviceName: this.metadata.name,
         replicas: this.spec.replicas,
         selector: {
           matchLabels: {
             app: this.metadata.name,
-          }
+          },
         },
         template: {
           metadata: {
             labels: {
               app: this.metadata.name,
-            }
+            },
           },
           spec: {
             affinity: {
@@ -116,15 +121,15 @@ export class Cockroach {
                           {
                             key: "app",
                             operator: "In",
-                            values: [this.metadata.name]
-                          }
-                        ]
+                            values: [this.metadata.name],
+                          },
+                        ],
                       },
-                      topologyKey: "kubernetes.io/hostname"
-                    }
-                  }
+                      topologyKey: "kubernetes.io/hostname",
+                    },
+                  },
                 ],
-              }
+              },
             },
             containers: [
               {
@@ -139,59 +144,65 @@ export class Cockroach {
                   {
                     name: "http",
                     containerPort: 8080,
-                  }
+                  },
                 ],
                 livenessProbe: {
                   httpGet: {
                     path: "/health",
-                    port: 8080
+                    port: 8080,
                   },
                   initialDelaySeconds: 30,
-                  periodSeconds: 5
+                  periodSeconds: 5,
                 },
                 readinessProbe: {
                   httpGet: {
                     path: "/health?ready=1",
-                    port: 8080
+                    port: 8080,
                   },
                   initialDelaySeconds: 10,
                   periodSeconds: 5,
-                  failureThreshold: 2
+                  failureThreshold: 2,
                 },
                 volumeMounts: [
                   {
                     mountPath: "/cockroach/cockroach-data",
-                    name: "datadir"
-                  }
+                    name: "datadir",
+                  },
                 ],
                 env: [
                   {
                     name: "COCKROACH_CHANNEL",
-                    value: "kubernetes-insecure"
+                    value: "kubernetes-insecure",
                   },
                   {
                     name: "GOMAXPROCS",
                     valueFrom: {
                       resourceFieldRef: {
                         resource: "limits.cpu",
-                        divisor: "1"
-                      }
-                    }
+                        divisor: "1",
+                      },
+                    },
                   },
                   {
                     name: "MEMORY_LIMIT_MIB",
                     valueFrom: {
                       resourceFieldRef: {
                         resource: "limits.memory",
-                        divisor: "1Mi"
-                      }
-                    }
-                  }
+                        divisor: "1Mi",
+                      },
+                    },
+                  },
                 ],
                 command: [
                   "/bin/bash",
                   "-ecx",
-                  `exec /cockroach/cockroach start --logtostderr --insecure --advertise-host $(hostname -f) --http-addr 0.0.0.0 --join ${_.range(this.spec.replicas).map(i => `${this.metadata.name}-${i}.${this.metadata.name}`).join(",")} --cache $(expr $MEMORY_LIMIT_MIB / 4)MiB`
+                  `exec /cockroach/cockroach start --logtostderr --insecure --advertise-host $(hostname -f) --http-addr 0.0.0.0 --join ${_.range(
+                    this.spec.replicas
+                  )
+                    .map(
+                      (i) => `${this.metadata.name}-${i}.${this.metadata.name}`
+                    )
+                    .join(",")} --cache $(expr $MEMORY_LIMIT_MIB / 4)MiB`,
                 ],
                 resources: {
                   limits: {
@@ -202,7 +213,7 @@ export class Cockroach {
                     cpu: this.spec.cpu.request,
                     memory: this.spec.memory,
                   },
-                }
+                },
               },
             ],
             terminationGracePeriodSeconds: 60,
@@ -210,15 +221,15 @@ export class Cockroach {
               {
                 name: "datadir",
                 persistentVolumeClaim: {
-                  claimName: "datadir"
-                }
-              }
-            ]
+                  claimName: "datadir",
+                },
+              },
+            ],
           },
         },
         podManagementPolicy: "Parallel",
         updateStrategy: {
-          type: "RollingUpdate"
+          type: "RollingUpdate",
         },
         volumeClaimTemplates: [
           {
@@ -235,32 +246,40 @@ export class Cockroach {
               storageClassName: "ssd",
             },
           },
-        ]
+        ],
       }),
-      new Job({
-        ...this.metadata,
-        name: this.metadata.name != "cockroachdb" ? `${this.metadata.name}-cluster-init` : "cluster-init",
-      },
-      {
-        template: {
-          spec: {
-            containers: [
-              {
-                name: this.metadata.name != "cockroachdb" ? `${this.metadata.name}-cluster-init` : "cluster-init",
-                image: `cockroachdb/cockroach:v${this.spec.version}`,
-                imagePullPolicy: "IfNotPresent",
-                command: [
-                  "/cockroach/cockroach",
-                  "init",
-                  "--insecure",
-                  `--host=${this.metadata.name}-0.${this.metadata.name}`
-                ]
-              }
-            ],
-            restartPolicy: "OnFailure"
-          },
+      new Job(
+        {
+          ...this.metadata,
+          name:
+            this.metadata.name === "cockroachdb"
+              ? "cluster-init"
+              : `${this.metadata.name}-cluster-init`,
         },
-      })
+        {
+          template: {
+            spec: {
+              containers: [
+                {
+                  name:
+                    this.metadata.name === "cockroachdb"
+                      ? "cluster-init"
+                      : `${this.metadata.name}-cluster-init`,
+                  image: `cockroachdb/cockroach:v${this.spec.version}`,
+                  imagePullPolicy: "IfNotPresent",
+                  command: [
+                    "/cockroach/cockroach",
+                    "init",
+                    "--insecure",
+                    `--host=${this.metadata.name}-0.${this.metadata.name}`,
+                  ],
+                },
+              ],
+              restartPolicy: "OnFailure",
+            },
+          },
+        }
+      ),
     ]);
   }
 }
