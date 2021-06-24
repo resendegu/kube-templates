@@ -1,13 +1,12 @@
 import { URL } from "url";
+
 import { clone, env, generateYaml, parseMemory } from "./helpers";
+import type { ObjectMeta, Volume, VolumeMount } from "./kubernetes";
 import {
   Deployment,
   HorizontalPodAutoscaler,
   Ingress,
-  ObjectMeta,
   Service,
-  Volume,
-  VolumeMount,
 } from "./kubernetes";
 
 interface StatelessAppSpec {
@@ -28,32 +27,34 @@ interface StatelessAppSpec {
     request: string | number;
     limit: string | number;
   };
-  ports?: ((
-    | {
-        type: "http";
-        ingressClass?: string;
-        ingressAnnotations?: Record<string, string>;
-        publicUrl?: string | string[];
-        tlsCert?: string;
-        timeout?: number;
-        maxBodySize?: string;
-        limitRequestsPerSecond?: number;
-        endpoints?: Array<{
-          publicUrl?: string;
+  ports?: Array<
+    (
+      | {
+          type: "http";
+          ingressClass?: string;
+          ingressAnnotations?: Record<string, string>;
+          publicUrl?: string | string[];
           tlsCert?: string;
+          timeout?: number;
           maxBodySize?: string;
           limitRequestsPerSecond?: number;
-        }>;
-      }
-    | {
-        type: "tcp";
-      }
-  ) & {
-    name?: string;
-    port: number;
-    containerPort?: number;
-    serviceType?: "ExternalName" | "ClusterIP" | "NodePort" | "LoadBalancer";
-  })[];
+          endpoints?: Array<{
+            publicUrl?: string;
+            tlsCert?: string;
+            maxBodySize?: string;
+            limitRequestsPerSecond?: number;
+          }>;
+        }
+      | {
+          type: "tcp";
+        }
+    ) & {
+      name?: string;
+      port: number;
+      containerPort?: number;
+      serviceType?: "ExternalName" | "ClusterIP" | "NodePort" | "LoadBalancer";
+    }
+  >;
   check?: (
     | {
         port: number;
@@ -67,14 +68,14 @@ interface StatelessAppSpec {
     period?: number;
     initialDelay?: number;
   };
-  volumes?: {
+  volumes?: Array<{
     type: "configMap" | "secret";
     optional?: boolean;
     readOnly?: boolean;
     name: string;
     mountPath: string;
-    items?: { key: string; path: string }[];
-  }[];
+    items?: Array<{ key: string; path: string }>;
+  }>;
 }
 
 export class StatelessApp {
@@ -87,8 +88,9 @@ export class StatelessApp {
       if (
         portSpec.type !== "http" ||
         (!portSpec.publicUrl && !portSpec.endpoints?.length)
-      )
+      ) {
         continue;
+      }
 
       if (portSpec.publicUrl) {
         if (!portSpec.endpoints) {
@@ -114,7 +116,9 @@ export class StatelessApp {
       let hasPath = false;
 
       for (const endpointSpec of portSpec.endpoints ?? []) {
-        if (!endpointSpec.publicUrl) continue;
+        if (!endpointSpec.publicUrl) {
+          continue;
+        }
 
         const { protocol, hostname, pathname } = new URL(
           endpointSpec.publicUrl
@@ -142,7 +146,9 @@ export class StatelessApp {
             );
           }
 
-          if (!tls.hosts!.includes(hostname)) tls.hosts!.push(hostname);
+          if (!tls.hosts!.includes(hostname)) {
+            tls.hosts!.push(hostname);
+          }
         }
 
         if (!rule.http) {
@@ -158,10 +164,14 @@ export class StatelessApp {
           },
           path:
             pathname === "/"
-              ? (portSpec.ingressClass === "alb" ? "/*" : pathname)
-              : (pathname.endsWith("/")
-                  ? pathname.substring(0, pathname.length - 1)
-                  : pathname) + "(/|$)(.*)",
+              ? portSpec.ingressClass === "alb"
+                ? "/*"
+                : pathname
+              : `${
+                  pathname.endsWith("/")
+                    ? pathname.substring(0, pathname.length - 1)
+                    : pathname
+                }(/|$)(.*)`,
         });
 
         if (endpointSpec.maxBodySize) {
@@ -178,6 +188,7 @@ export class StatelessApp {
         }
 
         if (endpointSpec.limitRequestsPerSecond) {
+          // eslint-disable-next-line prefer-destructuring
           limitRequestsPerSecond = endpointSpec.limitRequestsPerSecond;
         }
       }
@@ -195,9 +206,8 @@ export class StatelessApp {
       }
 
       if (limitRequestsPerSecond) {
-        ingress.metadata.annotations[
-          "nginx.ingress.kubernetes.io/limit-rps"
-        ] = limitRequestsPerSecond.toString();
+        ingress.metadata.annotations["nginx.ingress.kubernetes.io/limit-rps"] =
+          limitRequestsPerSecond.toString();
       }
 
       if (portSpec.timeout) {
@@ -207,49 +217,57 @@ export class StatelessApp {
       }
 
       if (hasPath) {
-        ingress.metadata.annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$2";
+        ingress.metadata.annotations[
+          "nginx.ingress.kubernetes.io/rewrite-target"
+        ] = "/$2";
       }
 
-      if (process.env.CUBOS_DEV_GKE && process.env.CUBOS_INTERNAL_CLUSTER && !process.env.PRODUCTION) {
+      if (
+        process.env.CUBOS_DEV_GKE &&
+        process.env.CUBOS_INTERNAL_CLUSTER &&
+        !process.env.PRODUCTION
+      ) {
         ingress.metadata.annotations["kubernetes.io/ingress.class"] =
           portSpec.ingressClass ?? "private";
       }
     }
 
-    let basicProbe = undefined;
-    if (this.spec.check === undefined) {
-    } else if ((this.spec.check as any).command) {
-      basicProbe = {
-        exec: {
-          command: (this.spec.check as any).command,
-        },
-        periodSeconds: this.spec.check.period ?? 3,
-      };
-    } else if ((this.spec.check as any).httpGetPath) {
-      basicProbe = {
-        httpGet: {
-          path: (this.spec.check as any).httpGetPath,
-          port: (this.spec.check as any).port,
-          httpHeaders: (this.spec.check as any).host
-            ? [{ name: "Host", value: (this.spec.check as any).host }]
-            : [],
-        },
-        periodSeconds: this.spec.check.period ?? 3,
-      };
-    } else {
-      basicProbe = {
-        tcpSocket: {
-          port: (this.spec.check as any).port,
-        },
-        periodSeconds: this.spec.check.period ?? 3,
-      };
+    let basicProbe;
+
+    if (this.spec.check) {
+      if ((this.spec.check as any).command) {
+        basicProbe = {
+          exec: {
+            command: (this.spec.check as any).command,
+          },
+          periodSeconds: this.spec.check.period ?? 3,
+        };
+      } else if ((this.spec.check as any).httpGetPath) {
+        basicProbe = {
+          httpGet: {
+            path: (this.spec.check as any).httpGetPath,
+            port: (this.spec.check as any).port,
+            httpHeaders: (this.spec.check as any).host
+              ? [{ name: "Host", value: (this.spec.check as any).host }]
+              : [],
+          },
+          periodSeconds: this.spec.check.period ?? 3,
+        };
+      } else {
+        basicProbe = {
+          tcpSocket: {
+            port: (this.spec.check as any).port,
+          },
+          periodSeconds: this.spec.check.period ?? 3,
+        };
+      }
     }
 
     const volumes: Volume[] = [];
     const volumeMounts: VolumeMount[] = [];
 
     for (const volume of this.spec.volumes ?? []) {
-      const name = "vol-" + volume.mountPath.replace(/[^a-zA-Z0-9]/gu, "");
+      const name = `vol-${volume.mountPath.replace(/[^a-zA-Z0-9]/gu, "")}`;
 
       if (volume.type === "secret") {
         volumes.push({
@@ -277,6 +295,28 @@ export class StatelessApp {
         mountPath: volume.mountPath,
       });
     }
+
+    const basicPodSpec = {
+      ...(this.spec.image.startsWith("registry.cubos.io") ||
+      this.spec.image.startsWith("registry.gitlab.com/mimic1")
+        ? {
+            imagePullSecrets: [
+              {
+                name: "gitlab-registry",
+              },
+            ],
+          }
+        : this.spec.image.includes("gcr.io/cubos-203208")
+        ? {
+            imagePullSecrets: [
+              {
+                name: "google-cloud-registry",
+              },
+            ],
+          }
+        : {}),
+      automountServiceAccountToken: false,
+    };
 
     return generateYaml([
       new Deployment(this.metadata, {
@@ -326,24 +366,7 @@ export class StatelessApp {
                     ],
                   },
             },
-            ...((this.spec.image.startsWith("registry.cubos.io") || this.spec.image.startsWith("registry.gitlab.com/mimic1"))
-              ? {
-                  imagePullSecrets: [
-                    {
-                      name: "gitlab-registry",
-                    },
-                  ],
-                }
-              : this.spec.image.includes("gcr.io/cubos-203208")
-              ? {
-                  imagePullSecrets: [
-                    {
-                      name: "google-cloud-registry",
-                    },
-                  ],
-                }
-              : {}),
-            automountServiceAccountToken: false,
+            ...basicPodSpec,
             ...(process.env.PRODUCTION_CUBOS &&
             this.spec.replicas !== undefined &&
             ((Array.isArray(this.spec.replicas) &&
@@ -391,7 +414,7 @@ export class StatelessApp {
                     : []),
                   ...(this.spec.forwardEnvs ?? []).map((key) => ({
                     name: key,
-                    value: env[key] as string,
+                    value: env[key],
                   })),
                 ],
                 envFrom:

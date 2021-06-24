@@ -1,5 +1,6 @@
 import { generateYaml } from "./helpers";
-import { ObjectMeta, Secret } from "./kubernetes";
+import type { ObjectMeta } from "./kubernetes";
+import { Secret } from "./kubernetes";
 
 interface ReplicatedSecretSpec {
   from: string;

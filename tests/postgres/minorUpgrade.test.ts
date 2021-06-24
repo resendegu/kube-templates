@@ -41,7 +41,7 @@ describe("postgres", () => {
     expect(
       (await queryPostgres(namespace, "postgres-0", "SELECT version()"))[0]
         .version
-    ).toMatch(/PostgreSQL 11.0/);
+    ).toMatch(/PostgreSQL 11.0/u);
 
     await queryPostgres(
       namespace,
@@ -76,7 +76,7 @@ describe("postgres", () => {
     expect(
       (await queryPostgres(namespace, "postgres-0", "SELECT version()"))[0]
         .version
-    ).toMatch(/PostgreSQL 11.7/);
+    ).toMatch(/PostgreSQL 11.7/u);
 
     expect(
       await queryPostgres(namespace, "postgres-0", "SELECT * FROM foo")

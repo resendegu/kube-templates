@@ -1,5 +1,7 @@
-import { Client } from "pg";
 import { join } from "path";
+
+import { Client } from "pg";
+
 import { portForward } from "../helpers";
 
 type Certificates =
@@ -13,7 +15,7 @@ export async function queryCockroach(
   namespace: string,
   pod: string,
   query: string,
-  database: string = "defaultdb"
+  database = "defaultdb"
 ) {
   const forward = portForward(namespace, pod, 26257);
 
@@ -33,11 +35,23 @@ export async function queryCockroach(
   }
 }
 
+export const certificates = [
+  "node.crt",
+  "client.root.crt",
+  "client.root.key",
+  "node.key",
+  "ca.crt",
+].reduce((result, curr) => {
+  const path = join(__dirname, "certs", curr);
+
+  return { ...result, [curr]: path };
+}, {}) as Record<Certificates, string>;
+
 export async function queryCockroachSecure(
   namespace: string,
   pod: string,
   query: string,
-  database: string = "defaultdb"
+  database = "defaultdb"
 ) {
   const forward = portForward(namespace, pod, 26257);
 
@@ -61,15 +75,3 @@ export async function queryCockroachSecure(
     forward.close();
   }
 }
-
-export const certificates: Record<Certificates, string> = [
-  "node.crt",
-  "client.root.crt",
-  "client.root.key",
-  "node.key",
-  "ca.crt",
-].reduce((result, curr) => {
-  const path = join(__dirname, "certs", curr);
-
-  return { ...result, [curr]: path };
-}, {} as Record<Certificates, string>);

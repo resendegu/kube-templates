@@ -1,8 +1,9 @@
-import { generateYaml } from "./helpers";
 import * as _ from "lodash";
+
+import { generateYaml } from "./helpers";
+import type { ObjectMeta } from "./kubernetes";
 import {
   Job,
-  ObjectMeta,
   PodDisruptionBudget,
   Secret,
   Service,
@@ -298,9 +299,9 @@ export class Cockroach {
         {
           ...this.metadata,
           name:
-            this.metadata.name != "cockroachdb"
-              ? `${this.metadata.name}-cluster-init`
-              : "cluster-init",
+            this.metadata.name === "cockroachdb"
+              ? "cluster-init"
+              : `${this.metadata.name}-cluster-init`,
         },
         {
           template: {
@@ -319,9 +320,9 @@ export class Cockroach {
               containers: [
                 {
                   name:
-                    this.metadata.name != "cockroachdb"
-                      ? `${this.metadata.name}-cluster-init`
-                      : "cluster-init",
+                    this.metadata.name === "cockroachdb"
+                      ? "cluster-init"
+                      : `${this.metadata.name}-cluster-init`,
                   image: `cockroachdb/cockroach:v${this.spec.version}`,
                   imagePullPolicy: "IfNotPresent",
                   volumeMounts: this.spec.certs

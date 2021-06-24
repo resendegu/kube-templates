@@ -1,6 +1,8 @@
 import { URL } from "url";
+
 import { generateYaml } from "./helpers";
-import { Ingress, ObjectMeta, Service } from "./kubernetes";
+import type { ObjectMeta } from "./kubernetes";
+import { Ingress, Service } from "./kubernetes";
 
 interface StaticSiteSpec {
   provider?: "gcs" | "s3";
@@ -26,6 +28,7 @@ export class StaticSite {
         : "storage.googleapis.com";
 
     const annotations = this.metadata.annotations ?? {};
+
     if (process.env.CUBOS_DEV_GKE && !process.env.PRODUCTION) {
       annotations["kubernetes.io/ingress.class"] =
         this.spec.ingressClass ?? "private";

@@ -1,6 +1,7 @@
 import { CertManagerV1Certificate } from "./certmanager";
 import { generateYaml } from "./helpers";
-import { ObjectMeta, Secret } from "./kubernetes";
+import type { ObjectMeta } from "./kubernetes";
+import { Secret } from "./kubernetes";
 
 interface CertificateV1Spec {
   domain: string;
@@ -27,8 +28,8 @@ export class CertificateV1 {
           ...(this.spec.replicationAllowedNamespaces
             ? {
                 "replicator.v1.mittwald.de/replication-allowed": "true",
-                "replicator.v1.mittwald.de/replication-allowed-namespaces": this
-                  .spec.replicationAllowedNamespaces.source,
+                "replicator.v1.mittwald.de/replication-allowed-namespaces":
+                  this.spec.replicationAllowedNamespaces.source,
               }
             : {}),
         },
@@ -41,7 +42,10 @@ export class CertificateV1 {
         {
           secretName: `cert-${domainSlash}`,
           commonName: this.spec.domain,
-          dnsNames: [this.spec.domain, ...(this.spec.wildcard ? [`*.${this.spec.domain}`] : [])],
+          dnsNames: [
+            this.spec.domain,
+            ...(this.spec.wildcard ? [`*.${this.spec.domain}`] : []),
+          ],
           issuerRef: {
             name: this.spec.issuer ?? "letsencrypt",
             kind: "ClusterIssuer",

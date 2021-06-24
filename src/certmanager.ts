@@ -1,5 +1,5 @@
 import { generateYaml } from "./helpers";
-import { ObjectMeta } from "./kubernetes";
+import type { ObjectMeta } from "./kubernetes";
 
 interface CertificateSpec {
   acme: ACMECertificateConfig;

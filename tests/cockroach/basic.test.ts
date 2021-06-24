@@ -1,6 +1,12 @@
-import { Namespace } from "../../src/kubernetes";
 import { Cockroach } from "../../src/cockroach";
-import { apply, deleteObject, randomSuffix, waitJobComplete, waitPodReady } from "../helpers";
+import { Namespace } from "../../src/kubernetes";
+import {
+  apply,
+  deleteObject,
+  randomSuffix,
+  waitJobComplete,
+  waitPodReady,
+} from "../helpers";
 import { queryCockroach } from "./helpers";
 
 describe("CockroachDB", () => {
@@ -32,7 +38,7 @@ describe("CockroachDB", () => {
           },
           memory: "64Mi",
           version: "20.2.3",
-          replicas: 1
+          replicas: 1,
         }
       )
     );
@@ -63,7 +69,7 @@ describe("CockroachDB", () => {
           },
           memory: "64Mi",
           version: "20.2.3",
-          replicas: 3
+          replicas: 3,
         }
       )
     );

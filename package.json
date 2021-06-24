@@ -4,25 +4,30 @@
   "main": "index.js",
   "types": "index.d.ts",
   "scripts": {
-    "test": "ts-node tests/setup.ts && jest -w10"
+    "test": "ts-node -T tests/setup.ts && jest -w10",
+    "eslint:fix": "eslint --fix '**/*.{t,j}s'",
+    "eslint:check": "eslint '**/*.{t,j}s'"
   },
   "dependencies": {
     "js-yaml": "^4.1.0",
     "lodash": "^4.17.21"
   },
   "devDependencies": {
+    "@cubos/eslint-config": "^1.0.536820",
     "@types/deasync": "^0.1.1",
+    "@types/faker": "^5.5.6",
     "@types/jest": "^26.0.23",
     "@types/js-yaml": "^4.0.1",
     "@types/lodash": "^4.14.170",
-    "@types/node": "^15.6.1",
+    "@types/node": "^15.12.4",
     "@types/pg": "^8.6.0",
     "axios": "^0.21.1",
     "deasync": "^0.1.21",
-    "jest": "^27.0.1",
+    "faker": "^5.5.3",
+    "jest": "^27.0.5",
     "pg": "^8.6.0",
-    "ts-jest": "^27.0.1",
+    "ts-jest": "^27.0.3",
     "ts-node": "^10.0.0",
-    "typescript": "^4.3.2"
+    "typescript": "^4.3.4"
   }
 }

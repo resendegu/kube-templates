@@ -1,5 +1,6 @@
 import { generateYaml } from "./helpers";
-import { ObjectMeta, Service, StatefulSet } from "./kubernetes";
+import type { ObjectMeta } from "./kubernetes";
+import { Service, StatefulSet } from "./kubernetes";
 
 interface RedisSpec {
   version: string;
@@ -59,7 +60,7 @@ export class Redis {
                   ...Object.entries(this.spec.options ?? {})
                     .map(([key, value]) => [
                       `--${key.replace(
-                        /[A-Z]/g,
+                        /[A-Z]/gu,
                         (x) => `-${x.toLowerCase()}`
                       )}`,
                       `${

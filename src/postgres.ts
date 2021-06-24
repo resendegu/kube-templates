@@ -1,6 +1,8 @@
 import { createHash } from "crypto";
+
 import { generateYaml, parseMemory } from "./helpers";
-import { Container, ObjectMeta, Service, StatefulSet, Toleration } from "./kubernetes";
+import type { Container, ObjectMeta, Toleration } from "./kubernetes";
+import { Service, StatefulSet } from "./kubernetes";
 
 interface PostgresSpec {
   readReplicas?: number;
@@ -12,18 +14,22 @@ interface PostgresSpec {
   memory: string | number;
   postgresUserPassword?: string | { secretName: string; key: string };
   replicaPassword?: string;
-  databases?: (
+  databases?: Array<
     | {
         name: string;
         users?: string[];
       }
     | string
-  )[];
-  users?: {
+  >;
+  users?: Array<{
     username: string;
     password: string;
-  }[];
-  monitoring?: { type: "pgAnalyze"; apiKey: string; monitorPostgresDatabase?: boolean; };
+  }>;
+  monitoring?: {
+    type: "pgAnalyze";
+    apiKey: string;
+    monitorPostgresDatabase?: boolean;
+  };
   initContainers?: Container[];
   storageClassName?: string;
   storageRequest?: string;
@@ -300,7 +306,10 @@ export class Postgres {
 
     if (this.spec.monitoring?.type === "pgAnalyze") {
       this.spec.options ??= {};
-      this.spec.options.sharedPreloadLibraries = this.spec.options.sharedPreloadLibraries ? `${this.spec.options.sharedPreloadLibraries},pg_stat_statements` : "pg_stat_statements";
+      this.spec.options.sharedPreloadLibraries = this.spec.options
+        .sharedPreloadLibraries
+        ? `${this.spec.options.sharedPreloadLibraries},pg_stat_statements`
+        : "pg_stat_statements";
       this.spec.options.trackActivityQuerySize = 2048;
       this.spec.options["pgStatStatements.track"] = "all";
 
@@ -312,8 +321,16 @@ export class Postgres {
 
       additionalContainers.push(
         ...(this.spec.databases ?? [])
-          .map((databaseOrName) => (typeof databaseOrName === "string" ? { name: databaseOrName } : databaseOrName))
-          .concat(...(this.spec.monitoring!.monitorPostgresDatabase ? [{ name: "postgres" }] : []))
+          .map((databaseOrName) =>
+            typeof databaseOrName === "string"
+              ? { name: databaseOrName }
+              : databaseOrName
+          )
+          .concat(
+            ...(this.spec.monitoring.monitorPostgresDatabase
+              ? [{ name: "postgres" }]
+              : [])
+          )
           .map<Container>((database) => ({
             name: `pganalyze-${database.name}`,
             image: "quay.io/pganalyze/collector:v0.33.1",
@@ -364,9 +381,10 @@ export class Postgres {
 
     const options = {
       maxConnections: Math.max(100, mem / (8 * MB)),
-      sharedBuffers:
-        Math.ceil((mem * (mem > 1 * GB ? 0.25 : 0.15)) / MB) + "MB",
-      effectiveCacheSize: Math.ceil(mem / 2 / MB) + "MB",
+      sharedBuffers: `${Math.ceil(
+        (mem * (mem > Number(GB) ? 0.25 : 0.15)) / MB
+      )}MB`,
+      effectiveCacheSize: `${Math.ceil(mem / 2 / MB)}MB`,
       ...masterReplicationOptions,
       ...commonReplicationOptions,
       ...(this.spec.options ?? {}),
@@ -407,13 +425,13 @@ export class Postgres {
     const replicaStringOptions = Object.entries(replicaOptions)
       .map(([key, value]) => [
         "-c",
-        `${key.replace(/[A-Z]/g, (x) => `_${x.toLowerCase()}`)}=` +
+        `${key.replace(/[A-Z]/gu, (x) => `_${x.toLowerCase()}`)}=` +
           `'${
             value === true
               ? "yes"
               : value === false
               ? "no"
-              : value?.toString().replace(/'/g, "'\"'\"'")
+              : value?.toString().replace(/'/gu, "'\"'\"'")
           }'`,
       ])
       .reduce((a, b) => [...a, ...b], [])
@@ -532,7 +550,7 @@ export class Postgres {
                     .map(([key, value]) => [
                       "-c",
                       `${key.replace(
-                        /[A-Z]/g,
+                        /[A-Z]/gu,
                         (x) => `_${x.toLowerCase()}`
                       )}=` +
                         `${
@@ -697,7 +715,7 @@ export class Postgres {
 
                     ${
                       // Only drop users that should not exist
-                      (users ?? [])
+                      users
                         .map(
                           (user) => `
                           [ "$user" == '${user.username}' ] && continue
@@ -710,7 +728,7 @@ export class Postgres {
                     psql -h 127.0.0.1 -U postgres -c "DROP USER $user"
                   done
 
-                  ${(users ?? [])
+                  ${users
                     .map(
                       (user) => `
                         echo Creating user ${user.username}...
@@ -761,15 +779,21 @@ export class Postgres {
                     )
                     .join("\n")}
 
-                  ${this.spec.monitoring?.type === "pgAnalyze" ? (this.spec.databases ?? [])
-                    .map((databaseOrName) =>
-                      typeof databaseOrName === "string"
-                        ? { name: databaseOrName }
-                        : databaseOrName
-                    )
-                    .concat(...(this.spec.monitoring!.monitorPostgresDatabase ? [{ name: "postgres" }] : []))
-                    .map(
-                      (database) => `
+                  ${
+                    this.spec.monitoring?.type === "pgAnalyze"
+                      ? (this.spec.databases ?? [])
+                          .map((databaseOrName) =>
+                            typeof databaseOrName === "string"
+                              ? { name: databaseOrName }
+                              : databaseOrName
+                          )
+                          .concat(
+                            ...(this.spec.monitoring.monitorPostgresDatabase
+                              ? [{ name: "postgres" }]
+                              : [])
+                          )
+                          .map(
+                            (database) => `
                         echo Setting up PgAnalyze on database ${database.name}...
                         psql -h 127.0.0.1 -U postgres -c 'CREATE EXTENSION IF NOT EXISTS pg_stat_statements WITH SCHEMA public;' ${database.name}
                         psql -h 127.0.0.1 -U postgres -c 'CREATE SCHEMA IF NOT EXISTS pganalyze;' ${database.name}
@@ -780,8 +804,10 @@ export class Postgres {
                         psql -h 127.0.0.1 -U postgres -c "REVOKE ALL ON SCHEMA public FROM pganalyze;" ${database.name}
                         psql -h 127.0.0.1 -U postgres -c "GRANT USAGE ON SCHEMA pganalyze TO pganalyze;" ${database.name}
                       `
-                    )
-                    .join("\n") : ""}
+                          )
+                          .join("\n")
+                      : ""
+                  }
 
                   echo Done.
                   touch /ready
@@ -832,7 +858,9 @@ export class Postgres {
                   storage: this.spec.storageRequest ?? "2Gi",
                 },
               },
-              storageClassName: this.spec.storageClassName ?? (process.env.PRODUCTION ? "ssd-regional" : "ssd"),
+              storageClassName:
+                this.spec.storageClassName ??
+                (process.env.PRODUCTION ? "ssd-regional" : "ssd"),
             },
           },
         ],
