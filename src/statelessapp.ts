@@ -1,9 +1,9 @@
 import { URL } from "url";
 
+import { Cron } from "./cron";
 import { clone, env, generateYaml, parseMemory } from "./helpers";
 import type { ObjectMeta, Volume, VolumeMount } from "./kubernetes";
 import {
-  CronJob,
   Deployment,
   HorizontalPodAutoscaler,
   Ingress,
@@ -478,96 +478,34 @@ export class StatelessApp {
       }),
       ...(this.spec.cron ?? []).map(
         (cron) =>
-          new CronJob(
+          new Cron(
             {
               ...this.metadata,
               name: `${this.metadata.name}-${cron.name}`,
             },
             {
-              schedule: cron.schedule,
-              jobTemplate: {
-                spec: {
-                  template: {
-                    spec: {
-                      ...basicPodSpec,
-                      ...(this.spec.disablePreemptibility ?? false
-                        ? {}
-                        : {
-                            tolerations: [
-                              {
-                                key: "preemptible",
-                                operator: "Equal",
-                                value: "true",
-                                effect: "NoSchedule",
-                              },
-                            ],
-                            nodeSelector: {
-                              preemptible: "true",
-                            },
-                          }),
-                      volumes,
-                      containers: [
-                        {
-                          name: cron.name,
-                          image: this.spec.image,
-                          command: cron.command,
-                          env: [
-                            ...Object.entries({
-                              ...this.spec.envs,
-                              ...cron.envs,
-                            }).map(([name, value]) =>
-                              typeof value === "object"
-                                ? {
-                                    name,
-                                    valueFrom: {
-                                      secretKeyRef: {
-                                        name: value.secretName,
-                                        key: value.key,
-                                      },
-                                    },
-                                  }
-                                : {
-                                    name,
-                                    value: `${value}`,
-                                  }
-                            ),
-                            ...[
-                              ...(this.spec.forwardEnvs ?? []),
-                              ...(cron.forwardEnvs ?? []),
-                            ].map((key) => ({
-                              name: key,
-                              value: env[key],
-                            })),
-                          ],
-                          envFrom: [
-                            ...(this.spec.secretEnvs ?? []),
-                            ...(cron.secretEnvs ?? []),
-                          ].map((name) => ({
-                            secretRef: {
-                              name,
-                            },
-                          })),
-                          volumeMounts,
-                          resources: {
-                            limits: {
-                              cpu: cron.cpu?.limit ?? this.spec.cpu.limit,
-                              memory:
-                                cron.memory?.limit ?? this.spec.memory.limit,
-                            },
-                            requests: {
-                              cpu: cron.cpu?.request ?? this.spec.cpu.request,
-                              memory:
-                                cron.memory?.request ??
-                                this.spec.memory.request,
-                            },
-                          },
-                        },
-                      ],
-                      restartPolicy: "Never",
-                    },
-                  },
-                },
+              cpu: {
+                limit: cron.cpu?.limit ?? this.spec.cpu.limit,
+                request: cron.cpu?.request ?? this.spec.cpu.request,
               },
+              memory: {
+                limit: cron.memory?.limit ?? this.spec.memory.limit,
+                request: cron.memory?.request ?? this.spec.memory.request,
+              },
+              image: this.spec.image,
+              schedule: cron.schedule,
+              command: cron.command,
+              disablePreemptibility: this.spec.disablePreemptibility,
+              envs: { ...this.spec.envs, ...cron.envs },
+              forwardEnvs: [
+                ...(this.spec.forwardEnvs ?? []),
+                ...(cron.forwardEnvs ?? []),
+              ],
+              secretEnvs: [
+                ...(this.spec.secretEnvs ?? []),
+                ...(cron.secretEnvs ?? []),
+              ],
+              volumes: this.spec.volumes,
             }
           )
       ),
