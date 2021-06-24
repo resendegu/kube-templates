@@ -2,7 +2,13 @@ import * as _ from "lodash";
 
 import { generateYaml } from "./helpers";
 import type { ObjectMeta } from "./kubernetes";
-import { Job, PodDisruptionBudget, Service, StatefulSet } from "./kubernetes";
+import {
+  Job,
+  PodDisruptionBudget,
+  Secret,
+  Service,
+  StatefulSet,
+} from "./kubernetes";
 
 interface CockroachSpec {
   version: string;
@@ -12,6 +18,9 @@ interface CockroachSpec {
   };
   memory: string | number;
   replicas: number;
+  certs?: {
+    [key: string]: Buffer;
+  };
 }
 
 export class Cockroach {
@@ -19,6 +28,17 @@ export class Cockroach {
 
   get yaml() {
     return generateYaml([
+      ...(this.spec.certs
+        ? [
+            new Secret(
+              {
+                ...this.metadata,
+                name: `${this.metadata.name}-certs`,
+              },
+              { ...this.spec.certs }
+            ),
+          ]
+        : []),
       new Service(
         {
           ...this.metadata,
@@ -150,6 +170,7 @@ export class Cockroach {
                   httpGet: {
                     path: "/health",
                     port: 8080,
+                    scheme: this.spec.certs && "HTTPS",
                   },
                   initialDelaySeconds: 30,
                   periodSeconds: 5,
@@ -158,6 +179,7 @@ export class Cockroach {
                   httpGet: {
                     path: "/health?ready=1",
                     port: 8080,
+                    scheme: this.spec.certs && "HTTPS",
                   },
                   initialDelaySeconds: 10,
                   periodSeconds: 5,
@@ -168,11 +190,21 @@ export class Cockroach {
                     mountPath: "/cockroach/cockroach-data",
                     name: "datadir",
                   },
+                  ...(this.spec.certs
+                    ? [
+                        {
+                          mountPath: "/certs",
+                          name: "certs",
+                        },
+                      ]
+                    : []),
                 ],
                 env: [
                   {
                     name: "COCKROACH_CHANNEL",
-                    value: "kubernetes-insecure",
+                    value: this.spec.certs
+                      ? "kubernetes-secure"
+                      : "kubernetes-insecure",
                   },
                   {
                     name: "GOMAXPROCS",
@@ -196,9 +228,13 @@ export class Cockroach {
                 command: [
                   "/bin/bash",
                   "-ecx",
-                  `exec /cockroach/cockroach start --logtostderr --insecure --advertise-host $(hostname -f) --http-addr 0.0.0.0 --join ${_.range(
-                    this.spec.replicas
-                  )
+                  `exec /cockroach/cockroach start --logtostderr ${
+                    this.spec.certs ? "--certs-dir /certs" : "--insecure"
+                  } --advertise-host ${
+                    this.spec.certs
+                      ? `$(hostname).${this.metadata.name}`
+                      : "$(hostname -f)"
+                  } --http-addr 0.0.0.0 --join ${_.range(this.spec.replicas)
                     .map(
                       (i) => `${this.metadata.name}-${i}.${this.metadata.name}`
                     )
@@ -224,6 +260,17 @@ export class Cockroach {
                   claimName: "datadir",
                 },
               },
+              ...(this.spec.certs
+                ? [
+                    {
+                      name: "certs",
+                      secret: {
+                        secretName: `${this.metadata.name}-certs`,
+                        defaultMode: 0o600,
+                      },
+                    },
+                  ]
+                : []),
             ],
           },
         },
@@ -259,6 +306,17 @@ export class Cockroach {
         {
           template: {
             spec: {
+              volumes: this.spec.certs
+                ? [
+                    {
+                      name: "certs",
+                      secret: {
+                        secretName: `${this.metadata.name}-certs`,
+                        defaultMode: 0o600,
+                      },
+                    },
+                  ]
+                : [],
               containers: [
                 {
                   name:
@@ -267,10 +325,18 @@ export class Cockroach {
                       : `${this.metadata.name}-cluster-init`,
                   image: `cockroachdb/cockroach:v${this.spec.version}`,
                   imagePullPolicy: "IfNotPresent",
+                  volumeMounts: this.spec.certs
+                    ? [
+                        {
+                          mountPath: "/certs",
+                          name: "certs",
+                        },
+                      ]
+                    : [],
                   command: [
                     "/cockroach/cockroach",
                     "init",
-                    "--insecure",
+                    this.spec.certs ? "--certs-dir=/certs" : "--insecure",
                     `--host=${this.metadata.name}-0.${this.metadata.name}`,
                   ],
                 },

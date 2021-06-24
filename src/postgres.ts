@@ -437,12 +437,6 @@ export class Postgres {
       .reduce((a, b) => [...a, ...b], [])
       .join(" ");
 
-    const databases = (this.spec.databases ?? []).map((databaseOrName) =>
-      typeof databaseOrName === "string"
-        ? { name: databaseOrName }
-        : databaseOrName
-    );
-
     return generateYaml([
       new Service(this.metadata, {
         selector: {
@@ -677,7 +671,7 @@ export class Postgres {
                 ],
                 command: [
                   "/bin/bash",
-                  "-exc",
+                  "-ec",
                   `
                   echo Wait for Postgres to be ready.
                   until psql -h 127.0.0.1 -U postgres -c 'SELECT 1'
@@ -714,10 +708,9 @@ export class Postgres {
                     for database in $DATABASES
                     do
                       echo Revoke $user on $database
-                      psql -h 127.0.0.1 -U postgres -c 'REASSIGN OWNED BY "'$user'" TO "postgres"' "$database"
-                      psql -h 127.0.0.1 -U postgres -c 'REVOKE "__db_owner_'$database'" FROM "'$user'"' || true
-                      psql -h 127.0.0.1 -U postgres -c 'REVOKE ALL PRIVILEGES ON DATABASE "'$database'" FROM "'$user'"'
-                      psql -h 127.0.0.1 -U postgres -c 'REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM "'$user'"' "$database"
+                      psql -h 127.0.0.1 -U postgres -c "REASSIGN OWNED BY $user TO postgres" $database
+                      psql -h 127.0.0.1 -U postgres -c "REVOKE ALL PRIVILEGES ON DATABASE $database FROM $user"
+                      psql -h 127.0.0.1 -U postgres -c "REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM $user" $database
                     done
 
                     ${
@@ -727,17 +720,6 @@ export class Postgres {
                           (user) => `
                           [ "$user" == '${user.username}' ] && continue
                         `
-                        )
-                        .join("\n")
-                    }
-
-                    ${
-                      // Don't drop owners of databases
-                      databases
-                        .map(
-                          (database) => `
-                        [ "$user" == '__db_owner_${database.name}' ] && continue
-                      `
                         )
                         .join("\n")
                     }
@@ -770,75 +752,30 @@ export class Postgres {
                     )
                     .join("\n")}
 
-                  ${databases
-                    .map(
-                      (database) => `
-                        echo Creating role '__db_owner_${database.name}'...
-                        psql -h 127.0.0.1 -U postgres -c "CREATE ROLE "'"__db_owner_${database.name}"' || true
-                      `
+                  ${(this.spec.databases ?? [])
+                    .map((databaseOrName) =>
+                      typeof databaseOrName === "string"
+                        ? { name: databaseOrName }
+                        : databaseOrName
                     )
-                    .join("\n")}
-
-                  ${databases
                     .map(
                       (database) => `
-                      echo Creating database ${database.name}...
-                      psql -h 127.0.0.1 -U postgres -c 'CREATE DATABASE "${
-                        database.name
-                      }"' || true
+                        echo Creating database ${database.name}...
+                        psql -h 127.0.0.1 -U postgres -c 'CREATE DATABASE "${
+                          database.name
+                        }"' || true
 
-                      echo Setting owner of tables...
-                      psql -h 127.0.0.1 -U postgres -c '
-                        DO $$$$BEGIN EXECUTE (
-                          SELECT STRING_AGG('"'"'ALTER TABLE '"'"' || schemaname || '"'"'."'"'"' || tablename || '"'"'" OWNER TO "__db_owner_${
-                            database.name
-                          }"'"'"', '"'"';'"'"')
-                          FROM pg_tables WHERE NOT schemaname IN ('"'"'pg_catalog'"'"', '"'"'information_schema'"'"')
-                        ); END$$$$
-                      ' "${database.name}" || true
-
-                      echo Setting owner of sequences...
-                      psql -h 127.0.0.1 -U postgres -c '
-                        DO $$$$BEGIN EXECUTE (
-                          SELECT STRING_AGG('"'"'ALTER SEQUENCE '"'"'|| sequence_schema || '"'"'."'"'"' || sequence_name ||'"'"'" OWNER TO "__db_owner_${
-                            database.name
-                          }"'"'"', '"'"';'"'"')
-                          FROM information_schema.sequences WHERE NOT sequence_schema IN ('"'"'pg_catalog'"'"', '"'"'information_schema'"'"')
-                        ); END$$$$
-                      ' "${database.name}" || true
-
-                      echo Setting owner of views...
-                      psql -h 127.0.0.1 -U postgres -c '
-                        DO $$$$BEGIN EXECUTE (
-                          SELECT STRING_AGG('"'"'ALTER VIEW '"'"'|| table_schema || '"'"'."'"'"' || table_name ||'"'"'" OWNER TO "__db_owner_${
-                            database.name
-                          }"'"'"', '"'"';'"'"')
-                          FROM information_schema.views WHERE NOT table_schema IN ('"'"'pg_catalog'"'"', '"'"'information_schema'"'"')
-                        ); END$$$$
-                      ' "${database.name}" || true
-
-                      echo Setting owner of materialized views...
-                      psql -h 127.0.0.1 -U postgres -c '
-                        DO $$$$BEGIN EXECUTE (
-                          SELECT STRING_AGG('"'"'ALTER TABLE '"'"'|| oid::regclass::text ||'"'"' OWNER TO "__db_owner_${
-                            database.name
-                          }"'"'"', '"'"';'"'"')
-                          FROM pg_class WHERE relkind = '"'"'m'"'"'
-                        ); END$$$$
-                      ' "${database.name}" || true
-
-                      ${(database.users ?? [])
-                        .map(
-                          (user) => `
-                            echo Granting privileges on database ${database.name} to user ${user}...
-                            psql -h 127.0.0.1 -U postgres -c 'GRANT "__db_owner_${database.name}" TO "${user}"'
-                            psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON DATABASE "${database.name}" TO "${user}"'
-                            psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "${user}"' "${database.name}"
-                            psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO "${user}"' "${database.name}"
-                          `
-                        )
-                        .join("\n")}
-                    `
+                        ${(database.users ?? [])
+                          .map(
+                            (user) => `
+                              echo Granting privileges on database ${database.name} to user ${user}...
+                              psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON DATABASE "${database.name}" TO "${user}"'
+                              psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "${user}"' ${database.name}
+                              psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO "${user}"' ${database.name}
+                            `
+                          )
+                          .join("\n")}
+                      `
                     )
                     .join("\n")}
 

@@ -29,6 +29,24 @@ Deploy (NPM):
     - npm version 1.0.$CI_PIPELINE_ID || true
     - npm publish --access public
 
+ESLint:
+  stage: test
+  script:
+    - npm ci
+    - npm run eslint:check
+
+Type Check:
+  stage: test
+  script:
+    - npm ci
+    - npx tsc -noEmit
+
+NPM Audit:
+  stage: test
+  allow_failure: true
+  script:
+    - npm audit
+
 Test:
   stage: test
   image: docker
