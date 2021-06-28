@@ -26,6 +26,15 @@ interface CockroachSpec {
 export class Cockroach {
   constructor(private metadata: ObjectMeta, private spec: CockroachSpec) {}
 
+  private get isLogToStderrDeprecated(): boolean {
+    const match = /^(\d+)\./u.exec(this.spec.version);
+    if (!match) return false;
+
+    const [_, version] = match;
+
+    return parseInt(version) >= 21;
+  }
+
   get yaml() {
     return generateYaml([
       ...(this.spec.certs
@@ -228,7 +237,9 @@ export class Cockroach {
                 command: [
                   "/bin/bash",
                   "-ecx",
-                  `exec /cockroach/cockroach start --logtostderr ${
+                  `exec /cockroach/cockroach start ${
+                    this.isLogToStderrDeprecated ? "" : "--logtostderr"
+                  } ${
                     this.spec.certs ? "--certs-dir /certs" : "--insecure"
                   } --advertise-host ${
                     this.spec.certs
