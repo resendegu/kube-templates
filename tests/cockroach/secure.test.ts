@@ -41,7 +41,7 @@ describe("CockroachDB Secure", () => {
             request: 1,
           },
           memory: "64Mi",
-          version: "21.1.2",
+          version: "21.1.3",
           replicas: 2,
           certs: mapValues(certificates, (value) => readFileSync(value)),
         }
