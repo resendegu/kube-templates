@@ -27,12 +27,19 @@ export class Cockroach {
   constructor(private metadata: ObjectMeta, private spec: CockroachSpec) {}
 
   private get isLogToStderrDeprecated(): boolean {
-    const match = /^(\d+)\./u.exec(this.spec.version);
-    if (!match) return false;
+    const match = /^(?<version>\d+)\./u.exec(this.spec.version);
 
-    const [_, version] = match;
+    if (!match) {
+      return false;
+    }
 
-    return parseInt(version) >= 21;
+    const { groups } = match;
+
+    if (!groups) {
+      return false;
+    }
+
+    return parseInt(groups.version, 10) >= 21;
   }
 
   get yaml() {
