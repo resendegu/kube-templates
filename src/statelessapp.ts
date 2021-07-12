@@ -1,5 +1,6 @@
 import { URL } from "url";
 
+import { Cron } from "./cron";
 import { clone, env, generateYaml, parseMemory } from "./helpers";
 import type { ObjectMeta, Volume, VolumeMount } from "./kubernetes";
 import {
@@ -75,6 +76,24 @@ interface StatelessAppSpec {
     name: string;
     mountPath: string;
     items?: Array<{ key: string; path: string }>;
+  }>;
+  crons?: Array<{
+    name: string;
+    schedule: string;
+    command: string[];
+    envs?: {
+      [env: string]: string | number | { secretName: string; key: string };
+    };
+    forwardEnvs?: string[];
+    secretEnvs?: string[];
+    cpu?: {
+      request?: string | number;
+      limit?: string | number;
+    };
+    memory?: {
+      request?: string | number;
+      limit?: string | number;
+    };
   }>;
 }
 
@@ -457,6 +476,39 @@ export class StatelessApp {
           },
         },
       }),
+      ...(this.spec.cron ?? []).map(
+        (cron) =>
+          new Cron(
+            {
+              ...this.metadata,
+              name: `${this.metadata.name}-${cron.name}`,
+            },
+            {
+              cpu: {
+                limit: cron.cpu?.limit ?? this.spec.cpu.limit,
+                request: cron.cpu?.request ?? this.spec.cpu.request,
+              },
+              memory: {
+                limit: cron.memory?.limit ?? this.spec.memory.limit,
+                request: cron.memory?.request ?? this.spec.memory.request,
+              },
+              image: this.spec.image,
+              schedule: cron.schedule,
+              command: cron.command,
+              disablePreemptibility: this.spec.disablePreemptibility,
+              envs: { ...this.spec.envs, ...cron.envs },
+              forwardEnvs: [
+                ...(this.spec.forwardEnvs ?? []),
+                ...(cron.forwardEnvs ?? []),
+              ],
+              secretEnvs: [
+                ...(this.spec.secretEnvs ?? []),
+                ...(cron.secretEnvs ?? []),
+              ],
+              volumes: this.spec.volumes,
+            }
+          )
+      ),
       ...((this.spec.ports ?? []).length === 0
         ? []
         : [
