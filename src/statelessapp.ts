@@ -476,7 +476,7 @@ export class StatelessApp {
           },
         },
       }),
-      ...(this.spec.cron ?? []).map(
+      ...(this.spec.crons ?? []).map(
         (cron) =>
           new Cron(
             {
