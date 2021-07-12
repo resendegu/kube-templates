@@ -77,7 +77,7 @@ interface StatelessAppSpec {
     mountPath: string;
     items?: Array<{ key: string; path: string }>;
   }>;
-  cron?: Array<{
+  crons?: Array<{
     name: string;
     schedule: string;
     command: string[];
