@@ -80,6 +80,7 @@ interface StatelessAppSpec {
   crons?: Array<{
     name: string;
     schedule: string;
+    args: string[];
     command: string[];
     envs?: {
       [env: string]: string | number | { secretName: string; key: string };
@@ -494,6 +495,7 @@ export class StatelessApp {
               },
               image: this.spec.image,
               schedule: cron.schedule,
+              args: cron.args,
               command: cron.command,
               disablePreemptibility: this.spec.disablePreemptibility,
               envs: { ...this.spec.envs, ...cron.envs },

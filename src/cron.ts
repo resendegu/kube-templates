@@ -6,6 +6,7 @@ interface CronSpec {
   schedule: string;
   disablePreemptibility?: boolean;
   image: string;
+  args?: string[];
   command?: string[];
   envs?: {
     [env: string]: string | number | { secretName: string; key: string };
@@ -117,6 +118,7 @@ export class Cron {
                   {
                     name: this.metadata.name,
                     image: this.spec.image,
+                    args: this.spec.args,
                     command: this.spec.command,
                     env: [
                       ...Object.entries({
