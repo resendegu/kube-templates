@@ -1,6 +1,7 @@
 image: node
 
 stages:
+  - check
   - build
   - deploy
   - test
@@ -30,19 +31,19 @@ Deploy (NPM):
     - npm publish --access public
 
 ESLint:
-  stage: test
+  stage: check
   script:
     - npm ci
     - npm run eslint:check
 
 Type Check:
-  stage: test
+  stage: check
   script:
     - npm ci
     - npx tsc -noEmit
 
 NPM Audit:
-  stage: test
+  stage: check
   allow_failure: true
   script:
     - npm audit
