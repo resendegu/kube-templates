@@ -621,6 +621,26 @@ interface NamespaceSpec {
   finalizers?: string[];
 }
 
+interface DaemonSetSpec {
+  minReadySeconds?: number;
+  revisionHistoryLimit?: number;
+  selector: LabelSelector;
+  template: PodTemplateSpec;
+  updateStrategy?: DaemonSetUpdateStrategy;
+}
+
+type DaemonSetUpdateStrategy =
+  | {
+      rollingUpdate: RollingUpdateDaemonSet;
+      type: "RollingUpdate";
+    }
+  | { type: "OnDelete" };
+
+interface RollingUpdateDaemonSet {
+  maxSurge: number;
+  maxUnavailable: number;
+}
+
 export class Namespace {
   constructor(
     public metadata: NonNamespacedObjectMeta,
@@ -837,6 +857,21 @@ export class PersistentVolumeClaim {
       {
         apiVersion: "v1",
         kind: "PersistentVolumeClaim",
+        metadata: this.metadata,
+        spec: this.spec,
+      },
+    ]);
+  }
+}
+
+export class DaemonSet {
+  constructor(public metadata: ObjectMeta, public spec: DaemonSetSpec) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "apps/v1",
+        kind: "DaemonSet",
         metadata: this.metadata,
         spec: this.spec,
       },
