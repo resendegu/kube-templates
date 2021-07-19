@@ -659,7 +659,7 @@ interface NetworkPolicyIngressRule {
 }
 
 interface NetworkPolicyPeer {
-  ipBlock: {
+  ipBlock?: {
     cidr: string;
     except: string[];
   };
