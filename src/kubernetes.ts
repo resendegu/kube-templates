@@ -641,6 +641,37 @@ interface RollingUpdateDaemonSet {
   maxUnavailable: number;
 }
 
+interface NetworkPolicySpec {
+  egress: NetworkPolicyEgressRule[];
+  ingress: NetworkPolicyIngressRule[];
+  podSelector?: LabelSelector;
+  policyTypes?: Array<"Ingress" | "Egress">;
+}
+
+interface NetworkPolicyEgressRule {
+  ports: NetworkPolicyPort[];
+  to: NetworkPolicyPeer[];
+}
+
+interface NetworkPolicyIngressRule {
+  from: NetworkPolicyPeer[];
+  ports: NetworkPolicyPort[];
+}
+
+interface NetworkPolicyPeer {
+  ipBlock: {
+    cidr: string;
+    except: string[];
+  };
+  podSelector?: LabelSelector;
+  namespaceSelector?: LabelSelector;
+}
+
+interface NetworkPolicyPort {
+  port: number;
+  protocol: "TCP" | "UDP" | "SCTP";
+}
+
 export class Namespace {
   constructor(
     public metadata: NonNamespacedObjectMeta,
@@ -872,6 +903,21 @@ export class DaemonSet {
       {
         apiVersion: "apps/v1",
         kind: "DaemonSet",
+        metadata: this.metadata,
+        spec: this.spec,
+      },
+    ]);
+  }
+}
+
+export class NetworkPolicy {
+  constructor(public metadata: ObjectMeta, public spec: NetworkPolicySpec) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "networking.k8s.io/v1",
+        kind: "NetworkPolicy",
         metadata: this.metadata,
         spec: this.spec,
       },
