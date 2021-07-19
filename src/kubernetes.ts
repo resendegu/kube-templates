@@ -669,7 +669,7 @@ interface NetworkPolicyPeer {
 
 interface NetworkPolicyPort {
   port: number;
-  protocol: "TCP" | "UDP" | "SCTP";
+  protocol?: "TCP" | "UDP" | "SCTP";
 }
 
 export class Namespace {
