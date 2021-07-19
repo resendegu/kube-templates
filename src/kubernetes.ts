@@ -642,10 +642,10 @@ interface RollingUpdateDaemonSet {
 }
 
 interface NetworkPolicySpec {
-  egress: NetworkPolicyEgressRule[];
-  ingress: NetworkPolicyIngressRule[];
-  podSelector?: LabelSelector;
-  policyTypes?: Array<"Ingress" | "Egress">;
+  egress?: NetworkPolicyEgressRule[];
+  ingress?: NetworkPolicyIngressRule[];
+  podSelector: LabelSelector;
+  policyTypes: Array<"Ingress" | "Egress">;
 }
 
 interface NetworkPolicyEgressRule {
