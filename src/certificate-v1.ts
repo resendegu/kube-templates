@@ -47,7 +47,7 @@ export class CertificateV1 {
             ...(this.spec.wildcard ? [`*.${this.spec.domain}`] : []),
           ],
           issuerRef: {
-            name: this.spec.issuer ?? "letsencrypt",
+            name: this.spec.issuer ?? "letsencrypt-dns",
             kind: "ClusterIssuer",
           },
         }
