@@ -19,6 +19,10 @@ export class CertificateV1 {
   get yaml() {
     const domainSlash = this.spec.domain.replace(/\./gu, "-");
 
+    if (this.spec.wildcard === undefined && (this.spec.issuer ?? "letsencrypt-dns").includes("dns")) {
+      this.spec.wildcard = true;
+    }
+
     return generateYaml([
       new Secret({
         ...this.metadata,
