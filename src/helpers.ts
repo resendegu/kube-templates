@@ -42,15 +42,22 @@ export function generateYaml(objects: any[]) {
     .join("\n");
 }
 
-export const env = new Proxy(process.env, {
-  get: (envObj, prop) => {
-    if (!(prop in envObj)) {
-      throw new Error(`Environment variable ${String(prop)} not defined`);
-    }
+export function configFactory<T extends Record<string, string | undefined>>(
+  obj: T,
+  name: string
+) {
+  return new Proxy(obj, {
+    get: (configObj, prop) => {
+      if (!(prop in configObj)) {
+        throw new Error(`${name} ${String(prop)} not defined`);
+      }
 
-    return envObj[String(prop)];
-  },
-}) as { [envKey: string]: string };
+      return configObj[String(prop)];
+    },
+  }) as Record<string, string>;
+}
+
+export const env = configFactory(process.env, "Environment variable");
 
 export function clone(obj: any): any {
   return JSON.parse(JSON.stringify(obj));
