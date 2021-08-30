@@ -1,4 +1,4 @@
-import { CertManagerCertificate } from "./certmanager";
+import { CertManagerV1Certificate } from "./certmanager";
 import { generateYaml } from "./helpers";
 import type { ObjectMeta } from "./kubernetes";
 import { Secret } from "./kubernetes";
@@ -17,7 +17,20 @@ export class Certificate {
   ) {}
 
   get yaml() {
+    console.error("");
+    console.error(
+      "⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️"
+    );
+    console.error("                      ⚠️ ATENÇÃO ⚠️                      ");
+    console.error("A classe Certificate do kube-templates foi depreciada e");
+    console.error("será removida em breve. Utilize a classe CertificateV1.");
+    console.error(
+      "⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️"
+    );
+    console.error("");
+
     const domainSlash = this.spec.domain.replace(/\./gu, "-");
+    const wildcard = (this.spec.challengeType ?? "dns") === "dns";
 
     return generateYaml([
       new Secret({
@@ -34,7 +47,7 @@ export class Certificate {
             : {}),
         },
       }),
-      new CertManagerCertificate(
+      new CertManagerV1Certificate(
         {
           name: domainSlash,
           ...this.metadata,
@@ -42,35 +55,16 @@ export class Certificate {
         {
           secretName: `cert-${domainSlash}`,
           commonName: this.spec.domain,
+          dnsNames: [
+            this.spec.domain,
+            ...(wildcard ? [`*.${this.spec.domain}`] : []),
+          ],
           issuerRef: {
-            name: "letsencrypt",
+            name:
+              this.spec.provider ??
+              (wildcard ? "letsencrypt-dns" : "letsencrypt-http"),
             kind: "ClusterIssuer",
           },
-          ...((this.spec.challengeType ?? "dns") === "dns"
-            ? {
-                dnsNames: [this.spec.domain, `*.${this.spec.domain}`],
-                acme: {
-                  config: [
-                    {
-                      dns01: {
-                        provider: this.spec.provider ?? "cloudflare",
-                      },
-                      domains: [this.spec.domain, `*.${this.spec.domain}`],
-                    },
-                  ],
-                },
-              }
-            : {
-                dnsNames: [this.spec.domain],
-                acme: {
-                  config: [
-                    {
-                      http01: {},
-                      domains: [this.spec.domain],
-                    },
-                  ],
-                },
-              }),
         }
       ),
     ]);
