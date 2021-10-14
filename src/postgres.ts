@@ -860,7 +860,7 @@ export class Postgres {
               },
               storageClassName:
                 this.spec.storageClassName ??
-                (process.env.PRODUCTION ? "ssd-regional" : "ssd"),
+                (process.env.PRODUCTION_CUBOS ? "ssd-regional" : "ssd"),
             },
           },
         ],
