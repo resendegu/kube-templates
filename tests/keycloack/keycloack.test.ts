@@ -1,5 +1,5 @@
-import { Namespace } from "../../src/kubernetes";
 import { Keycloack } from "../../src/keycloack";
+import { Namespace } from "../../src/kubernetes";
 import { apply, deleteObject, randomSuffix, waitPodReady } from "../helpers";
 import { getAxiosClient } from "./helpers";
 
@@ -44,9 +44,7 @@ describe("keycloack", () => {
 
     const [axios, close] = getAxiosClient(namespace, "keycloack-0", 8080);
 
-    expect((await axios.get("/")).status.toString()).toMatch(
-      "200"
-    );
+    expect((await axios.get("/")).status.toString()).toMatch("200");
 
     close();
   });
