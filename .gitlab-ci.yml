@@ -1,4 +1,4 @@
-image: node
+image: node:14-alpine
 
 stages:
   - check
@@ -11,6 +11,7 @@ Build Library:
   only:
     - master
   script:
+    - apk add python2 py-pip make g++
     - npm ci
     - npx tsc -p tsconfig.json
   artifacts:
@@ -33,12 +34,14 @@ Deploy (NPM):
 ESLint:
   stage: check
   script:
+    - apk add python2 py-pip make g++
     - npm ci
     - npm run eslint:check
 
 Type Check:
   stage: check
   script:
+    - apk add python2 py-pip make g++
     - npm ci
     - npx tsc -noEmit
 
@@ -53,10 +56,11 @@ Test:
   image: docker
   script:
     - apk add nodejs npm curl
+    - apk add python2 py-pip make g++
     - curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.8.1/kind-$(uname)-amd64 && chmod +x ./kind && mv ./kind /bin/kind
     - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl && chmod +x ./kubectl && cp ./kubectl /bin/kubectl
     - npm ci
     - npx ts-node tests/setup.ts
-    - printf "FROM node:lts-alpine\nCOPY package.json package-lock.json ./\nRUN npm ci\nCOPY . /app" > Dockerfile
+    - printf "FROM node:lts-alpine\nCOPY package.json package-lock.json ./\nRUN apk add python2 py-pip make g++\nRUN npm ci\nCOPY . /app" > Dockerfile
     - docker build -t testimage .
     - docker run --rm --net=kind --entrypoint="" testimage sh -c "cd /app; cp ./kubectl /bin/kubectl; npx jest -w10"
