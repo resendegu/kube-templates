@@ -533,6 +533,7 @@ interface HTTPIngressRuleValue {
 interface HTTPIngressPath {
   backend: IngressBackend;
   path: string;
+  pathType?: "Exact" | "Prefix";
 }
 
 interface HorizontalPodAutoscalerSpec {
