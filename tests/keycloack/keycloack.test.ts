@@ -22,7 +22,7 @@ describe("keycloack", () => {
     apply(
       new Keycloack(
         {
-          name: "mariadb",
+          name: "keycloack",
           namespace,
         },
         {
@@ -32,7 +32,7 @@ describe("keycloack", () => {
           },
           memory: "128Mi",
           version: "16.1.0",
-          host: "test.com",
+          host: "localhost",
           proxyAddressForwaring: true,
           replicas: 1,
           tlsCert: "",
