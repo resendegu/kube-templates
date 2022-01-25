@@ -37,9 +37,9 @@ describe("keycloak", () => {
       )
     );
 
-    waitPodReady(namespace, "keycloak-0");
+    waitPodReady(namespace, "keycloak");
 
-    const [axios, close] = getAxiosClient(namespace, "keycloak-0", 8080);
+    const [axios, close] = getAxiosClient(namespace, "keycloak", 8080);
 
     expect((await axios.get("/")).status.toString()).toMatch("200");
 
