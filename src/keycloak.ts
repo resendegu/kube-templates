@@ -45,9 +45,7 @@ export class Keycloak {
         ],
       }),
       new Deployment(this.metadata, {
-        replicas: Array.isArray(this.spec.replicas)
-          ? undefined // https://github.com/kubernetes/kubernetes/issues/25238
-          : this.spec.replicas ?? 1,
+        replicas: this.spec.replicas ?? 1,
         revisionHistoryLimit: 2,
         selector: {
           matchLabels: {
