@@ -4,7 +4,7 @@ import { clone, generateYaml } from "./helpers";
 import type { BasicObjectMeta, ObjectMeta } from "./kubernetes";
 import { Deployment, Ingress, Service } from "./kubernetes";
 
-interface KeycloackSpec {
+interface KeycloakSpec {
   replicas?: number;
   version: string;
   cpu: {
@@ -13,8 +13,8 @@ interface KeycloackSpec {
   };
   memory: string | number;
   auth?: {
-    keycloackUser: string;
-    keycloackPassword: string;
+    keycloakUser: string;
+    keycloakPassword: string;
   };
   ingress?: {
     host: string;
@@ -27,16 +27,16 @@ interface KeycloackSpec {
   };
 }
 
-export class Keycloack {
-  constructor(private metadata: ObjectMeta, private spec: KeycloackSpec) {}
+export class Keycloak {
+  constructor(private metadata: ObjectMeta, private spec: KeycloakSpec) {}
 
   get yaml() {
     return generateYaml([
-      new Service(_.merge(this.metadata, this.spec.serviceMetadata), {
+      new Service(_.merge(this.metadata, this.spec.service?.metadata), {
         selector: {
           app: this.metadata.name,
         },
-        type: this.spec.serviceType ?? "LoadBalancer",
+        type: this.spec.service?.type ?? "LoadBalancer",
         ports: [
           {
             name: "http",
@@ -88,15 +88,17 @@ export class Keycloack {
                 env: [
                   {
                     name: "KEYCLOAK_USER",
-                    value: this.spec.auth?.keycloackUser ?? "admin",
+                    value: this.spec.auth?.keycloakUser ?? "admin",
                   },
                   {
                     name: "KEYCLOAK_PASSWORD",
-                    value: this.spec.auth?.keycloackPassword ?? "admin",
+                    value: this.spec.auth?.keycloakPassword ?? "admin",
                   },
                   {
-                    name: "KEYCLOACK_PROXY_ADDRESS_FORWARDING",
-                    value: this.spec.proxyAddressForwaring ? "true" : "false",
+                    name: "KEYCLOAK_PROXY_ADDRESS_FORWARDING",
+                    value: this.spec.ingress?.proxyAddressForwarding
+                      ? "true"
+                      : "false",
                   },
                 ],
                 readinessProbe: {
@@ -110,31 +112,35 @@ export class Keycloack {
           },
         },
       }),
-      new Ingress(clone(this.metadata), {
-        rules: [
-          {
-            host: this.spec.host,
-            http: {
-              paths: [
+      ...(this.spec.ingress
+        ? [
+            new Ingress(clone(this.metadata), {
+              rules: [
                 {
-                  path: "/",
-                  pathType: "Prefix",
-                  backend: {
-                    serviceName: this.metadata.name,
-                    servicePort: 8080,
+                  host: this.spec.ingress.host,
+                  http: {
+                    paths: [
+                      {
+                        path: "/",
+                        pathType: "Prefix",
+                        backend: {
+                          serviceName: this.metadata.name,
+                          servicePort: 8080,
+                        },
+                      },
+                    ],
                   },
                 },
               ],
-            },
-          },
-        ],
-        tls: [
-          {
-            hosts: [this.spec.host],
-            secretName: this.spec.tlsCert,
-          },
-        ],
-      }),
+              tls: [
+                {
+                  hosts: [this.spec.ingress.host],
+                  secretName: this.spec.ingress.tlsCert,
+                },
+              ],
+            }),
+          ]
+        : []),
     ]);
   }
 }

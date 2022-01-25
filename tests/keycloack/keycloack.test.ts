@@ -1,9 +1,9 @@
-import { Keycloack } from "../../src/keycloack";
+import { Keycloak } from "../../src/keycloak";
 import { Namespace } from "../../src/kubernetes";
 import { apply, deleteObject, randomSuffix, waitPodReady } from "../helpers";
 import { getAxiosClient } from "./helpers";
 
-describe("keycloack", () => {
+describe("keycloak", () => {
   const namespace = `test-${randomSuffix()}`;
 
   beforeAll(() => {
@@ -18,11 +18,11 @@ describe("keycloack", () => {
     deleteObject("namespace", namespace);
   });
 
-  test("Create a Keycloack instance", async () => {
+  test("Create a Keycloak instance", async () => {
     apply(
-      new Keycloack(
+      new Keycloak(
         {
-          name: "keycloack",
+          name: "keycloak",
           namespace,
         },
         {
@@ -32,17 +32,14 @@ describe("keycloack", () => {
           },
           memory: "128Mi",
           version: "16.1.0",
-          host: "localhost",
-          proxyAddressForwaring: true,
           replicas: 1,
-          tlsCert: "",
         }
       )
     );
 
-    waitPodReady(namespace, "keycloack-0");
+    waitPodReady(namespace, "keycloak-0");
 
-    const [axios, close] = getAxiosClient(namespace, "keycloack-0", 8080);
+    const [axios, close] = getAxiosClient(namespace, "keycloak-0", 8080);
 
     expect((await axios.get("/")).status.toString()).toMatch("200");
 
