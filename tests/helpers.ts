@@ -58,6 +58,9 @@ export function waitPodReady(namespace: string, pod: string, timeout = 60) {
       throw new Error(`pod ${pod} does not exist`);
     }
 
+    console.log({ podInfo });
+    console.log({ status: podInfo.status });
+
     if (podInfo.status.containerStatuses?.every((x: any) => x.ready)) {
       return;
     }
