@@ -37,7 +37,7 @@ describe("keycloak", () => {
       )
     );
 
-    waitPodReady(namespace, "keycloak");
+    waitPodReady(namespace, "-l app=keycloak");
 
     const [axios, close] = getAxiosClient(namespace, "keycloak", 8080);
 
