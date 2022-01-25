@@ -4,6 +4,7 @@ export * from "./src/certmanager";
 export * from "./src/cockroach";
 export * from "./src/cron";
 export { env, configFactory } from "./src/helpers";
+export * from "./src/keycloak";
 export * from "./src/kubernetes";
 export * from "./src/mariadb";
 export * from "./src/mongo";
