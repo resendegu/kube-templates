@@ -16,11 +16,15 @@ interface KeycloackSpec {
     keycloackUser: string;
     keycloackPassword: string;
   };
-  host: string;
-  tlsCert: string;
-  proxyAddressForwaring: boolean;
-  serviceType?: "ExternalName" | "ClusterIP" | "NodePort" | "LoadBalancer";
-  serviceMetadata?: BasicObjectMeta;
+  ingress?: {
+    host: string;
+    tlsCert: string;
+    proxyAddressForwarding: boolean;
+  };
+  service?: {
+    type?: "ExternalName" | "ClusterIP" | "NodePort" | "LoadBalancer";
+    metadata?: BasicObjectMeta;
+  };
 }
 
 export class Keycloack {
