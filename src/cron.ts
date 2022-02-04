@@ -29,6 +29,7 @@ interface CronSpec {
     mountPath: string;
     items?: Array<{ key: string; path: string }>;
   }>;
+  backoffLimit?: number;
 }
 
 export class Cron {
@@ -163,6 +164,9 @@ export class Cron {
                   },
                 ],
                 restartPolicy: "Never",
+                ...(this.spec.backoffLimit ?? false
+                  ? { backoffLimit: this.spec.backoffLimit }
+                  : {}),
               },
             },
           },
