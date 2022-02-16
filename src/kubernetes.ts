@@ -298,6 +298,7 @@ export interface SELinuxOptions {
 export interface WindowsSecurityContextOptions {
   gmsaCredentialSpec?: string;
   gmsaCredentialSpecName?: string;
+  hostProcess?: boolean;
   runAsUserName?: string;
 }
 
