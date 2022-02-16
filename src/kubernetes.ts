@@ -9,7 +9,7 @@ export interface BasicObjectMeta {
   };
 }
 
-interface NonNamespacedObjectMeta extends BasicObjectMeta {
+export interface NonNamespacedObjectMeta extends BasicObjectMeta {
   name: string;
 }
 
@@ -17,7 +17,7 @@ export interface ObjectMeta extends NonNamespacedObjectMeta {
   namespace: string;
 }
 
-interface DeploymentSpec {
+export interface DeploymentSpec {
   minReadySeconds?: number;
   paused?: boolean;
   progressDeadlineSeconds?: number;
@@ -28,30 +28,30 @@ interface DeploymentSpec {
   template: PodTemplateSpec;
 }
 
-interface LabelSelector {
+export interface LabelSelector {
   matchExpressions?: LabelSelectorRequirement[];
   matchLabels?: {
     [label: string]: string;
   };
 }
 
-interface LabelSelectorRequirement {
+export interface LabelSelectorRequirement {
   key: string;
   operator: "In" | "NotIn" | "Exists" | "DoesNotExist";
   values: string[];
 }
 
-interface DeploymentStrategy {
+export interface DeploymentStrategy {
   maxSurge?: number | string;
   maxUnavailable?: number | string;
 }
 
-interface PodTemplateSpec {
+export interface PodTemplateSpec {
   metadata?: BasicObjectMeta;
   spec: PodSpec;
 }
 
-interface PodSpec {
+export interface PodSpec {
   activeDeadlineSeconds?: number;
   affinity?: Affinity;
   automountServiceAccountToken?: boolean;
@@ -88,7 +88,7 @@ interface PodSpec {
   volumes?: Volume[];
 }
 
-interface PodDisruptionBudgetSpec {
+export interface PodDisruptionBudgetSpec {
   selector: LabelSelector;
   maxUnavailable: number;
 }
@@ -220,88 +220,89 @@ export type Volume = {
   //   }
 );
 
-interface Affinity {
+export interface Affinity {
   nodeAffinity?: NodeAffinity;
   podAffinity?: PodAffinity;
   podAntiAffinity?: PodAntiAffinity;
 }
 
-interface NodeAffinity {
+export interface NodeAffinity {
   preferredDuringSchedulingIgnoredDuringExecution?: PreferredSchedulingTerm[];
   requiredDuringSchedulingIgnoredDuringExecution?: NodeSelector;
 }
 
-interface PodAffinity {
+export interface PodAffinity {
   preferredDuringSchedulingIgnoredDuringExecution?: WeightedPodAffinityTerm[];
   requiredDuringSchedulingIgnoredDuringExecution?: PodAffinityTerm[];
 }
 
-interface PodAntiAffinity {
+export interface PodAntiAffinity {
   preferredDuringSchedulingIgnoredDuringExecution?: WeightedPodAffinityTerm[];
   requiredDuringSchedulingIgnoredDuringExecution?: PodAffinityTerm[];
 }
 
-interface NodeSelector {
+export interface NodeSelector {
   nodeSelectorTerms?: NodeSelectorTerm[];
 }
 
-interface PreferredSchedulingTerm {
+export interface PreferredSchedulingTerm {
   preference?: NodeSelectorTerm;
   weight: number;
 }
 
-interface WeightedPodAffinityTerm {
+export interface WeightedPodAffinityTerm {
   podAffinityTerm?: PodAffinityTerm;
   weight: number;
 }
 
-interface PodAffinityTerm {
+export interface PodAffinityTerm {
   labelSelector?: LabelSelector;
   namespaces?: string[];
   topologyKey: string;
 }
 
-interface NodeSelectorTerm {
+export interface NodeSelectorTerm {
   matchExpressions?: NodeSelectorRequirement[];
   matchFields?: NodeSelectorRequirement[];
 }
 
-interface NodeSelectorRequirement {
+export interface NodeSelectorRequirement {
   key: string;
   operator: "In" | "NotIn" | "Exists" | "DoesNotExist" | "Gt" | "Lt";
   values: string[];
 }
 
-interface SecretEnvSource {
+export interface SecretEnvSource {
   name: string;
   optional?: boolean;
 }
 
-interface ConfigMapEnvSource {
+export interface ConfigMapEnvSource {
   name: string;
   optional?: boolean;
 }
 
-interface EnvFromSource {
+export interface EnvFromSource {
   configMapRef?: ConfigMapEnvSource;
   prefix?: string;
   secretRef?: SecretEnvSource;
 }
 
-interface SELinuxOptions {
+export interface SELinuxOptions {
   user?: string;
   role?: string;
   type?: string;
   level?: string;
 }
 
-interface WindowsSecurityContextOptions {
+export interface WindowsSecurityContextOptions {
   gmsaCredentialSpec?: string;
   gmsaCredentialSpecName?: string;
+  hostProcess?: boolean;
   runAsUserName?: string;
 }
 
-interface SecurityContext {
+export interface SecurityContext {
   allowPrivilegeEscalation?: boolean;
   capabilities?: {
     add?: string[];
@@ -314,10 +315,14 @@ interface SecurityContext {
   runAsNonRoot?: boolean;
   runAsUser?: number;
   seLinuxOptions?: SELinuxOptions;
+  seccompProfile?: {
+    localhostProfile?: string;
+    type?: "Unconfined" | "Localhost" | "RuntimeDefault";
+  };
   windowsOptions?: WindowsSecurityContextOptions;
 }
 
-interface PodSecurityContext {
+export interface PodSecurityContext {
   fsGroup?: number;
   runAsGroup?: number;
   runAsNonRoot?: boolean;
@@ -388,16 +393,16 @@ type Probe = (
   timeoutSeconds?: number;
 };
 
-interface ExecAction {
+export interface ExecAction {
   command: string[];
 }
 
-interface TCPSocketAction {
+export interface TCPSocketAction {
   host?: string;
   port: number;
 }
 
-interface HTTPGetAction {
+export interface HTTPGetAction {
   host?: string;
   httpHeaders?: HTTPHeader[];
   path: string;
@@ -405,12 +410,12 @@ interface HTTPGetAction {
   scheme?: "HTTP" | "HTTPS";
 }
 
-interface HTTPHeader {
+export interface HTTPHeader {
   name: string;
   value: string;
 }
 
-interface ContainerPort {
+export interface ContainerPort {
   containerPort: number;
   hostIP?: string;
   hostPort?: number;
@@ -420,12 +425,12 @@ interface ContainerPort {
 
 type EnvVar = EnvVarWithValue | EnvVarWithFrom;
 
-interface EnvVarWithValue {
+export interface EnvVarWithValue {
   name: string;
   value: string;
 }
 
-interface EnvVarWithFrom {
+export interface EnvVarWithFrom {
   name: string;
   valueFrom: EnvVarSource;
 }
@@ -444,34 +449,34 @@ type EnvVarSource =
       secretKeyRef: SecretKeySelector;
     };
 
-interface ConfigMapKeySelector {
+export interface ConfigMapKeySelector {
   key: string;
   name: string;
   optional?: boolean;
 }
 
-interface SecretKeySelector {
+export interface SecretKeySelector {
   key: string;
   name: string;
   optional?: boolean;
 }
 
-interface ObjectFieldSelector {
+export interface ObjectFieldSelector {
   apiVersion?: string;
   fieldPath: string;
 }
 
-interface ResourceFieldSelector {
+export interface ResourceFieldSelector {
   containerName?: string;
   divisor?: number | string;
   resource: string;
 }
 
-interface LocalObjectReference {
+export interface LocalObjectReference {
   name: string;
 }
 
-interface ServiceSpec {
+export interface ServiceSpec {
   clusterIP?: string;
   externalIPs?: string[];
   externalName?: string;
@@ -489,15 +494,15 @@ interface ServiceSpec {
   type?: "ExternalName" | "ClusterIP" | "NodePort" | "LoadBalancer";
 }
 
-interface SessionAffinityConfig {
+export interface SessionAffinityConfig {
   clientIP: ClientIPConfig;
 }
 
-interface ClientIPConfig {
+export interface ClientIPConfig {
   timeoutSeconds: number;
 }
 
-interface ServicePort {
+export interface ServicePort {
   name: string;
   nodePort?: number;
   port: number;
@@ -505,50 +510,50 @@ interface ServicePort {
   targetPort?: number;
 }
 
-interface IngressSpec {
+export interface IngressSpec {
   backend?: IngressBackend;
   rules?: IngressRule[];
   tls?: IngressTLS[];
 }
 
-interface IngressBackend {
+export interface IngressBackend {
   serviceName: string;
   servicePort: number;
 }
 
-interface IngressRule {
+export interface IngressRule {
   host: string;
   http?: HTTPIngressRuleValue;
 }
 
-interface IngressTLS {
+export interface IngressTLS {
   hosts?: string[];
   secretName: string;
 }
 
-interface HTTPIngressRuleValue {
+export interface HTTPIngressRuleValue {
   paths: HTTPIngressPath[];
 }
 
-interface HTTPIngressPath {
+export interface HTTPIngressPath {
   backend: IngressBackend;
   path: string;
 }
 
-interface HorizontalPodAutoscalerSpec {
+export interface HorizontalPodAutoscalerSpec {
   maxReplicas: number;
   minReplicas: number;
   scaleTargetRef: CrossVersionObjectReference;
   targetCPUUtilizationPercentage: number;
 }
 
-interface CrossVersionObjectReference {
+export interface CrossVersionObjectReference {
   apiVersion: string;
   kind: string;
   name: string;
 }
 
-interface StatefulSetSpec {
+export interface StatefulSetSpec {
   podManagementPolicy?: "OrderedReady" | "Parallel";
   replicas?: number;
   revisionHistoryLimit?: number;
@@ -562,16 +567,16 @@ interface StatefulSetSpec {
   }>;
 }
 
-interface StatefulSetUpdateStrategy {
+export interface StatefulSetUpdateStrategy {
   rollingUpdate?: RollingUpdateStatefulSetStrategy;
   type: "RollingUpdate";
 }
 
-interface RollingUpdateStatefulSetStrategy {
+export interface RollingUpdateStatefulSetStrategy {
   partition: number;
 }
 
-interface PersistentVolumeClaimSpec {
+export interface PersistentVolumeClaimSpec {
   accessModes: Array<"ReadWriteOnce" | "ReadOnlyMany" | "ReadWriteMany">;
   dataSource?: TypedLocalObjectReference;
   resources: {
@@ -585,13 +590,13 @@ interface PersistentVolumeClaimSpec {
   volumeName?: string;
 }
 
-interface TypedLocalObjectReference {
+export interface TypedLocalObjectReference {
   apiGroup: string;
   kind: string;
   name: string;
 }
 
-interface JobSpec {
+export interface JobSpec {
   activeDeadlineSeconds?: number;
   backoffLimit?: number;
   completions?: number;
@@ -602,12 +607,12 @@ interface JobSpec {
   ttlSecondsAfterFinished?: number;
 }
 
-interface JobTemplateSpec {
+export interface JobTemplateSpec {
   metadata?: ObjectMeta;
   spec: Omit<JobSpec, "selector">;
 }
 
-interface CronJobSpec {
+export interface CronJobSpec {
   concurrencyPolicy?: "Allow" | "Forbid" | "Replace";
   failedJobsHistoryLimit?: number;
   jobTemplate: JobTemplateSpec;
@@ -617,11 +622,11 @@ interface CronJobSpec {
   suspend?: boolean;
 }
 
-interface NamespaceSpec {
+export interface NamespaceSpec {
   finalizers?: string[];
 }
 
-interface DaemonSetSpec {
+export interface DaemonSetSpec {
   minReadySeconds?: number;
   revisionHistoryLimit?: number;
   selector: LabelSelector;
@@ -636,29 +641,29 @@ type DaemonSetUpdateStrategy =
     }
   | { type: "OnDelete" };
 
-interface RollingUpdateDaemonSet {
+export interface RollingUpdateDaemonSet {
   maxSurge: number;
   maxUnavailable: number;
 }
 
-interface NetworkPolicySpec {
+export interface NetworkPolicySpec {
   egress?: NetworkPolicyEgressRule[];
   ingress?: NetworkPolicyIngressRule[];
   podSelector: LabelSelector;
   policyTypes: Array<"Ingress" | "Egress">;
 }
 
-interface NetworkPolicyEgressRule {
+export interface NetworkPolicyEgressRule {
   ports: NetworkPolicyPort[];
   to: NetworkPolicyPeer[];
 }
 
-interface NetworkPolicyIngressRule {
+export interface NetworkPolicyIngressRule {
   from: NetworkPolicyPeer[];
   ports: NetworkPolicyPort[];
 }
 
-interface NetworkPolicyPeer {
+export interface NetworkPolicyPeer {
   ipBlock?: {
     cidr: string;
     except: string[];
@@ -667,7 +672,7 @@ interface NetworkPolicyPeer {
   namespaceSelector?: LabelSelector;
 }
 
-interface NetworkPolicyPort {
+export interface NetworkPolicyPort {
   port: number;
   protocol?: "TCP" | "UDP" | "SCTP";
 }
