@@ -314,6 +314,10 @@ export interface SecurityContext {
   runAsNonRoot?: boolean;
   runAsUser?: number;
   seLinuxOptions?: SELinuxOptions;
+  seccompProfile?: {
+    localhostProfile?: string;
+    type?: "Unconfined" | "Localhost" | "RuntimeDefault";
+  };
   windowsOptions?: WindowsSecurityContextOptions;
 }
 
