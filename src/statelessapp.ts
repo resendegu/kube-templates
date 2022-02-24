@@ -28,6 +28,7 @@ interface StatelessAppSpec {
     request: string | number;
     limit: string | number;
   };
+  serviceAccountName?: string;
   ports?: Array<
     (
       | {
@@ -335,7 +336,8 @@ export class StatelessApp {
             ],
           }
         : {}),
-      automountServiceAccountToken: false,
+      automountServiceAccountToken: !!this.spec.serviceAccountName,
+      serviceAccountName: this.spec.serviceAccountName,
     };
 
     return generateYaml([
