@@ -336,7 +336,7 @@ export class StatelessApp {
             ],
           }
         : {}),
-      automountServiceAccountToken: !!this.spec.serviceAccountName,
+      automountServiceAccountToken: Boolean(this.spec.serviceAccountName),
       serviceAccountName: this.spec.serviceAccountName,
     };
 
