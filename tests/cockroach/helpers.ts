@@ -15,7 +15,7 @@ export async function queryCockroach(
   namespace: string,
   pod: string,
   query: string,
-  database = "defaultdb"
+  database = "defaultdb",
 ) {
   const forward = portForward(namespace, pod, 26257);
 
@@ -51,7 +51,7 @@ export async function queryCockroachSecure(
   namespace: string,
   pod: string,
   query: string,
-  database = "defaultdb"
+  database = "defaultdb",
 ) {
   const forward = portForward(namespace, pod, 26257);
 

@@ -20,7 +20,7 @@ describe("CockroachDB Secure", () => {
     apply(
       new Namespace({
         name: namespace,
-      })
+      }),
     );
   });
 
@@ -43,9 +43,9 @@ describe("CockroachDB Secure", () => {
           memory: "64Mi",
           version: "21.1.3",
           replicas: 2,
-          certs: mapValues(certificates, (value) => readFileSync(value)),
-        }
-      )
+          certs: mapValues(certificates, value => readFileSync(value)),
+        },
+      ),
     );
 
     waitPodReady(namespace, "cockroach-safe-0");
@@ -56,8 +56,8 @@ describe("CockroachDB Secure", () => {
       await queryCockroachSecure(
         namespace,
         "svc/cockroach-safe",
-        "SELECT true AS ok"
-      )
+        "SELECT true AS ok",
+      ),
     ).toEqual([
       {
         ok: true,

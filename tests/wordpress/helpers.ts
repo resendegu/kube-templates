@@ -6,7 +6,7 @@ import { portForward } from "../helpers";
 export function getAxiosClient(
   namespace: string,
   pod: string,
-  port: number
+  port: number,
 ): [AxiosInstance, () => void] {
   const forward = portForward(namespace, pod, port);
 

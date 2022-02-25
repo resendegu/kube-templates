@@ -321,17 +321,17 @@ export class Postgres {
 
       additionalContainers.push(
         ...(this.spec.databases ?? [])
-          .map((databaseOrName) =>
+          .map(databaseOrName =>
             typeof databaseOrName === "string"
               ? { name: databaseOrName }
-              : databaseOrName
+              : databaseOrName,
           )
           .concat(
             ...(this.spec.monitoring.monitorPostgresDatabase
               ? [{ name: "postgres" }]
-              : [])
+              : []),
           )
-          .map<Container>((database) => ({
+          .map<Container>(database => ({
             name: `pganalyze-${database.name}`,
             image: "quay.io/pganalyze/collector:v0.33.1",
             command: ["/usr/local/bin/gosu"],
@@ -375,14 +375,14 @@ export class Postgres {
                 memory: "50Mi",
               },
             },
-          }))
+          })),
       );
     }
 
     const options = {
       maxConnections: Math.max(100, mem / (8 * MB)),
       sharedBuffers: `${Math.ceil(
-        (mem * (mem > Number(GB) ? 0.25 : 0.15)) / MB
+        (mem * (mem > Number(GB) ? 0.25 : 0.15)) / MB,
       )}MB`,
       effectiveCacheSize: `${Math.ceil(mem / 2 / MB)}MB`,
       ...masterReplicationOptions,
@@ -402,7 +402,7 @@ export class Postgres {
     const replicaOptions = {
       maxConnections: Math.max(
         100,
-        parseMemory(this.spec.memory) / (8 * 1024 * 1024)
+        parseMemory(this.spec.memory) / (8 * 1024 * 1024),
       ),
       ...replicaReplicationOptions,
       ...commonReplicationOptions,
@@ -425,7 +425,7 @@ export class Postgres {
     const replicaStringOptions = Object.entries(replicaOptions)
       .map(([key, value]) => [
         "-c",
-        `${key.replace(/[A-Z]/gu, (x) => `_${x.toLowerCase()}`)}=` +
+        `${key.replace(/[A-Z]/gu, x => `_${x.toLowerCase()}`)}=` +
           `'${
             value === true
               ? "yes"
@@ -549,10 +549,7 @@ export class Postgres {
                   ...Object.entries(options)
                     .map(([key, value]) => [
                       "-c",
-                      `${key.replace(
-                        /[A-Z]/gu,
-                        (x) => `_${x.toLowerCase()}`
-                      )}=` +
+                      `${key.replace(/[A-Z]/gu, x => `_${x.toLowerCase()}`)}=` +
                         `${
                           value === true
                             ? "yes"
@@ -717,9 +714,9 @@ export class Postgres {
                       // Only drop users that should not exist
                       users
                         .map(
-                          (user) => `
+                          user => `
                           [ "$user" == '${user.username}' ] && continue
-                        `
+                        `,
                         )
                         .join("\n")
                     }
@@ -730,7 +727,7 @@ export class Postgres {
 
                   ${users
                     .map(
-                      (user) => `
+                      user => `
                         echo Creating user ${user.username}...
                         psql -h 127.0.0.1 -U postgres -c "CREATE USER "'"${
                           user.username
@@ -748,18 +745,18 @@ export class Postgres {
                           ? "REPLICATION "
                           : ""
                       } ENCRYPTED PASSWORD '"'${user.password}'"'"
-                      `
+                      `,
                     )
                     .join("\n")}
 
                   ${(this.spec.databases ?? [])
-                    .map((databaseOrName) =>
+                    .map(databaseOrName =>
                       typeof databaseOrName === "string"
                         ? { name: databaseOrName }
-                        : databaseOrName
+                        : databaseOrName,
                     )
                     .map(
-                      (database) => `
+                      database => `
                         echo Creating database ${database.name}...
                         psql -h 127.0.0.1 -U postgres -c 'CREATE DATABASE "${
                           database.name
@@ -767,33 +764,33 @@ export class Postgres {
 
                         ${(database.users ?? [])
                           .map(
-                            (user) => `
+                            user => `
                               echo Granting privileges on database ${database.name} to user ${user}...
                               psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON DATABASE "${database.name}" TO "${user}"'
                               psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "${user}"' ${database.name}
                               psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO "${user}"' ${database.name}
-                            `
+                            `,
                           )
                           .join("\n")}
-                      `
+                      `,
                     )
                     .join("\n")}
 
                   ${
                     this.spec.monitoring?.type === "pgAnalyze"
                       ? (this.spec.databases ?? [])
-                          .map((databaseOrName) =>
+                          .map(databaseOrName =>
                             typeof databaseOrName === "string"
                               ? { name: databaseOrName }
-                              : databaseOrName
+                              : databaseOrName,
                           )
                           .concat(
                             ...(this.spec.monitoring.monitorPostgresDatabase
                               ? [{ name: "postgres" }]
-                              : [])
+                              : []),
                           )
                           .map(
-                            (database) => `
+                            database => `
                         echo Setting up PgAnalyze on database ${database.name}...
                         psql -h 127.0.0.1 -U postgres -c 'CREATE EXTENSION IF NOT EXISTS pg_stat_statements WITH SCHEMA public;' ${database.name}
                         psql -h 127.0.0.1 -U postgres -c 'CREATE SCHEMA IF NOT EXISTS pganalyze;' ${database.name}
@@ -803,7 +800,7 @@ export class Postgres {
                         echo -e "CREATE OR REPLACE FUNCTION pganalyze.get_stat_replication() RETURNS SETOF pg_stat_replication AS\\n\\$\\$\\n  /* pganalyze-collector */ SELECT * FROM pg_catalog.pg_stat_replication;\\n\\$\\$ LANGUAGE sql VOLATILE SECURITY DEFINER;" | psql -h 127.0.0.1 -U postgres ${database.name}
                         psql -h 127.0.0.1 -U postgres -c "REVOKE ALL ON SCHEMA public FROM pganalyze;" ${database.name}
                         psql -h 127.0.0.1 -U postgres -c "GRANT USAGE ON SCHEMA pganalyze TO pganalyze;" ${database.name}
-                      `
+                      `,
                           )
                           .join("\n")
                       : ""
@@ -880,7 +877,7 @@ export class Postgres {
                     port: 5432,
                   },
                 ],
-              }
+              },
             ),
             new StatefulSet(
               { ...this.metadata, name: `${this.metadata.name}-replica` },
@@ -1095,7 +1092,7 @@ export class Postgres {
                     },
                   },
                 ],
-              }
+              },
             ),
           ]
         : []),

@@ -59,10 +59,7 @@ export class Redis {
                   "redis-server",
                   ...Object.entries(this.spec.options ?? {})
                     .map(([key, value]) => [
-                      `--${key.replace(
-                        /[A-Z]/gu,
-                        (x) => `-${x.toLowerCase()}`
-                      )}`,
+                      `--${key.replace(/[A-Z]/gu, x => `-${x.toLowerCase()}`)}`,
                       `${
                         value === true ? "yes" : value === false ? "no" : value
                       }`,

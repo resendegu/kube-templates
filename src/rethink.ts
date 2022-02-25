@@ -61,8 +61,8 @@ export class Rethink {
                   port: 8080,
                 },
               ],
-            }
-          )
+            },
+          ),
       ),
       new StatefulSet(this.metadata, {
         serviceName: this.metadata.name,
@@ -92,7 +92,7 @@ export class Rethink {
                     .toLowerCase()
                     .replace(
                       /[^a-z]/gu,
-                      "_"
+                      "_",
                     )}_$(hostname | cut -d- -f2) || true`,
                 ],
                 volumeMounts: [

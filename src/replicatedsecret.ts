@@ -9,7 +9,7 @@ interface ReplicatedSecretSpec {
 export class ReplicatedSecret {
   constructor(
     private metadata: ObjectMeta,
-    private spec: ReplicatedSecretSpec
+    private spec: ReplicatedSecretSpec,
   ) {}
 
   get yaml() {

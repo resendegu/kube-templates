@@ -142,13 +142,13 @@ export class StatelessApp {
         }
 
         const { protocol, hostname, pathname } = new URL(
-          endpointSpec.publicUrl
+          endpointSpec.publicUrl,
         );
-        let rule = ingress.spec.rules!.find((x) => x.host === hostname);
+        let rule = ingress.spec.rules!.find(x => x.host === hostname);
 
         if (!rule) {
           ingress.spec.rules!.push(
-            (rule = { host: hostname, http: { paths: [] } })
+            (rule = { host: hostname, http: { paths: [] } }),
           );
         }
 
@@ -158,12 +158,12 @@ export class StatelessApp {
           }
 
           let tls = ingress.spec.tls!.find(
-            (x) => x.secretName === endpointSpec.tlsCert
+            x => x.secretName === endpointSpec.tlsCert,
           );
 
           if (!tls) {
             ingress.spec.tls!.push(
-              (tls = { secretName: endpointSpec.tlsCert, hosts: [] })
+              (tls = { secretName: endpointSpec.tlsCert, hosts: [] }),
             );
           }
 
@@ -197,7 +197,7 @@ export class StatelessApp {
 
         if (endpointSpec.maxBodySize) {
           const endpointMaxBodySizeBytes = parseMemory(
-            endpointSpec.maxBodySize
+            endpointSpec.maxBodySize,
           );
 
           if (
@@ -431,16 +431,16 @@ export class StatelessApp {
                           : {
                               name,
                               value: `${value}`,
-                            }
+                            },
                       )
                     : []),
-                  ...(this.spec.forwardEnvs ?? []).map((key) => ({
+                  ...(this.spec.forwardEnvs ?? []).map(key => ({
                     name: key,
                     value: env[key],
                   })),
                 ],
                 envFrom:
-                  this.spec.secretEnvs?.map((name) => ({
+                  this.spec.secretEnvs?.map(name => ({
                     secretRef: {
                       name,
                     },
@@ -455,7 +455,7 @@ export class StatelessApp {
                     memory: this.spec.memory.request,
                   },
                 },
-                ports: (this.spec.ports ?? []).map((portSpec) => ({
+                ports: (this.spec.ports ?? []).map(portSpec => ({
                   name: portSpec.name ?? `port${portSpec.port}`,
                   containerPort: portSpec.containerPort ?? portSpec.port,
                 })),
@@ -480,7 +480,7 @@ export class StatelessApp {
         },
       }),
       ...(this.spec.crons ?? []).map(
-        (cron) =>
+        cron =>
           new Cron(
             {
               ...this.metadata,
@@ -510,8 +510,8 @@ export class StatelessApp {
                 ...(cron.secretEnvs ?? []),
               ],
               volumes: this.spec.volumes,
-            }
-          )
+            },
+          ),
       ),
       ...((this.spec.ports ?? []).length === 0
         ? []
@@ -521,7 +521,7 @@ export class StatelessApp {
               selector: {
                 app: this.metadata.name,
               },
-              ports: this.spec.ports!.map((portSpec) => ({
+              ports: this.spec.ports!.map(portSpec => ({
                 name: portSpec.name ?? `port${portSpec.port}`,
                 port: portSpec.port,
                 targetPort: portSpec.containerPort ?? portSpec.port,
