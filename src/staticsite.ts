@@ -78,9 +78,14 @@ export class StaticSite {
                 paths: [
                   {
                     path: `${pathname}?(.*)`,
+                    pathType: "Prefix",
                     backend: {
-                      serviceName: providerName,
-                      servicePort: 80,
+                      service: {
+                        name: providerName,
+                        port: {
+                          number: 80,
+                        },
+                      },
                     },
                   },
                 ],

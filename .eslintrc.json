@@ -1,3 +1,9 @@
 {
-  "extends": ["@cubos"]
+  "extends": ["@cubos"],
+  "rules": {
+    "@typescript-eslint/no-namespace": "off",
+    "@typescript-eslint/prefer-namespace-keyword": "off",
+    "import/export": "off",
+    "no-tabs": "off"
+  }
 }

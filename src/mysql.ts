@@ -1,5 +1,6 @@
+import type { io } from "./generated/kubernetes";
 import { generateYaml } from "./helpers";
-import type { Container, ObjectMeta } from "./kubernetes";
+import type { ObjectMeta } from "./kubernetes";
 import { Service, StatefulSet } from "./kubernetes";
 
 interface MySQLSpec {
@@ -11,7 +12,7 @@ interface MySQLSpec {
   memory: string | number;
   rootPassword: string;
   storageClassName?: string;
-  initContainers?: Container[];
+  initContainers?: io.k8s.api.core.v1.Container[];
 }
 
 export class MySQL {

@@ -1,7 +1,8 @@
 import { createHash } from "crypto";
 
+import type { io } from "./generated/kubernetes";
 import { generateYaml, parseMemory } from "./helpers";
-import type { Container, ObjectMeta, Toleration } from "./kubernetes";
+import type { ObjectMeta } from "./kubernetes";
 import { Service, StatefulSet } from "./kubernetes";
 
 interface PostgresSpec {
@@ -30,13 +31,13 @@ interface PostgresSpec {
     apiKey: string;
     monitorPostgresDatabase?: boolean;
   };
-  initContainers?: Container[];
+  initContainers?: io.k8s.api.core.v1.Container[];
   storageClassName?: string;
   storageRequest?: string;
   nodeSelector?: {
     [annotation: string]: string;
   };
-  tolerations?: Toleration[];
+  tolerations?: io.k8s.api.core.v1.Toleration[];
   imagePullPolicy?: "Always" | "Never" | "IfNotPresent";
   options?: {
     maxConnections?: number;
@@ -268,7 +269,7 @@ export class Postgres {
   constructor(private metadata: ObjectMeta, private spec: PostgresSpec) {}
 
   get yaml() {
-    const additionalContainers: Container[] = [];
+    const additionalContainers: io.k8s.api.core.v1.Container[] = [];
     const commonReplicationOptions = this.spec.readReplicas
       ? {
           walLevel: "replica",
@@ -331,7 +332,7 @@ export class Postgres {
               ? [{ name: "postgres" }]
               : []),
           )
-          .map<Container>(database => ({
+          .map<io.k8s.api.core.v1.Container>(database => ({
             name: `pganalyze-${database.name}`,
             image: "quay.io/pganalyze/collector:v0.33.1",
             command: ["/usr/local/bin/gosu"],

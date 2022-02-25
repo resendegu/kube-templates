@@ -4,7 +4,7 @@
   "main": "index.js",
   "types": "index.d.ts",
   "scripts": {
-    "generate": "ts-node -T generate.ts",
+    "generate": "ts-node -T generate.ts && eslint --fix 'src/generated/**.ts'",
     "test": "ts-node -T tests/setup.ts && jest -w10",
     "eslint:fix": "eslint --fix '**/*.{t,j}s'",
     "eslint:check": "eslint '**/*.{t,j}s'"

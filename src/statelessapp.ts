@@ -1,8 +1,9 @@
 import { URL } from "url";
 
 import { Cron } from "./cron";
+import type { io } from "./generated/kubernetes";
 import { clone, env, generateYaml, parseMemory } from "./helpers";
-import type { ObjectMeta, Volume, VolumeMount } from "./kubernetes";
+import type { ObjectMeta } from "./kubernetes";
 import {
   Deployment,
   HorizontalPodAutoscaler,
@@ -180,9 +181,14 @@ export class StatelessApp {
 
         rule.http.paths.push({
           backend: {
-            serviceName: this.metadata.name,
-            servicePort: portSpec.port,
+            service: {
+              name: this.metadata.name,
+              port: {
+                number: portSpec.port,
+              },
+            },
           },
+          pathType: "Prefix",
           path:
             pathname === "/"
               ? portSpec.ingressClass === "alb"
@@ -284,8 +290,8 @@ export class StatelessApp {
       }
     }
 
-    const volumes: Volume[] = [];
-    const volumeMounts: VolumeMount[] = [];
+    const volumes: io.k8s.api.core.v1.Volume[] = [];
+    const volumeMounts: io.k8s.api.core.v1.VolumeMount[] = [];
 
     for (const volume of this.spec.volumes ?? []) {
       const name = `vol-${volume.mountPath.replace(/[^a-zA-Z0-9]/gu, "")}`;

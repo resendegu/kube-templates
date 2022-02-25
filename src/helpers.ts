@@ -59,8 +59,8 @@ export function configFactory<T extends Record<string, string | undefined>>(
 
 export const env = configFactory(process.env, "Environment variable");
 
-export function clone(obj: any): any {
-  return JSON.parse(JSON.stringify(obj));
+export function clone<T>(obj: T): T {
+  return JSON.parse(JSON.stringify(obj)) as T;
 }
 
 export function parseMemory(memory: string | number) {

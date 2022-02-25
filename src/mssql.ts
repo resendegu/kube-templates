@@ -1,5 +1,6 @@
+import type { io } from "./generated/kubernetes";
 import { generateYaml } from "./helpers";
-import type { Container, ObjectMeta } from "./kubernetes";
+import type { ObjectMeta } from "./kubernetes";
 import { Service, StatefulSet } from "./kubernetes";
 
 interface MSSQLSpec {
@@ -19,7 +20,7 @@ interface MSSQLSpec {
   };
   memory: string | number;
   sysAdminPassword: string;
-  initContainers?: Container[];
+  initContainers?: io.k8s.api.core.v1.Container[];
 }
 
 export class MSSQL {

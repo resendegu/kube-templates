@@ -1,5 +1,6 @@
+import type { io } from "./generated/kubernetes";
 import { env, generateYaml } from "./helpers";
-import type { ObjectMeta, Volume, VolumeMount } from "./kubernetes";
+import type { ObjectMeta } from "./kubernetes";
 import { CronJob } from "./kubernetes";
 
 interface CronSpec {
@@ -36,8 +37,8 @@ export class Cron {
   constructor(private metadata: ObjectMeta, private spec: CronSpec) {}
 
   get yaml() {
-    const volumes: Volume[] = [];
-    const volumeMounts: VolumeMount[] = [];
+    const volumes: io.k8s.api.core.v1.Volume[] = [];
+    const volumeMounts: io.k8s.api.core.v1.VolumeMount[] = [];
 
     for (const volume of this.spec.volumes ?? []) {
       const name = `vol-${volume.mountPath.replace(/[^a-zA-Z0-9]/gu, "")}`;

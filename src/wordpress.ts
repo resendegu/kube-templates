@@ -250,9 +250,14 @@ export class WordPress {
                       paths: [
                         {
                           path: url.pathname,
+                          pathType: "Prefix",
                           backend: {
-                            serviceName: this.metadata.name,
-                            servicePort: 80,
+                            service: {
+                              name: this.metadata.name,
+                              port: {
+                                number: 80,
+                              },
+                            },
                           },
                         },
                       ],
