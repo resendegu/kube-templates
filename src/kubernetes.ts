@@ -1,4 +1,4 @@
-import { generateYaml } from "./helpers";
+import { clone, generateYaml } from "./helpers";
 
 export interface BasicObjectMeta {
   annotations?: {
@@ -516,14 +516,33 @@ export interface IngressSpec {
   tls?: IngressTLS[];
 }
 
+export interface IngressV1Spec {
+  defaultBackend?: IngressV1Backend;
+  ingressClassName?: string;
+  rules?: IngressV1Rule[];
+  tls?: IngressTLS[];
+}
+
 export interface IngressBackend {
   serviceName: string;
   servicePort: number;
 }
 
+export interface IngressV1Backend {
+  service: {
+    name: string;
+    port: { name: string } | { number: number };
+  };
+}
+
 export interface IngressRule {
   host: string;
   http?: HTTPIngressRuleValue;
+}
+
+export interface IngressV1Rule {
+  host: string;
+  http?: HTTPIngressV1RuleValue;
 }
 
 export interface IngressTLS {
@@ -535,9 +554,18 @@ export interface HTTPIngressRuleValue {
   paths: HTTPIngressPath[];
 }
 
+export interface HTTPIngressV1RuleValue {
+  paths: HTTPIngressV1Path[];
+}
 export interface HTTPIngressPath {
   backend: IngressBackend;
   path: string;
+}
+
+export interface HTTPIngressV1Path {
+  backend: IngressV1Backend;
+  path: string;
+  pathType: "Exact" | "Prefix";
 }
 
 export interface HorizontalPodAutoscalerSpec {
@@ -744,12 +772,48 @@ export class Ingress {
   constructor(public metadata: ObjectMeta, public spec: IngressSpec) {}
 
   get yaml() {
+    let spec: IngressSpec | IngressV1Spec = clone(this.spec);
+
+    if (process.env.FF_KUBE_TEMPLATES_INGRESS_V1) {
+      spec = {
+        ingressClassName:
+          // eslint-disable-next-line
+          this.metadata.annotations?.["kubernetes.io/ingress-class"] ||
+          undefined,
+        tls: spec.tls,
+        rules: spec.rules?.map(rule => ({
+          host: rule.host,
+          http: rule.http
+            ? {
+                paths: rule.http.paths.map(
+                  path =>
+                    ({
+                      backend: {
+                        service: {
+                          name: path.backend.serviceName,
+                          port: {
+                            number: path.backend.servicePort,
+                          },
+                        },
+                      },
+                      path: path.path,
+                      pathType: "Prefix",
+                    } as HTTPIngressV1Path),
+                ),
+              }
+            : undefined,
+        })),
+      } as IngressV1Spec;
+    }
+
     return generateYaml([
       {
-        apiVersion: "networking.k8s.io/v1beta1",
+        apiVersion: process.env.FF_KUBE_TEMPLATES_INGRESS_V1
+          ? "networking.k8s.io/v1"
+          : "networking.k8s.io/v1beta1",
         kind: "Ingress",
         metadata: this.metadata,
-        spec: this.spec,
+        spec,
       },
     ]);
   }
