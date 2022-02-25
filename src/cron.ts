@@ -138,14 +138,14 @@ export class Cron {
                           : {
                               name,
                               value: `${value}`,
-                            }
+                            },
                       ),
-                      ...(this.spec.forwardEnvs ?? []).map((key) => ({
+                      ...(this.spec.forwardEnvs ?? []).map(key => ({
                         name: key,
                         value: env[key],
                       })),
                     ],
-                    envFrom: (this.spec.secretEnvs ?? []).map((name) => ({
+                    envFrom: (this.spec.secretEnvs ?? []).map(name => ({
                       secretRef: {
                         name,
                       },

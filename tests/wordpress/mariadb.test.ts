@@ -11,7 +11,7 @@ describe("WordPress + MariaDB", () => {
     apply(
       new Namespace({
         name: namespace,
-      })
+      }),
     );
   });
 
@@ -34,8 +34,8 @@ describe("WordPress + MariaDB", () => {
           memory: "128Mi",
           version: "10.5",
           rootPassword: "admin",
-        }
-      )
+        },
+      ),
     );
 
     waitPodReady(namespace, "mariadb-0");
@@ -64,8 +64,8 @@ describe("WordPress + MariaDB", () => {
           ingress: {
             publicUrl: "http://127.0.0.1.nip.io/",
           },
-        }
-      )
+        },
+      ),
     );
 
     waitPodReady(namespace, "wordpress-0");
@@ -73,7 +73,7 @@ describe("WordPress + MariaDB", () => {
     const [axios, close] = getAxiosClient(namespace, "wordpress-0", 80);
 
     expect((await axios.get("/")).data).toMatch(
-      /WordPress &rsaquo; Installation/u
+      /WordPress &rsaquo; Installation/u,
     );
 
     close();

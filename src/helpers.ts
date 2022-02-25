@@ -28,7 +28,7 @@ function stripUndefinedProperties(obj: any): any {
 
 export function generateYaml(objects: any[]) {
   return objects
-    .map((obj) => {
+    .map(obj => {
       if ("yaml" in obj) {
         return obj.yaml;
       }
@@ -44,7 +44,7 @@ export function generateYaml(objects: any[]) {
 
 export function configFactory<T extends Record<string, string | undefined>>(
   obj: T,
-  name: string
+  name: string,
 ) {
   return new Proxy(obj, {
     get: (configObj, prop) => {
@@ -70,8 +70,8 @@ export function parseMemory(memory: string | number) {
 
   const str = memory
     .replace(/\s/gu, "")
-    .replace(/e\d+$/u, (n) =>
-      new Array(parseInt(n.slice(1), 10)).fill("0").join("")
+    .replace(/e\d+$/u, n =>
+      new Array(parseInt(n.slice(1), 10)).fill("0").join(""),
     );
 
   let i = 0;

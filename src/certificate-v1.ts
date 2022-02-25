@@ -13,7 +13,7 @@ interface CertificateV1Spec {
 export class CertificateV1 {
   constructor(
     private metadata: Omit<ObjectMeta, "name"> & { name?: string },
-    private spec: CertificateV1Spec
+    private spec: CertificateV1Spec,
   ) {}
 
   get yaml() {
@@ -57,7 +57,7 @@ export class CertificateV1 {
             name: this.spec.issuer ?? "letsencrypt-dns",
             kind: "ClusterIssuer",
           },
-        }
+        },
       ),
     ]);
   }

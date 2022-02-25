@@ -39,7 +39,7 @@ export class WordPress {
       : null;
     const maxUploadSize = this.spec.ingress.maxBodySize
       ? `${Math.ceil(
-          parseMemory(this.spec.ingress.maxBodySize) / 1024 / 1024
+          parseMemory(this.spec.ingress.maxBodySize) / 1024 / 1024,
         )}M`
       : "2M";
     const postMaxSize = this.spec.ingress.maxBodySize
@@ -65,7 +65,7 @@ export class WordPress {
               port: 80,
             },
           ],
-        }
+        },
       ),
 
       new StatefulSet(this.metadata, {
@@ -259,7 +259,7 @@ export class WordPress {
                     },
                   },
                 ],
-              }
+              },
             ),
           ]
         : []),

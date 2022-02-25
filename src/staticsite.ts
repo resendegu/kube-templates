@@ -43,7 +43,7 @@ export class StaticSite {
         {
           type: "ExternalName",
           externalName: providerEndpoint,
-        }
+        },
       ),
 
       new Ingress(
@@ -87,7 +87,7 @@ export class StaticSite {
               },
             },
           ],
-        }
+        },
       ),
     ]);
   }

@@ -212,13 +212,13 @@ export type Volume = {
         secretName: string;
       };
     }
-  // | {
-  //     storageos: StorageOSVolumeSource;
-  //   }
-  // | {
-  //     vsphereVolume: VsphereVirtualDiskVolumeSource;
-  //   }
 );
+// | {
+//     storageos: StorageOSVolumeSource;
+//   }
+// | {
+//     vsphereVolume: VsphereVirtualDiskVolumeSource;
+//   }
 
 export interface Affinity {
   nodeAffinity?: NodeAffinity;
@@ -680,7 +680,7 @@ export interface NetworkPolicyPort {
 export class Namespace {
   constructor(
     public metadata: NonNamespacedObjectMeta,
-    public spec?: NamespaceSpec
+    public spec?: NamespaceSpec,
   ) {}
 
   get yaml() {
@@ -758,7 +758,7 @@ export class Ingress {
 export class HorizontalPodAutoscaler {
   constructor(
     public metadata: ObjectMeta,
-    public spec: HorizontalPodAutoscalerSpec
+    public spec: HorizontalPodAutoscalerSpec,
   ) {}
 
   get yaml() {
@@ -777,7 +777,7 @@ export class Secret {
   constructor(
     public metadata: ObjectMeta,
     public data?: { [key: string]: string | Buffer },
-    public type?: string
+    public type?: string,
   ) {}
 
   get yaml() {
@@ -816,7 +816,7 @@ export class Secret {
 export class ConfigMap {
   constructor(
     public metadata: ObjectMeta,
-    public data?: { [key: string]: string }
+    public data?: { [key: string]: string },
   ) {}
 
   get yaml() {
@@ -849,7 +849,7 @@ export class CronJob {
 export class PodDisruptionBudget {
   constructor(
     public metadata: ObjectMeta,
-    public spec: PodDisruptionBudgetSpec
+    public spec: PodDisruptionBudgetSpec,
   ) {}
 
   get yaml() {
@@ -867,7 +867,7 @@ export class PodDisruptionBudget {
 export class Job {
   constructor(
     public metadata: ObjectMeta,
-    public spec: Omit<JobSpec, "selector">
+    public spec: Omit<JobSpec, "selector">,
   ) {}
 
   get yaml() {
@@ -885,7 +885,7 @@ export class Job {
 export class PersistentVolumeClaim {
   constructor(
     public metadata: ObjectMeta,
-    public spec: PersistentVolumeClaimSpec
+    public spec: PersistentVolumeClaimSpec,
   ) {}
 
   get yaml() {

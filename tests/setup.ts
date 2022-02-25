@@ -45,7 +45,7 @@ if (process.env.CI) {
 
   writeFileSync(
     ".test-kubeconfig",
-    kubeconfig.replace(/127\.0\.0\.1:\d+/gu, `${masterIp}:6443`)
+    kubeconfig.replace(/127\.0\.0\.1:\d+/gu, `${masterIp}:6443`),
   );
 } else {
   if (!clusters.includes(clusterName)) {
@@ -55,7 +55,7 @@ if (process.env.CI) {
 
   writeFileSync(
     ".test-kubeconfig",
-    kind("get", "kubeconfig", "--name", clusterName)
+    kind("get", "kubeconfig", "--name", clusterName),
   );
 }
 
@@ -63,7 +63,7 @@ const storageClasses = kubectl("get", "storageclasses");
 const storageClassesToCreate = ["ssd-regional", "ssd"];
 const base = JSON.parse(
   storageClasses.items.find((x: any) => x.metadata.name === "standard").metadata
-    .annotations["kubectl.kubernetes.io/last-applied-configuration"]
+    .annotations["kubectl.kubernetes.io/last-applied-configuration"],
 );
 
 delete base.metadata.annotations["storageclass.kubernetes.io/is-default-class"];

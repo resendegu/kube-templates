@@ -95,7 +95,7 @@ export function waitJobComplete(namespace: string, job: string, timeout = 60) {
 export function portForward(
   namespace: string,
   pod: string,
-  containerPort: number
+  containerPort: number,
 ) {
   const port = 63317 + parseInt(process.env.JEST_WORKER_ID!, 10);
   const proc = spawn("kubectl", [
@@ -111,15 +111,15 @@ export function portForward(
   let stderr = "";
   let exitCode: number | null = null;
 
-  proc.stdout.on("data", (data) => {
+  proc.stdout.on("data", data => {
     stdout += data;
   });
 
-  proc.stderr.on("data", (data) => {
+  proc.stderr.on("data", data => {
     stderr += data;
   });
 
-  proc.addListener("exit", (code) => {
+  proc.addListener("exit", code => {
     exitCode = code;
   });
 

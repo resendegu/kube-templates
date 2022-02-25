@@ -10,7 +10,7 @@ describe("postgres", () => {
     apply(
       new Namespace({
         name: namespace,
-      })
+      }),
     );
   });
 
@@ -32,26 +32,26 @@ describe("postgres", () => {
           },
           memory: "64Mi",
           version: "11.0",
-        }
-      )
+        },
+      ),
     );
 
     waitPodReady(namespace, "postgres-0");
 
     expect(
       (await queryPostgres(namespace, "postgres-0", "SELECT version()"))[0]
-        .version
+        .version,
     ).toMatch(/PostgreSQL 11.0/u);
 
     await queryPostgres(
       namespace,
       "postgres-0",
-      "CREATE TABLE foo (value INT)"
+      "CREATE TABLE foo (value INT)",
     );
     await queryPostgres(
       namespace,
       "postgres-0",
-      "INSERT INTO foo VALUES (354687)"
+      "INSERT INTO foo VALUES (354687)",
     );
 
     apply(
@@ -67,19 +67,19 @@ describe("postgres", () => {
           },
           memory: "64Mi",
           version: "11.7",
-        }
-      )
+        },
+      ),
     );
 
     waitPodReady(namespace, "postgres-0");
 
     expect(
       (await queryPostgres(namespace, "postgres-0", "SELECT version()"))[0]
-        .version
+        .version,
     ).toMatch(/PostgreSQL 11.7/u);
 
     expect(
-      await queryPostgres(namespace, "postgres-0", "SELECT * FROM foo")
+      await queryPostgres(namespace, "postgres-0", "SELECT * FROM foo"),
     ).toEqual([{ value: 354687 }]);
   });
 });

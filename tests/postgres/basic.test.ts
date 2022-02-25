@@ -10,7 +10,7 @@ describe("postgres", () => {
     apply(
       new Namespace({
         name: namespace,
-      })
+      }),
     );
   });
 
@@ -32,14 +32,14 @@ describe("postgres", () => {
           },
           memory: "64Mi",
           version: "12",
-        }
-      )
+        },
+      ),
     );
 
     waitPodReady(namespace, "postgres-0");
 
     expect(
-      await queryPostgres(namespace, "postgres-0", "SELECT true AS ok")
+      await queryPostgres(namespace, "postgres-0", "SELECT true AS ok"),
     ).toEqual([
       {
         ok: true,

@@ -51,7 +51,7 @@ export class Cockroach {
                 ...this.metadata,
                 name: `${this.metadata.name}-certs`,
               },
-              { ...this.spec.certs }
+              { ...this.spec.certs },
             ),
           ]
         : []),
@@ -79,7 +79,7 @@ export class Cockroach {
               targetPort: 8080,
             },
           ],
-        }
+        },
       ),
       new Service(
         {
@@ -112,7 +112,7 @@ export class Cockroach {
           ],
           publishNotReadyAddresses: true,
           clusterIP: "None",
-        }
+        },
       ),
       new PodDisruptionBudget(
         {
@@ -129,7 +129,7 @@ export class Cockroach {
             },
           },
           maxUnavailable: 1,
-        }
+        },
       ),
       new StatefulSet(this.metadata, {
         serviceName: this.metadata.name,
@@ -254,7 +254,7 @@ export class Cockroach {
                       : "$(hostname -f)"
                   } --http-addr 0.0.0.0 --join ${_.range(this.spec.replicas)
                     .map(
-                      (i) => `${this.metadata.name}-${i}.${this.metadata.name}`
+                      i => `${this.metadata.name}-${i}.${this.metadata.name}`,
                     )
                     .join(",")} --cache $(expr $MEMORY_LIMIT_MIB / 4)MiB`,
                 ],
@@ -362,7 +362,7 @@ export class Cockroach {
               restartPolicy: "OnFailure",
             },
           },
-        }
+        },
       ),
     ]);
   }

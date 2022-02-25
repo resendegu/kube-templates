@@ -16,7 +16,7 @@ describe("CockroachDB", () => {
     apply(
       new Namespace({
         name: namespace,
-      })
+      }),
     );
   });
 
@@ -39,15 +39,15 @@ describe("CockroachDB", () => {
           memory: "64Mi",
           version: "20.2.3",
           replicas: 1,
-        }
-      )
+        },
+      ),
     );
 
     waitPodReady(namespace, "cockroachdb-0");
     waitJobComplete(namespace, "cluster-init");
 
     expect(
-      await queryCockroach(namespace, "svc/cockroachdb", "SELECT true AS ok")
+      await queryCockroach(namespace, "svc/cockroachdb", "SELECT true AS ok"),
     ).toEqual([
       {
         ok: true,
@@ -70,8 +70,8 @@ describe("CockroachDB", () => {
           memory: "64Mi",
           version: "20.2.3",
           replicas: 3,
-        }
-      )
+        },
+      ),
     );
 
     waitPodReady(namespace, "cockroachdb2-0");
@@ -80,7 +80,7 @@ describe("CockroachDB", () => {
     waitJobComplete(namespace, "cockroachdb2-cluster-init");
 
     expect(
-      await queryCockroach(namespace, "svc/cockroachdb2", "SELECT true AS ok")
+      await queryCockroach(namespace, "svc/cockroachdb2", "SELECT true AS ok"),
     ).toEqual([
       {
         ok: true,
