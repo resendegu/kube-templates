@@ -9,7 +9,7 @@ export interface BasicObjectMeta {
   };
 }
 
-interface NonNamespacedObjectMeta extends BasicObjectMeta {
+export interface NonNamespacedObjectMeta extends BasicObjectMeta {
   name: string;
 }
 
@@ -17,7 +17,7 @@ export interface ObjectMeta extends NonNamespacedObjectMeta {
   namespace: string;
 }
 
-interface DeploymentSpec {
+export interface DeploymentSpec {
   minReadySeconds?: number;
   paused?: boolean;
   progressDeadlineSeconds?: number;
@@ -28,30 +28,30 @@ interface DeploymentSpec {
   template: PodTemplateSpec;
 }
 
-interface LabelSelector {
+export interface LabelSelector {
   matchExpressions?: LabelSelectorRequirement[];
   matchLabels?: {
     [label: string]: string;
   };
 }
 
-interface LabelSelectorRequirement {
+export interface LabelSelectorRequirement {
   key: string;
   operator: "In" | "NotIn" | "Exists" | "DoesNotExist";
   values: string[];
 }
 
-interface DeploymentStrategy {
+export interface DeploymentStrategy {
   maxSurge?: number | string;
   maxUnavailable?: number | string;
 }
 
-interface PodTemplateSpec {
-  metadata: BasicObjectMeta;
+export interface PodTemplateSpec {
+  metadata?: BasicObjectMeta;
   spec: PodSpec;
 }
 
-interface PodSpec {
+export interface PodSpec {
   activeDeadlineSeconds?: number;
   affinity?: Affinity;
   automountServiceAccountToken?: boolean;
@@ -78,28 +78,39 @@ interface PodSpec {
   restartPolicy?: "Always" | "OnFailure" | "Never";
   runtimeClassName?: string;
   schedulerName?: string;
-  // securityContext?: PodSecurityContext
+  securityContext?: PodSecurityContext;
   serviceAccountName?: string;
   shareProcessNamespace?: boolean;
   subdomain?: string;
   terminationGracePeriodSeconds?: number;
-  tolerations?: Toleration[]
+  tolerations?: Toleration[];
   // topologySpreadConstraints?: TopologySpreadConstraint[]
   volumes?: Volume[];
 }
 
-interface Toleration {
-  effect: string
-  key: string
-  operator?: "Exists" | "Equal"
-  tolerationSeconds?: number
-  value?: string
+export interface PodDisruptionBudgetSpec {
+  selector: LabelSelector;
+  maxUnavailable: number;
 }
 
-type Volume = {
+export interface Toleration {
+  effect: string;
+  key: string;
+  operator?: "Exists" | "Equal";
+  tolerationSeconds?: number;
+  value?: string;
+}
+
+interface KeyToPath {
+  key: string;
+  path: string;
+  mode?: string;
+}
+
+export type Volume = {
   name: string;
 } & (
-  // | {
+  | // | {
   //     awsElasticBlockStore: AWSElasticBlockStoreVolumeSource;
   //   }
   // | {
@@ -114,9 +125,14 @@ type Volume = {
   // | {
   //     cinder: CinderVolumeSource;
   //   }
-  // | {
-  //     configMap: ConfigMapVolumeSource;
-  //   }
+  {
+      configMap: {
+        defaultMode?: number;
+        items?: KeyToPath[];
+        name: string;
+        optional?: boolean;
+      };
+    }
   // | {
   //     downwardAPI: DownwardAPIVolumeSource;
   //   }
@@ -144,9 +160,20 @@ type Volume = {
   // | {
   //     glusterfs: GlusterfsVolumeSource;
   //   }
-  // | {
-  //     hostPath: HostPathVolumeSource;
-  //   }
+  | {
+      hostPath: {
+        path: string;
+        type?:
+          | ""
+          | "DirectoryOrCreate"
+          | "Directory"
+          | "FileOrCreate"
+          | "File"
+          | "Socket"
+          | "CharDevice"
+          | "BlockDevice";
+      };
+    }
   // | {
   //     iscsi: ISCSIVolumeSource;
   //   }
@@ -155,8 +182,8 @@ type Volume = {
   //   }
   | {
       persistentVolumeClaim: {
-        claimName: string
-        readonly?: boolean
+        claimName: string;
+        readonly?: boolean;
       };
     }
   // | {
@@ -177,9 +204,14 @@ type Volume = {
   // | {
   //     scaleIO: ScaleIOVolumeSource;
   //   }
-  // | {
-  //     secret: SecretVolumeSource;
-  //   }
+  | {
+      secret: {
+        defaultMode?: number;
+        items?: KeyToPath[];
+        optional?: boolean;
+        secretName: string;
+      };
+    }
   // | {
   //     storageos: StorageOSVolumeSource;
   //   }
@@ -188,63 +220,124 @@ type Volume = {
   //   }
 );
 
-interface Affinity {
+export interface Affinity {
   nodeAffinity?: NodeAffinity;
   podAffinity?: PodAffinity;
   podAntiAffinity?: PodAntiAffinity;
 }
 
-interface NodeAffinity {
+export interface NodeAffinity {
   preferredDuringSchedulingIgnoredDuringExecution?: PreferredSchedulingTerm[];
   requiredDuringSchedulingIgnoredDuringExecution?: NodeSelector;
 }
 
-interface PodAffinity {
+export interface PodAffinity {
   preferredDuringSchedulingIgnoredDuringExecution?: WeightedPodAffinityTerm[];
   requiredDuringSchedulingIgnoredDuringExecution?: PodAffinityTerm[];
 }
 
-interface PodAntiAffinity {
+export interface PodAntiAffinity {
   preferredDuringSchedulingIgnoredDuringExecution?: WeightedPodAffinityTerm[];
   requiredDuringSchedulingIgnoredDuringExecution?: PodAffinityTerm[];
 }
 
-interface NodeSelector {
+export interface NodeSelector {
   nodeSelectorTerms?: NodeSelectorTerm[];
 }
 
-interface PreferredSchedulingTerm {
+export interface PreferredSchedulingTerm {
   preference?: NodeSelectorTerm;
   weight: number;
 }
 
-interface WeightedPodAffinityTerm {
+export interface WeightedPodAffinityTerm {
   podAffinityTerm?: PodAffinityTerm;
   weight: number;
 }
 
-interface PodAffinityTerm {
+export interface PodAffinityTerm {
   labelSelector?: LabelSelector;
-  namespaces: string[];
+  namespaces?: string[];
   topologyKey: string;
 }
 
-interface NodeSelectorTerm {
+export interface NodeSelectorTerm {
   matchExpressions?: NodeSelectorRequirement[];
   matchFields?: NodeSelectorRequirement[];
 }
 
-interface NodeSelectorRequirement {
+export interface NodeSelectorRequirement {
   key: string;
   operator: "In" | "NotIn" | "Exists" | "DoesNotExist" | "Gt" | "Lt";
   values: string[];
 }
 
-interface Container {
+export interface SecretEnvSource {
+  name: string;
+  optional?: boolean;
+}
+
+export interface ConfigMapEnvSource {
+  name: string;
+  optional?: boolean;
+}
+
+export interface EnvFromSource {
+  configMapRef?: ConfigMapEnvSource;
+  prefix?: string;
+  secretRef?: SecretEnvSource;
+}
+
+export interface SELinuxOptions {
+  user?: string;
+  role?: string;
+  type?: string;
+  level?: string;
+}
+
+export interface WindowsSecurityContextOptions {
+  gmsaCredentialSpec?: string;
+  gmsaCredentialSpecName?: string;
+  hostProcess?: boolean;
+  runAsUserName?: string;
+}
+
+export interface SecurityContext {
+  allowPrivilegeEscalation?: boolean;
+  capabilities?: {
+    add?: string[];
+    drop?: string[];
+  };
+  privileged?: boolean;
+  procMount?: "Default" | "Unmasked";
+  readOnlyRootFilesystem?: boolean;
+  runAsGroup?: number;
+  runAsNonRoot?: boolean;
+  runAsUser?: number;
+  seLinuxOptions?: SELinuxOptions;
+  seccompProfile?: {
+    localhostProfile?: string;
+    type?: "Unconfined" | "Localhost" | "RuntimeDefault";
+  };
+  windowsOptions?: WindowsSecurityContextOptions;
+}
+
+export interface PodSecurityContext {
+  fsGroup?: number;
+  runAsGroup?: number;
+  runAsNonRoot?: boolean;
+  runAsUser?: number;
+  seLinuxOptions?: SELinuxOptions;
+  supplementalGroups?: number[];
+  sysctls?: Array<{ name: string; value: string }>;
+  windowsOptions?: WindowsSecurityContextOptions;
+}
+
+export interface Container {
   args?: string[];
   command?: string[];
   env?: EnvVar[];
-  // envFrom?: EnvFromSource[]
+  envFrom?: EnvFromSource[];
   image: string;
   imagePullPolicy?: "Always" | "Never" | "IfNotPresent";
   // lifecycle?: Lifecycle
@@ -262,7 +355,7 @@ interface Container {
       cpu?: string | number;
     };
   };
-  // securityContext?: SecurityContext
+  securityContext?: SecurityContext;
   startupProbe?: Probe;
   stdin?: boolean;
   stdinOnce?: boolean;
@@ -270,16 +363,16 @@ interface Container {
   terminationMessagePolicy?: string;
   tty?: boolean;
   // volumeDevices?: VolumeDevice[]
-  volumeMounts?: VolumeMount[]
+  volumeMounts?: VolumeMount[];
   workingDir?: string;
 }
 
-interface VolumeMount {
-  mountPath: string
-  mountPropagation?: string
-  name: string
-  readOnly?: boolean
-  subPath?: string
+export interface VolumeMount {
+  mountPath: string;
+  mountPropagation?: string;
+  name: string;
+  readOnly?: boolean;
+  subPath?: string;
 }
 
 type Probe = (
@@ -300,16 +393,16 @@ type Probe = (
   timeoutSeconds?: number;
 };
 
-interface ExecAction {
+export interface ExecAction {
   command: string[];
 }
 
-interface TCPSocketAction {
+export interface TCPSocketAction {
   host?: string;
   port: number;
 }
 
-interface HTTPGetAction {
+export interface HTTPGetAction {
   host?: string;
   httpHeaders?: HTTPHeader[];
   path: string;
@@ -317,12 +410,12 @@ interface HTTPGetAction {
   scheme?: "HTTP" | "HTTPS";
 }
 
-interface HTTPHeader {
+export interface HTTPHeader {
   name: string;
   value: string;
 }
 
-interface ContainerPort {
+export interface ContainerPort {
   containerPort: number;
   hostIP?: string;
   hostPort?: number;
@@ -332,12 +425,12 @@ interface ContainerPort {
 
 type EnvVar = EnvVarWithValue | EnvVarWithFrom;
 
-interface EnvVarWithValue {
+export interface EnvVarWithValue {
   name: string;
   value: string;
 }
 
-interface EnvVarWithFrom {
+export interface EnvVarWithFrom {
   name: string;
   valueFrom: EnvVarSource;
 }
@@ -356,34 +449,34 @@ type EnvVarSource =
       secretKeyRef: SecretKeySelector;
     };
 
-interface ConfigMapKeySelector {
+export interface ConfigMapKeySelector {
   key: string;
   name: string;
   optional?: boolean;
 }
 
-interface SecretKeySelector {
+export interface SecretKeySelector {
   key: string;
   name: string;
   optional?: boolean;
 }
 
-interface ObjectFieldSelector {
+export interface ObjectFieldSelector {
   apiVersion?: string;
   fieldPath: string;
 }
 
-interface ResourceFieldSelector {
+export interface ResourceFieldSelector {
   containerName?: string;
   divisor?: number | string;
   resource: string;
 }
 
-interface LocalObjectReference {
+export interface LocalObjectReference {
   name: string;
 }
 
-interface ServiceSpec {
+export interface ServiceSpec {
   clusterIP?: string;
   externalIPs?: string[];
   externalName?: string;
@@ -401,15 +494,15 @@ interface ServiceSpec {
   type?: "ExternalName" | "ClusterIP" | "NodePort" | "LoadBalancer";
 }
 
-interface SessionAffinityConfig {
+export interface SessionAffinityConfig {
   clientIP: ClientIPConfig;
 }
 
-interface ClientIPConfig {
+export interface ClientIPConfig {
   timeoutSeconds: number;
 }
 
-interface ServicePort {
+export interface ServicePort {
   name: string;
   nodePort?: number;
   port: number;
@@ -417,50 +510,50 @@ interface ServicePort {
   targetPort?: number;
 }
 
-interface IngressSpec {
+export interface IngressSpec {
   backend?: IngressBackend;
   rules?: IngressRule[];
   tls?: IngressTLS[];
 }
 
-interface IngressBackend {
+export interface IngressBackend {
   serviceName: string;
   servicePort: number;
 }
 
-interface IngressRule {
+export interface IngressRule {
   host: string;
-  http: HTTPIngressRuleValue;
+  http?: HTTPIngressRuleValue;
 }
 
-interface IngressTLS {
+export interface IngressTLS {
   hosts?: string[];
   secretName: string;
 }
 
-interface HTTPIngressRuleValue {
+export interface HTTPIngressRuleValue {
   paths: HTTPIngressPath[];
 }
 
-interface HTTPIngressPath {
+export interface HTTPIngressPath {
   backend: IngressBackend;
   path: string;
 }
 
-interface HorizontalPodAutoscalerSpec {
+export interface HorizontalPodAutoscalerSpec {
   maxReplicas: number;
   minReplicas: number;
   scaleTargetRef: CrossVersionObjectReference;
   targetCPUUtilizationPercentage: number;
 }
 
-interface CrossVersionObjectReference {
+export interface CrossVersionObjectReference {
   apiVersion: string;
   kind: string;
   name: string;
 }
 
-interface StatefulSetSpec {
+export interface StatefulSetSpec {
   podManagementPolicy?: "OrderedReady" | "Parallel";
   replicas?: number;
   revisionHistoryLimit?: number;
@@ -468,23 +561,23 @@ interface StatefulSetSpec {
   serviceName: string;
   template: PodTemplateSpec;
   updateStrategy?: StatefulSetUpdateStrategy;
-  volumeClaimTemplates: {
+  volumeClaimTemplates: Array<{
     metadata: NonNamespacedObjectMeta;
     spec: PersistentVolumeClaimSpec;
-  }[];
+  }>;
 }
 
-interface StatefulSetUpdateStrategy {
-  rollingUpdate: RollingUpdateStatefulSetStrategy;
+export interface StatefulSetUpdateStrategy {
+  rollingUpdate?: RollingUpdateStatefulSetStrategy;
   type: "RollingUpdate";
 }
 
-interface RollingUpdateStatefulSetStrategy {
+export interface RollingUpdateStatefulSetStrategy {
   partition: number;
 }
 
-interface PersistentVolumeClaimSpec {
-  accessModes: ("ReadWriteOnce" | "ReadOnlyMany" | "ReadWriteMany")[];
+export interface PersistentVolumeClaimSpec {
+  accessModes: Array<"ReadWriteOnce" | "ReadOnlyMany" | "ReadWriteMany">;
   dataSource?: TypedLocalObjectReference;
   resources: {
     requests: {
@@ -497,13 +590,13 @@ interface PersistentVolumeClaimSpec {
   volumeName?: string;
 }
 
-interface TypedLocalObjectReference {
+export interface TypedLocalObjectReference {
   apiGroup: string;
   kind: string;
   name: string;
 }
 
-interface JobSpec {
+export interface JobSpec {
   activeDeadlineSeconds?: number;
   backoffLimit?: number;
   completions?: number;
@@ -514,12 +607,12 @@ interface JobSpec {
   ttlSecondsAfterFinished?: number;
 }
 
-interface JobTemplateSpec {
-  metadata: ObjectMeta;
-  spec: JobSpec;
+export interface JobTemplateSpec {
+  metadata?: ObjectMeta;
+  spec: Omit<JobSpec, "selector">;
 }
 
-interface CronJobSpec {
+export interface CronJobSpec {
   concurrencyPolicy?: "Allow" | "Forbid" | "Replace";
   failedJobsHistoryLimit?: number;
   jobTemplate: JobTemplateSpec;
@@ -527,6 +620,79 @@ interface CronJobSpec {
   startingDeadlineSeconds?: number;
   successfulJobsHistoryLimit?: number;
   suspend?: boolean;
+}
+
+export interface NamespaceSpec {
+  finalizers?: string[];
+}
+
+export interface DaemonSetSpec {
+  minReadySeconds?: number;
+  revisionHistoryLimit?: number;
+  selector: LabelSelector;
+  template: PodTemplateSpec;
+  updateStrategy?: DaemonSetUpdateStrategy;
+}
+
+type DaemonSetUpdateStrategy =
+  | {
+      rollingUpdate: RollingUpdateDaemonSet;
+      type: "RollingUpdate";
+    }
+  | { type: "OnDelete" };
+
+export interface RollingUpdateDaemonSet {
+  maxSurge: number;
+  maxUnavailable: number;
+}
+
+export interface NetworkPolicySpec {
+  egress?: NetworkPolicyEgressRule[];
+  ingress?: NetworkPolicyIngressRule[];
+  podSelector: LabelSelector;
+  policyTypes: Array<"Ingress" | "Egress">;
+}
+
+export interface NetworkPolicyEgressRule {
+  ports: NetworkPolicyPort[];
+  to: NetworkPolicyPeer[];
+}
+
+export interface NetworkPolicyIngressRule {
+  from: NetworkPolicyPeer[];
+  ports: NetworkPolicyPort[];
+}
+
+export interface NetworkPolicyPeer {
+  ipBlock?: {
+    cidr: string;
+    except: string[];
+  };
+  podSelector?: LabelSelector;
+  namespaceSelector?: LabelSelector;
+}
+
+export interface NetworkPolicyPort {
+  port: number;
+  protocol?: "TCP" | "UDP" | "SCTP";
+}
+
+export class Namespace {
+  constructor(
+    public metadata: NonNamespacedObjectMeta,
+    public spec?: NamespaceSpec
+  ) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "v1",
+        kind: "Namespace",
+        metadata: this.metadata,
+        spec: this.spec,
+      },
+    ]);
+  }
 }
 
 export class Deployment {
@@ -538,8 +704,8 @@ export class Deployment {
         apiVersion: "apps/v1",
         kind: "Deployment",
         metadata: this.metadata,
-        spec: this.spec
-      }
+        spec: this.spec,
+      },
     ]);
   }
 }
@@ -553,8 +719,8 @@ export class StatefulSet {
         apiVersion: "apps/v1",
         kind: "StatefulSet",
         metadata: this.metadata,
-        spec: this.spec
-      }
+        spec: this.spec,
+      },
     ]);
   }
 }
@@ -568,8 +734,8 @@ export class Service {
         apiVersion: "v1",
         kind: "Service",
         metadata: this.metadata,
-        spec: this.spec
-      }
+        spec: this.spec,
+      },
     ]);
   }
 }
@@ -583,8 +749,8 @@ export class Ingress {
         apiVersion: "networking.k8s.io/v1beta1",
         kind: "Ingress",
         metadata: this.metadata,
-        spec: this.spec
-      }
+        spec: this.spec,
+      },
     ]);
   }
 }
@@ -601,8 +767,8 @@ export class HorizontalPodAutoscaler {
         apiVersion: "autoscaling/v1",
         kind: "HorizontalPodAutoscaler",
         metadata: this.metadata,
-        spec: this.spec
-      }
+        spec: this.spec,
+      },
     ]);
   }
 }
@@ -610,16 +776,23 @@ export class HorizontalPodAutoscaler {
 export class Secret {
   constructor(
     public metadata: ObjectMeta,
-    public data?: { [key: string]: string | Buffer }
+    public data?: { [key: string]: string | Buffer },
+    public type?: string
   ) {}
 
   get yaml() {
-    let data: any = undefined;
+    let data: any;
     const targetData = this.data;
+
     if (targetData) {
       data = {};
       for (const key in targetData) {
+        if (!targetData.hasOwnProperty(key)) {
+          continue;
+        }
+
         let value = targetData[key];
+
         if (!(value instanceof Buffer)) {
           value = Buffer.from(value);
         }
@@ -627,13 +800,33 @@ export class Secret {
         data[key] = value.toString("base64");
       }
     }
+
     return generateYaml([
       {
         apiVersion: "v1",
-        data: data,
+        data,
         kind: "Secret",
-        metadata: this.metadata
-      }
+        metadata: this.metadata,
+        ...(this.type ? { type: this.type } : {}),
+      },
+    ]);
+  }
+}
+
+export class ConfigMap {
+  constructor(
+    public metadata: ObjectMeta,
+    public data?: { [key: string]: string }
+  ) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "v1",
+        data: this.data,
+        kind: "ConfigMap",
+        metadata: this.metadata,
+      },
     ]);
   }
 }
@@ -647,8 +840,92 @@ export class CronJob {
         apiVersion: "batch/v1beta1",
         kind: "CronJob",
         metadata: this.metadata,
-        spec: this.spec
-      }
+        spec: this.spec,
+      },
+    ]);
+  }
+}
+
+export class PodDisruptionBudget {
+  constructor(
+    public metadata: ObjectMeta,
+    public spec: PodDisruptionBudgetSpec
+  ) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "policy/v1beta1",
+        kind: "PodDisruptionBudget",
+        metadata: this.metadata,
+        spec: this.spec,
+      },
+    ]);
+  }
+}
+
+export class Job {
+  constructor(
+    public metadata: ObjectMeta,
+    public spec: Omit<JobSpec, "selector">
+  ) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "batch/v1",
+        kind: "Job",
+        metadata: this.metadata,
+        spec: this.spec,
+      },
+    ]);
+  }
+}
+
+export class PersistentVolumeClaim {
+  constructor(
+    public metadata: ObjectMeta,
+    public spec: PersistentVolumeClaimSpec
+  ) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "v1",
+        kind: "PersistentVolumeClaim",
+        metadata: this.metadata,
+        spec: this.spec,
+      },
+    ]);
+  }
+}
+
+export class DaemonSet {
+  constructor(public metadata: ObjectMeta, public spec: DaemonSetSpec) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "apps/v1",
+        kind: "DaemonSet",
+        metadata: this.metadata,
+        spec: this.spec,
+      },
+    ]);
+  }
+}
+
+export class NetworkPolicy {
+  constructor(public metadata: ObjectMeta, public spec: NetworkPolicySpec) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "networking.k8s.io/v1",
+        kind: "NetworkPolicy",
+        metadata: this.metadata,
+        spec: this.spec,
+      },
     ]);
   }
 }

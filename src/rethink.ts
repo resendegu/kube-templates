@@ -1,5 +1,6 @@
 import { generateYaml } from "./helpers";
-import { ObjectMeta, Service, StatefulSet } from "./kubernetes";
+import type { ObjectMeta } from "./kubernetes";
+import { Service, StatefulSet } from "./kubernetes";
 
 interface RethinkSpec {
   replicas?: number;
@@ -9,7 +10,9 @@ interface RethinkSpec {
     limit: string | number;
   };
   memory: string | number;
-  cacheMb?: number
+  cacheMb?: number;
+  storageClassName?: string;
+  imagePullPolicy?: "Always" | "Never" | "IfNotPresent";
 }
 
 export class Rethink {
@@ -19,57 +22,61 @@ export class Rethink {
     return generateYaml([
       new Service(this.metadata, {
         selector: {
-          app: this.metadata.name
+          app: this.metadata.name,
         },
         ports: [
           {
             name: "client",
-            port: 28015
+            port: 28015,
           },
           {
             name: "webui",
-            port: 8080
-          }
-        ]
-      }),
-      ...new Array(this.spec.replicas ?? 1).fill(0).map((_, idx) =>
-        new Service({
-          ...this.metadata,
-          name: `${this.metadata.name}-${idx}`
-        }, {
-          selector: {
-            app: this.metadata.name,
-            "statefulset.kubernetes.io/pod-name": `${this.metadata.name}-${idx}`
+            port: 8080,
           },
-          ports: [
+        ],
+      }),
+      ...new Array(this.spec.replicas ?? 1).fill(0).map(
+        (_, idx) =>
+          new Service(
             {
-              name: "cluster",
-              port: 29015
+              ...this.metadata,
+              name: `${this.metadata.name}-${idx}`,
             },
             {
-              name: "client",
-              port: 28015
-            },
-            {
-              name: "webui",
-              port: 8080
+              selector: {
+                app: this.metadata.name,
+                "statefulset.kubernetes.io/pod-name": `${this.metadata.name}-${idx}`,
+              },
+              ports: [
+                {
+                  name: "cluster",
+                  port: 29015,
+                },
+                {
+                  name: "client",
+                  port: 28015,
+                },
+                {
+                  name: "webui",
+                  port: 8080,
+                },
+              ],
             }
-          ]
-        })
+          )
       ),
       new StatefulSet(this.metadata, {
         serviceName: this.metadata.name,
         replicas: this.spec.replicas ?? 1,
         selector: {
           matchLabels: {
-            app: this.metadata.name
-          }
+            app: this.metadata.name,
+          },
         },
         template: {
           metadata: {
             labels: {
-              app: this.metadata.name
-            }
+              app: this.metadata.name,
+            },
           },
           spec: {
             automountServiceAccountToken: false,
@@ -77,103 +84,114 @@ export class Rethink {
               {
                 name: "create",
                 image: `rethinkdb:${this.spec.version}`,
-                imagePullPolicy: "Always",
+                imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
                 command: [
                   "bash",
                   "-ec",
-                  `rethinkdb create -d /data/rethinkdb --server-name ${this.metadata.namespace.toLowerCase().replace(/[^a-z]/gu, "_")}_$(hostname | cut -d- -f2) || true`
+                  `rethinkdb create -d /data/rethinkdb --server-name ${this.metadata.namespace
+                    .toLowerCase()
+                    .replace(
+                      /[^a-z]/gu,
+                      "_"
+                    )}_$(hostname | cut -d- -f2) || true`,
                 ],
                 volumeMounts: [
                   {
                     mountPath: "/data",
-                    name: "data"
-                  }
+                    name: "data",
+                  },
                 ],
-              }
+              },
             ],
             containers: [
               {
                 name: "rethinkdb",
                 image: `rethinkdb:${this.spec.version}`,
-                imagePullPolicy: "Always",
+                imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
                 command: [
                   "bash",
                   "-ec",
-                  `touch /data/rethinkdb/log_file; tail -f /data/rethinkdb/log_file & rethinkdb serve ` +
-                  `--bind all ` +
-                  (this.spec.cacheMb ? `--cache-size ${this.spec.cacheMb} ` : "") +
-                  `--directory /data/rethinkdb ` +
-                  `$(echo "--join ${this.metadata.name}-"{0..${(this.spec.replicas ?? 1) - 1}} | sed "s/--join $(hostname)//") ` +
-                  `--canonical-address $(hostname)`
+                  `${
+                    `touch /data/rethinkdb/log_file; tail -f /data/rethinkdb/log_file & rethinkdb serve ` +
+                    `--bind all `
+                  }${
+                    this.spec.cacheMb
+                      ? `--cache-size ${this.spec.cacheMb} `
+                      : ""
+                  }--directory /data/rethinkdb ` +
+                    `$(echo "--join ${this.metadata.name}-"{0..${
+                      (this.spec.replicas ?? 1) - 1
+                    }} | sed "s/--join $(hostname)//") ` +
+                    `--canonical-address $(hostname)`,
                 ],
                 ports: [
                   {
                     name: "cluster",
-                    containerPort: 29015
+                    containerPort: 29015,
                   },
                   {
                     name: "client",
-                    containerPort: 28015
+                    containerPort: 28015,
                   },
                   {
                     name: "webui",
-                    containerPort: 8080
-                  }
+                    containerPort: 8080,
+                  },
                 ],
                 volumeMounts: [
                   {
                     mountPath: "/data",
-                    name: "data"
-                  }
+                    name: "data",
+                  },
                 ],
                 resources: {
                   limits: {
                     cpu: this.spec.cpu.limit,
-                    memory: this.spec.memory
+                    memory: this.spec.memory,
                   },
                   requests: {
                     cpu: this.spec.cpu.request,
-                    memory: this.spec.memory
-                  }
+                    memory: this.spec.memory,
+                  },
                 },
                 readinessProbe: {
                   httpGet: {
                     path: "/",
-                    port: 8080
+                    port: 8080,
                   },
                   failureThreshold: 1,
-                  periodSeconds: 3
+                  periodSeconds: 3,
                 },
                 livenessProbe: {
                   httpGet: {
                     path: "/",
-                    port: 8080
+                    port: 8080,
                   },
                   failureThreshold: 2,
                   periodSeconds: 5,
-                  initialDelaySeconds: 10
-                }
-              }
-            ]
-          }
+                  initialDelaySeconds: 10,
+                },
+              },
+            ],
+          },
         },
         volumeClaimTemplates: [
           {
             metadata: {
-              name: "data"
+              name: "data",
             },
             spec: {
               accessModes: ["ReadWriteOnce"],
               resources: {
                 requests: {
-                  storage: "2Gi"
-                }
+                  storage: "2Gi",
+                },
               },
-              storageClassName: "ssd"
-            }
-          }
-        ]
-      })
+              storageClassName: this.spec.storageClassName ?? "ssd",
+            },
+          },
+        ],
+      }),
     ]);
   }
 }

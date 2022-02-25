@@ -1,52 +1,73 @@
 import { URL } from "url";
+
 import { generateYaml } from "./helpers";
-import { Ingress, ObjectMeta, Service } from "./kubernetes";
+import type { ObjectMeta } from "./kubernetes";
+import { Ingress, Service } from "./kubernetes";
 
 interface StaticSiteSpec {
+  provider?: "gcs" | "s3";
   publicUrl: string;
+  ingressClass?: "public" | "private" | "internal";
   bucketName?: string;
   notFoundRedirect?: string;
   notFoundStatus?: number;
   tlsCert: string;
+  additionalConfigurationSnippet?: string;
 }
 
 export class StaticSite {
   constructor(private metadata: ObjectMeta, private spec: StaticSiteSpec) {}
 
   get yaml() {
-    const { hostname } = new URL(this.spec.publicUrl);
+    const { hostname, pathname } = new URL(this.spec.publicUrl);
+    const providerName =
+      this.spec.provider === "s3" ? "amazon-s3" : "google-cloud-storage";
+    const providerEndpoint =
+      this.spec.provider === "s3"
+        ? "s3.amazonaws.com"
+        : "storage.googleapis.com";
+
+    const annotations = this.metadata.annotations ?? {};
+
+    if (process.env.CUBOS_DEV_GKE && !process.env.PRODUCTION) {
+      annotations["kubernetes.io/ingress.class"] =
+        this.spec.ingressClass ?? "private";
+    }
 
     return generateYaml([
       new Service(
         {
-          name: "google-cloud-storage",
-          namespace: this.metadata.namespace
+          name: providerName,
+          namespace: this.metadata.namespace,
         },
         {
           type: "ExternalName",
-          externalName: "storage.googleapis.com"
+          externalName: providerEndpoint,
         }
       ),
+
       new Ingress(
         {
           ...this.metadata,
           annotations: {
-            ...this.metadata.annotations,
-            "nginx.ingress.kubernetes.io/rewrite-target":
-              this.spec.bucketName ?? hostname,
-            "nginx.ingress.kubernetes.io/upstream-vhost":
-              "storage.googleapis.com",
-            ...(this.spec.notFoundRedirect
-              ? {
-                  "nginx.ingress.kubernetes.io/configuration-snippet": `
-                      proxy_intercept_errors on;
-                      error_page 404 =${this.spec.notFoundStatus ?? 404} ${
-                    this.spec.notFoundRedirect
-                  };
-                  `
-                }
-              : {})
-          }
+            ...annotations,
+            "nginx.ingress.kubernetes.io/rewrite-target": `/${
+              this.spec.bucketName ?? hostname
+            }/$1`,
+            "nginx.ingress.kubernetes.io/upstream-vhost": providerEndpoint,
+            "nginx.ingress.kubernetes.io/configuration-snippet": `
+              proxy_intercept_errors on;
+              error_page 403 = /index.html;
+              ${
+                this.spec.notFoundRedirect
+                  ? `error_page 404 =${this.spec.notFoundStatus ?? ""} ${
+                      this.spec.notFoundRedirect
+                    };`
+                  : ""
+              }
+              ${this.spec.additionalConfigurationSnippet ?? ""}
+            `,
+          },
         },
         {
           tls: [{ secretName: this.spec.tlsCert }],
@@ -56,18 +77,18 @@ export class StaticSite {
               http: {
                 paths: [
                   {
-                    path: "/?(.*)",
+                    path: `${pathname}?(.*)`,
                     backend: {
-                      serviceName: "google-cloud-storage",
-                      servicePort: 80
-                    }
-                  }
-                ]
-              }
-            }
-          ]
+                      serviceName: providerName,
+                      servicePort: 80,
+                    },
+                  },
+                ],
+              },
+            },
+          ],
         }
-      )
+      ),
     ]);
   }
 }

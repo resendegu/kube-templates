@@ -1,13 +1,25 @@
 import { URL } from "url";
-import { clone, env, generateYaml } from "./helpers";
-import { Deployment, HorizontalPodAutoscaler, Ingress, ObjectMeta, Service } from "./kubernetes";
+
+import { Cron } from "./cron";
+import { clone, env, generateYaml, parseMemory } from "./helpers";
+import type { ObjectMeta, Volume, VolumeMount } from "./kubernetes";
+import {
+  Deployment,
+  HorizontalPodAutoscaler,
+  Ingress,
+  Service,
+} from "./kubernetes";
 
 interface StatelessAppSpec {
   replicas?: number | [number, number];
+  disablePreemptibility?: boolean;
   image: string;
   command?: string[];
-  envs?: { [env: string]: string | number | { secretName: string, key: string } };
+  envs?: {
+    [env: string]: string | number | { secretName: string; key: string };
+  };
   forwardEnvs?: string[];
+  secretEnvs?: string[];
   cpu: {
     request: string | number;
     limit: string | number;
@@ -16,27 +28,75 @@ interface StatelessAppSpec {
     request: string | number;
     limit: string | number;
   };
-  ports?: ((
+  serviceAccountName?: string;
+  ports?: Array<
+    (
+      | {
+          type: "http";
+          ingressClass?: string;
+          ingressAnnotations?: Record<string, string>;
+          publicUrl?: string | string[];
+          tlsCert?: string;
+          timeout?: number;
+          maxBodySize?: string;
+          limitRequestsPerSecond?: number;
+          endpoints?: Array<{
+            publicUrl?: string;
+            tlsCert?: string;
+            maxBodySize?: string;
+            limitRequestsPerSecond?: number;
+          }>;
+        }
+      | {
+          type: "tcp";
+        }
+    ) & {
+      name?: string;
+      port: number;
+      containerPort?: number;
+      serviceType?: "ExternalName" | "ClusterIP" | "NodePort" | "LoadBalancer";
+    }
+  >;
+  check?: (
     | {
-        type: "http";
-        publicUrl?: string;
-        tlsCert?: string;
-        maxBodySize?: string;
+        port: number;
+        httpGetPath?: string;
+        host?: string;
       }
     | {
-        type: "tcp";
+        command: string[];
       }
   ) & {
-    name?: string;
-    port: number;
-    containerPort?: number;
-  })[];
-  check?: {
-    port: number;
     period?: number;
     initialDelay?: number;
-    httpGetPath?: string;
   };
+  volumes?: Array<{
+    type: "configMap" | "secret";
+    optional?: boolean;
+    readOnly?: boolean;
+    name: string;
+    mountPath: string;
+    items?: Array<{ key: string; path: string }>;
+  }>;
+  crons?: Array<{
+    name: string;
+    schedule: string;
+    args: string[];
+    command: string[];
+    envs?: {
+      [env: string]: string | number | { secretName: string; key: string };
+    };
+    forwardEnvs?: string[];
+    secretEnvs?: string[];
+    cpu?: {
+      request?: string | number;
+      limit?: string | number;
+    };
+    memory?: {
+      request?: string | number;
+      limit?: string | number;
+    };
+  }>;
 }
 
 export class StatelessApp {
@@ -44,70 +104,241 @@ export class StatelessApp {
 
   get yaml() {
     const ingress = new Ingress(clone(this.metadata), { rules: [], tls: [] });
+
     for (const portSpec of this.spec.ports ?? []) {
-      if (portSpec.type !== "http" || !portSpec.publicUrl) continue;
-
-      const { protocol, hostname, pathname } = new URL(portSpec.publicUrl);
-
-      let rule = ingress.spec.rules!.find(x => x.host === hostname);
-      if (!rule) {
-        ingress.spec.rules!.push(
-          (rule = { host: hostname, http: { paths: [] } })
-        );
+      if (
+        portSpec.type !== "http" ||
+        (!portSpec.publicUrl && !portSpec.endpoints?.length)
+      ) {
+        continue;
       }
 
-      if (protocol === "https:") {
-        if (!portSpec.tlsCert) {
-          throw "Uma URL com HTTPS foi utilizada, mas 'tlsCert' não foi informado";
+      if (portSpec.publicUrl) {
+        if (!portSpec.endpoints) {
+          portSpec.endpoints = [];
         }
 
-        let tls = ingress.spec.tls!.find(
-          x => x.secretName === portSpec.tlsCert
+        const publicUrls = Array.isArray(portSpec.publicUrl)
+          ? portSpec.publicUrl
+          : [portSpec.publicUrl];
+
+        for (const publicUrl of publicUrls) {
+          portSpec.endpoints.push({
+            limitRequestsPerSecond: portSpec.limitRequestsPerSecond,
+            maxBodySize: portSpec.maxBodySize,
+            tlsCert: portSpec.tlsCert,
+            publicUrl,
+          });
+        }
+      }
+
+      let maxBodySizeBytes = null;
+      let limitRequestsPerSecond = null;
+      let hasPath = false;
+
+      for (const endpointSpec of portSpec.endpoints ?? []) {
+        if (!endpointSpec.publicUrl) {
+          continue;
+        }
+
+        const { protocol, hostname, pathname } = new URL(
+          endpointSpec.publicUrl
         );
-        if (!tls) {
-          ingress.spec.tls!.push(
-            (tls = { secretName: portSpec.tlsCert, hosts: [] })
+        let rule = ingress.spec.rules!.find((x) => x.host === hostname);
+
+        if (!rule) {
+          ingress.spec.rules!.push(
+            (rule = { host: hostname, http: { paths: [] } })
           );
         }
 
-        if (!tls.hosts!.includes(hostname)) tls.hosts!.push(hostname);
+        if (protocol === "https:") {
+          if (!endpointSpec.tlsCert) {
+            throw "Uma URL com HTTPS foi utilizada, mas 'tlsCert' não foi informado";
+          }
+
+          let tls = ingress.spec.tls!.find(
+            (x) => x.secretName === endpointSpec.tlsCert
+          );
+
+          if (!tls) {
+            ingress.spec.tls!.push(
+              (tls = { secretName: endpointSpec.tlsCert, hosts: [] })
+            );
+          }
+
+          if (!tls.hosts!.includes(hostname)) {
+            tls.hosts!.push(hostname);
+          }
+        }
+
+        if (!rule.http) {
+          rule.http = { paths: [] };
+        }
+
+        hasPath = hasPath || pathname !== "/";
+
+        rule.http.paths.push({
+          backend: {
+            serviceName: this.metadata.name,
+            servicePort: portSpec.port,
+          },
+          path:
+            pathname === "/"
+              ? portSpec.ingressClass === "alb"
+                ? "/*"
+                : pathname
+              : `${
+                  pathname.endsWith("/")
+                    ? pathname.substring(0, pathname.length - 1)
+                    : pathname
+                }(/|$)(.*)`,
+        });
+
+        if (endpointSpec.maxBodySize) {
+          const endpointMaxBodySizeBytes = parseMemory(
+            endpointSpec.maxBodySize
+          );
+
+          if (
+            !maxBodySizeBytes ||
+            endpointMaxBodySizeBytes > maxBodySizeBytes
+          ) {
+            maxBodySizeBytes = endpointMaxBodySizeBytes;
+          }
+        }
+
+        if (endpointSpec.limitRequestsPerSecond) {
+          // eslint-disable-next-line prefer-destructuring
+          limitRequestsPerSecond = endpointSpec.limitRequestsPerSecond;
+        }
       }
 
-      rule.http.paths.push({
-        backend: {
-          serviceName: this.metadata.name,
-          servicePort: portSpec.port
-        },
-        path: pathname
-      });
+      ingress.metadata.annotations = {
+        ...ingress.metadata.annotations,
+        ...portSpec.ingressAnnotations,
+      };
 
       // TODO: This shouldn't be global on entire Ingress. Should be per port.
-      if (portSpec.maxBodySize !== undefined) {
-        const annotations = ingress.metadata.annotations ?? {};
-        ingress.metadata.annotations = annotations;
-        annotations["nginx.ingress.kubernetes.io/proxy-body-size"] =
-          portSpec.maxBodySize;
+      if (maxBodySizeBytes) {
+        ingress.metadata.annotations[
+          "nginx.ingress.kubernetes.io/proxy-body-size"
+        ] = maxBodySizeBytes.toString();
+      }
+
+      if (limitRequestsPerSecond) {
+        ingress.metadata.annotations["nginx.ingress.kubernetes.io/limit-rps"] =
+          limitRequestsPerSecond.toString();
+      }
+
+      if (portSpec.timeout) {
+        ingress.metadata.annotations[
+          "nginx.ingress.kubernetes.io/proxy-read-timeout"
+        ] = portSpec.timeout.toString();
+      }
+
+      if (hasPath) {
+        ingress.metadata.annotations[
+          "nginx.ingress.kubernetes.io/rewrite-target"
+        ] = "/$2";
+      }
+
+      if (
+        process.env.CUBOS_DEV_GKE &&
+        process.env.CUBOS_INTERNAL_CLUSTER &&
+        !process.env.PRODUCTION
+      ) {
+        ingress.metadata.annotations["kubernetes.io/ingress.class"] =
+          portSpec.ingressClass ?? "private";
       }
     }
 
-    let basicProbe = undefined;
-    if (this.spec.check === undefined) {
-    } else if (this.spec.check.httpGetPath) {
-      basicProbe = {
-        httpGet: {
-          path: this.spec.check.httpGetPath,
-          port: this.spec.check.port
-        },
-        periodSeconds: this.spec.check.period ?? 3
-      };
-    } else {
-      basicProbe = {
-        tcpSocket: {
-          port: this.spec.check.port
-        },
-        periodSeconds: this.spec.check.period ?? 3
-      };
+    let basicProbe;
+
+    if (this.spec.check) {
+      if ((this.spec.check as any).command) {
+        basicProbe = {
+          exec: {
+            command: (this.spec.check as any).command,
+          },
+          periodSeconds: this.spec.check.period ?? 3,
+        };
+      } else if ((this.spec.check as any).httpGetPath) {
+        basicProbe = {
+          httpGet: {
+            path: (this.spec.check as any).httpGetPath,
+            port: (this.spec.check as any).port,
+            httpHeaders: (this.spec.check as any).host
+              ? [{ name: "Host", value: (this.spec.check as any).host }]
+              : [],
+          },
+          periodSeconds: this.spec.check.period ?? 3,
+        };
+      } else {
+        basicProbe = {
+          tcpSocket: {
+            port: (this.spec.check as any).port,
+          },
+          periodSeconds: this.spec.check.period ?? 3,
+        };
+      }
     }
+
+    const volumes: Volume[] = [];
+    const volumeMounts: VolumeMount[] = [];
+
+    for (const volume of this.spec.volumes ?? []) {
+      const name = `vol-${volume.mountPath.replace(/[^a-zA-Z0-9]/gu, "")}`;
+
+      if (volume.type === "secret") {
+        volumes.push({
+          name,
+          secret: {
+            secretName: volume.name,
+            items: volume.items,
+            optional: volume.optional ?? false,
+          },
+        });
+      } else {
+        volumes.push({
+          name,
+          [volume.type]: {
+            name: volume.name,
+            items: volume.items,
+            optional: volume.optional ?? false,
+          },
+        });
+      }
+
+      volumeMounts.push({
+        name,
+        readOnly: volume.readOnly ?? true,
+        mountPath: volume.mountPath,
+      });
+    }
+
+    const basicPodSpec = {
+      ...(this.spec.image.startsWith("registry.cubos.io") ||
+      this.spec.image.startsWith("registry.gitlab.com/mimic1")
+        ? {
+            imagePullSecrets: [
+              {
+                name: "gitlab-registry",
+              },
+            ],
+          }
+        : this.spec.image.includes("gcr.io/cubos-203208")
+        ? {
+            imagePullSecrets: [
+              {
+                name: "google-cloud-registry",
+              },
+            ],
+          }
+        : {}),
+      automountServiceAccountToken: Boolean(this.spec.serviceAccountName),
+      serviceAccountName: this.spec.serviceAccountName,
+    };
 
     return generateYaml([
       new Deployment(this.metadata, {
@@ -117,122 +348,185 @@ export class StatelessApp {
         revisionHistoryLimit: 2,
         selector: {
           matchLabels: {
-            app: this.metadata.name
-          }
+            app: this.metadata.name,
+          },
         },
         template: {
           metadata: {
             labels: {
-              app: this.metadata.name
-            }
+              app: this.metadata.name,
+            },
           },
           spec: {
-            ...(this.spec.image.startsWith("registry.cubos.io")
-              ? {
-                  imagePullSecrets: [
-                    {
-                      name: "gitlab-registry"
-                    }
-                  ]
-                }
-              : this.spec.image.includes("gcr.io/cubos-203208")
-              ? {
-                  imagePullSecrets: [
-                    {
-                      name: "google-cloud-registry"
-                    }
-                  ]
-                }
-              : {}),
-            automountServiceAccountToken: false,
-            ...(process.env.PRODUCTION &&
+            affinity: {
+              podAntiAffinity: process.env.PRODUCTION_CUBOS
+                ? {
+                    requiredDuringSchedulingIgnoredDuringExecution: [
+                      {
+                        labelSelector: {
+                          matchLabels: {
+                            app: this.metadata.name,
+                          },
+                        },
+                        topologyKey: "kubernetes.io/hostname",
+                      },
+                    ],
+                  }
+                : {
+                    preferredDuringSchedulingIgnoredDuringExecution: [
+                      {
+                        weight: 100,
+                        podAffinityTerm: {
+                          labelSelector: {
+                            matchLabels: {
+                              app: this.metadata.name,
+                            },
+                          },
+                          topologyKey: "kubernetes.io/hostname",
+                        },
+                      },
+                    ],
+                  },
+            },
+            ...basicPodSpec,
+            ...(process.env.PRODUCTION_CUBOS &&
             this.spec.replicas !== undefined &&
             ((Array.isArray(this.spec.replicas) &&
-              this.spec.replicas[0] >= 3) ||
-              this.spec.replicas >= 3)
+              this.spec.replicas[0] >= 2) ||
+              this.spec.replicas >= 2) &&
+            !(this.spec.disablePreemptibility ?? false)
               ? {
                   tolerations: [
                     {
                       key: "preemptible",
                       operator: "Equal",
                       value: "true",
-                      effect: "NoSchedule"
-                    }
+                      effect: "NoSchedule",
+                    },
                   ],
                   nodeSelector: {
-                    preemptible: "true"
-                  }
+                    preemptible: "true",
+                  },
                 }
               : {}),
+            volumes,
             containers: [
               {
                 name: this.metadata.name,
                 image: this.spec.image,
                 command: this.spec.command,
                 env: [
-                  ...(this.spec.envs ? Object.entries(this.spec.envs).map(([name, value]) => (typeof value === "object" ? {
-                    name,
-                    valueFrom: {
-                      secretKeyRef: {
-                        name: value.secretName,
-                        key: value.key
-                      }
-                    }
-                  } : {
-                    name,
-                    value: `${value}`
-                  })) : []),
-                  ...(this.spec.forwardEnvs ?? []).map(key => ({
+                  ...(this.spec.envs
+                    ? Object.entries(this.spec.envs).map(([name, value]) =>
+                        typeof value === "object"
+                          ? {
+                              name,
+                              valueFrom: {
+                                secretKeyRef: {
+                                  name: value.secretName,
+                                  key: value.key,
+                                },
+                              },
+                            }
+                          : {
+                              name,
+                              value: `${value}`,
+                            }
+                      )
+                    : []),
+                  ...(this.spec.forwardEnvs ?? []).map((key) => ({
                     name: key,
-                    value: env[key] as string
-                  }))
+                    value: env[key],
+                  })),
                 ],
+                envFrom:
+                  this.spec.secretEnvs?.map((name) => ({
+                    secretRef: {
+                      name,
+                    },
+                  })) ?? [],
                 resources: {
                   limits: {
                     cpu: this.spec.cpu.limit,
-                    memory: this.spec.memory.limit
+                    memory: this.spec.memory.limit,
                   },
                   requests: {
                     cpu: this.spec.cpu.request,
-                    memory: this.spec.memory.request
-                  }
+                    memory: this.spec.memory.request,
+                  },
                 },
-                ports: (this.spec.ports ?? []).map(portSpec => ({
+                ports: (this.spec.ports ?? []).map((portSpec) => ({
                   name: portSpec.name ?? `port${portSpec.port}`,
-                  containerPort: portSpec.containerPort ?? portSpec.port
+                  containerPort: portSpec.containerPort ?? portSpec.port,
                 })),
+                volumeMounts,
                 readinessProbe: basicProbe
                   ? {
                       ...basicProbe,
                       failureThreshold: 1,
-                      successThreshold: 2
+                      successThreshold: 2,
                     }
                   : undefined,
                 livenessProbe: basicProbe
                   ? {
                       ...basicProbe,
                       failureThreshold: 5,
-                      initialDelaySeconds: this.spec.check?.initialDelay ?? 5
+                      initialDelaySeconds: this.spec.check?.initialDelay ?? 5,
                     }
-                  : undefined
-              }
-            ]
-          }
-        }
+                  : undefined,
+              },
+            ],
+          },
+        },
       }),
+      ...(this.spec.crons ?? []).map(
+        (cron) =>
+          new Cron(
+            {
+              ...this.metadata,
+              name: `${this.metadata.name}-${cron.name}`,
+            },
+            {
+              cpu: {
+                limit: cron.cpu?.limit ?? this.spec.cpu.limit,
+                request: cron.cpu?.request ?? this.spec.cpu.request,
+              },
+              memory: {
+                limit: cron.memory?.limit ?? this.spec.memory.limit,
+                request: cron.memory?.request ?? this.spec.memory.request,
+              },
+              image: this.spec.image,
+              schedule: cron.schedule,
+              args: cron.args,
+              command: cron.command,
+              disablePreemptibility: this.spec.disablePreemptibility,
+              envs: { ...this.spec.envs, ...cron.envs },
+              forwardEnvs: [
+                ...(this.spec.forwardEnvs ?? []),
+                ...(cron.forwardEnvs ?? []),
+              ],
+              secretEnvs: [
+                ...(this.spec.secretEnvs ?? []),
+                ...(cron.secretEnvs ?? []),
+              ],
+              volumes: this.spec.volumes,
+            }
+          )
+      ),
       ...((this.spec.ports ?? []).length === 0
         ? []
         : [
             new Service(this.metadata, {
+              type: this.spec.ports![0].serviceType,
               selector: {
-                app: this.metadata.name
+                app: this.metadata.name,
               },
-              ports: (this.spec.ports ?? []).map(portSpec => ({
+              ports: this.spec.ports!.map((portSpec) => ({
                 name: portSpec.name ?? `port${portSpec.port}`,
                 port: portSpec.port,
-                targetPort: portSpec.containerPort ?? portSpec.port
-              }))
-            })
+                targetPort: portSpec.containerPort ?? portSpec.port,
+              })),
+            }),
           ]),
       ...(ingress.spec.rules!.length ? [ingress] : []),
       ...(this.spec.replicas && Array.isArray(this.spec.replicas)
@@ -243,12 +537,12 @@ export class StatelessApp {
               scaleTargetRef: {
                 apiVersion: "apps/v1",
                 kind: "Deployment",
-                name: this.metadata.name
+                name: this.metadata.name,
               },
-              targetCPUUtilizationPercentage: 75
-            })
+              targetCPUUtilizationPercentage: 75,
+            }),
           ]
-        : [])
+        : []),
     ]);
   }
 }

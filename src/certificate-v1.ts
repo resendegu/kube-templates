@@ -3,30 +3,28 @@ import { generateYaml } from "./helpers";
 import type { ObjectMeta } from "./kubernetes";
 import { Secret } from "./kubernetes";
 
-interface CertificateSpec {
+interface CertificateV1Spec {
   domain: string;
-  challengeType?: "http" | "dns";
-  provider?: string;
+  wildcard?: boolean;
+  issuer?: string;
   replicationAllowedNamespaces?: RegExp;
 }
 
-export class Certificate {
+export class CertificateV1 {
   constructor(
     private metadata: Omit<ObjectMeta, "name"> & { name?: string },
-    private spec: CertificateSpec
+    private spec: CertificateV1Spec
   ) {}
 
   get yaml() {
-    console.error("");
-    console.error("⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️");
-    console.error("                     ⚠️ ATENÇÃO ⚠️                    ");
-    console.error("A classe Certificate do kube-templates foi depreciada e");
-    console.error("será removida em breve. Utilize a classe CertificateV1.");
-    console.error("⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️");
-    console.error("");
-
     const domainSlash = this.spec.domain.replace(/\./gu, "-");
-    const wildcard = (this.spec.challengeType ?? "dns") === "dns";
+
+    if (
+      this.spec.wildcard === undefined &&
+      (this.spec.issuer ?? "letsencrypt-dns").includes("dns")
+    ) {
+      this.spec.wildcard = true;
+    }
 
     return generateYaml([
       new Secret({
@@ -53,12 +51,10 @@ export class Certificate {
           commonName: this.spec.domain,
           dnsNames: [
             this.spec.domain,
-            ...(wildcard ? [`*.${this.spec.domain}`] : []),
+            ...(this.spec.wildcard ? [`*.${this.spec.domain}`] : []),
           ],
           issuerRef: {
-            name:
-              this.spec.provider ??
-              (wildcard ? "letsencrypt-dns" : "letsencrypt-http"),
+            name: this.spec.issuer ?? "letsencrypt-dns",
             kind: "ClusterIssuer",
           },
         }

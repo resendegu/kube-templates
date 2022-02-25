@@ -1,8 +1,10 @@
 image: node
 
 stages:
+  - check
   - build
   - deploy
+  - test
 
 Build Library:
   stage: build
@@ -27,3 +29,34 @@ Deploy (NPM):
     - cd dist/
     - npm version 1.0.$CI_PIPELINE_ID || true
     - npm publish --access public
+
+ESLint:
+  stage: check
+  script:
+    - npm ci
+    - npm run eslint:check
+
+Type Check:
+  stage: check
+  script:
+    - npm ci
+    - npx tsc -noEmit
+
+NPM Audit:
+  stage: check
+  allow_failure: true
+  script:
+    - npm audit
+
+Test:
+  stage: test
+  image: docker
+  script:
+    - apk add nodejs npm curl
+    - curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.8.1/kind-$(uname)-amd64 && chmod +x ./kind && mv ./kind /bin/kind
+    - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl && chmod +x ./kubectl && cp ./kubectl /bin/kubectl
+    - npm ci
+    - npx ts-node tests/setup.ts
+    - printf "FROM node:lts-alpine\nCOPY package.json package-lock.json ./\nRUN npm ci\nCOPY . /app" > Dockerfile
+    - docker build -t testimage .
+    - docker run --rm --net=kind --entrypoint="" testimage sh -c "cd /app; cp ./kubectl /bin/kubectl; npx jest -w10"
