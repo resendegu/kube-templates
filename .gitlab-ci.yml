@@ -1,4 +1,4 @@
-image: node
+image: node:16
 
 stages:
   - check
@@ -9,7 +9,7 @@ stages:
 Build Library:
   stage: build
   only:
-    - master
+    - main
   script:
     - npm ci
     - npx tsc -p tsconfig.json
@@ -22,7 +22,7 @@ Deploy (NPM):
   dependencies:
     - Build Library
   only:
-    - master
+    - main
   script:
     - echo -e "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > dist/.npmrc
     - cp package.json dist/
