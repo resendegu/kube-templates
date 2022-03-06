@@ -774,7 +774,7 @@ export class Ingress {
   get yaml() {
     let spec: IngressSpec | IngressV1Spec = clone(this.spec);
 
-    if (process.env.FF_KUBE_TEMPLATES_INGRESS_V1) {
+    if (!process.env.FF_KUBE_TEMPLATES_DISABLE_INGRESS_V1) {
       spec = {
         ingressClassName:
           // eslint-disable-next-line
@@ -808,9 +808,9 @@ export class Ingress {
 
     return generateYaml([
       {
-        apiVersion: process.env.FF_KUBE_TEMPLATES_INGRESS_V1
-          ? "networking.k8s.io/v1"
-          : "networking.k8s.io/v1beta1",
+        apiVersion: process.env.FF_KUBE_TEMPLATES_DISABLE_INGRESS_V1
+          ? "networking.k8s.io/v1beta1"
+          : "networking.k8s.io/v1",
         kind: "Ingress",
         metadata: this.metadata,
         spec,
