@@ -2,7 +2,7 @@ import { URL } from "url";
 
 import { Cron } from "./cron";
 import { clone, env, generateYaml, parseMemory } from "./helpers";
-import type { ObjectMeta, Volume, VolumeMount } from "./kubernetes";
+import type { Container, ObjectMeta, Volume, VolumeMount } from "./kubernetes";
 import {
   Deployment,
   HorizontalPodAutoscaler,
@@ -14,6 +14,7 @@ interface StatelessAppSpec {
   replicas?: number | [number, number];
   disablePreemptibility?: boolean;
   image: string;
+  imagePullPolicy?: Container["imagePullPolicy"];
   command?: string[];
   envs?: {
     [env: string]: string | number | { secretName: string; key: string };
@@ -414,6 +415,7 @@ export class StatelessApp {
               {
                 name: this.metadata.name,
                 image: this.spec.image,
+                imagePullPolicy: this.spec.imagePullPolicy,
                 command: this.spec.command,
                 env: [
                   ...(this.spec.envs
