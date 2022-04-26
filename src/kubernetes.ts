@@ -768,6 +768,21 @@ export class Service {
   }
 }
 
+export class IngressV1 {
+  constructor(public metadata: ObjectMeta, public spec: IngressV1Spec) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "networking.k8s.io/v1",
+        kind: "Ingress",
+        metadata: this.metadata,
+        spec: this.spec,
+      },
+    ]);
+  }
+}
+
 export class Ingress {
   constructor(public metadata: ObjectMeta, public spec: IngressSpec) {}
 
