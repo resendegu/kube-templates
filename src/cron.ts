@@ -1,3 +1,5 @@
+import * as _ from "lodash";
+
 import { env, generateYaml } from "./helpers";
 import type { ObjectMeta, Volume, VolumeMount } from "./kubernetes";
 import { CronJob } from "./kubernetes";
@@ -164,7 +166,7 @@ export class Cron {
                   },
                 ],
                 restartPolicy: "Never",
-                ...(this.spec.backoffLimit ?? false
+                ...(_.isUndefined(this.spec.backoffLimit)
                   ? { backoffLimit: this.spec.backoffLimit }
                   : {}),
               },
