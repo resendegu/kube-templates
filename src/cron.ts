@@ -166,7 +166,7 @@ export class Cron {
                   },
                 ],
                 restartPolicy: "Never",
-                ...(_.isUndefined(this.spec.backoffLimit)
+                ...(!_.isUndefined(this.spec.backoffLimit)
                   ? { backoffLimit: this.spec.backoffLimit }
                   : {}),
               },
