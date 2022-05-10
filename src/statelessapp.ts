@@ -16,6 +16,7 @@ interface StatelessAppSpec {
   image: string;
   imagePullPolicy?: Container["imagePullPolicy"];
   command?: string[];
+  args?: string[];
   envs?: {
     [env: string]: string | number | { secretName: string; key: string };
   };
@@ -417,6 +418,7 @@ export class StatelessApp {
                 image: this.spec.image,
                 imagePullPolicy: this.spec.imagePullPolicy,
                 command: this.spec.command,
+                args: this.spec.args,
                 env: [
                   ...(this.spec.envs
                     ? Object.entries(this.spec.envs).map(([name, value]) =>
