@@ -536,14 +536,16 @@ export class StatelessApp {
       ...(this.spec.replicas && Array.isArray(this.spec.replicas)
         ? [
             new HorizontalPodAutoscaler(this.metadata, {
-              maxReplicas: this.spec.replicas[1],
-              minReplicas: this.spec.replicas[0],
-              scaleTargetRef: {
-                apiVersion: "apps/v1",
-                kind: "Deployment",
-                name: this.metadata.name,
+              replicas: {
+                max: this.spec.replicas[1],
+                min: this.spec.replicas[0],
               },
-              targetCPUUtilizationPercentage: 75,
+              metrics: [
+                {
+                  name: "cpu",
+                  averageUtilization: 75,
+                },
+              ],
             }),
           ]
         : []),

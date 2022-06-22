@@ -569,10 +569,15 @@ export interface HTTPIngressV1Path {
 }
 
 export interface HorizontalPodAutoscalerSpec {
-  maxReplicas: number;
-  minReplicas: number;
-  scaleTargetRef: CrossVersionObjectReference;
-  targetCPUUtilizationPercentage: number;
+  replicas: {
+    min: number;
+    max: number;
+  };
+  metrics: Array<{
+    name: "cpu" | "memory";
+    averageUtilization: number;
+  }>;
+  scaleTargetRef?: CrossVersionObjectReference;
 }
 
 export interface CrossVersionObjectReference {
@@ -843,10 +848,29 @@ export class HorizontalPodAutoscaler {
   get yaml() {
     return generateYaml([
       {
-        apiVersion: "autoscaling/v1",
+        apiVersion: "autoscaling/v2beta2",
         kind: "HorizontalPodAutoscaler",
         metadata: this.metadata,
-        spec: this.spec,
+        spec: {
+          maxReplicas: this.spec.replicas.max,
+          minReplicas: this.spec.replicas.min,
+          metrics: this.spec.metrics.map(metric => {
+            return {
+              resource: {
+                name: metric.name,
+                target: {
+                  averageUtilization: metric.averageUtilization,
+                  type: "Utilization",
+                },
+              },
+            };
+          }),
+          scaleTargetRef: this.spec.scaleTargetRef ?? {
+            apiVersion: "apps/v1",
+            kind: "Deployment",
+            name: this.metadata.name,
+          },
+        },
       },
     ]);
   }
