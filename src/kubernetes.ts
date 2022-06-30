@@ -568,15 +568,48 @@ export interface HTTPIngressV1Path {
   pathType: "Exact" | "Prefix";
 }
 
-export interface HorizontalPodAutoscalerSpec {
-  replicas: {
-    min: number;
-    max: number;
+interface MetricTarget {
+  type: "Utilization" | "Value" | "AverageValue";
+  averageUtilization?: number;
+  averageValue?: string;
+  value?: string;
+}
+
+interface MetricIdentifier {
+  name: string;
+  selector: LabelSelector;
+}
+
+interface MetricSpec {
+  containerResource?: {
+    container: string;
+    name: string;
+    target: MetricTarget;
   };
-  metrics: Array<{
-    name: "cpu" | "memory";
-    averageUtilization: number;
-  }>;
+  external?: {
+    metric: MetricIdentifier;
+    target: MetricTarget;
+  };
+  object?: {
+    describedObject: CrossVersionObjectReference;
+    target: MetricTarget;
+    metric: MetricIdentifier;
+  };
+  pods?: {
+    metric: MetricIdentifier;
+    target: MetricTarget;
+  };
+  resource?: {
+    name: string;
+    target: MetricTarget;
+  };
+  type: "ContainerResource" | "External" | "Object" | "Pods" | "Resource";
+}
+
+export interface HorizontalPodAutoscalerSpec {
+  maxReplicas: number;
+  minReplicas: number;
+  metrics: MetricSpec[];
   scaleTargetRef?: CrossVersionObjectReference;
 }
 
@@ -852,19 +885,7 @@ export class HorizontalPodAutoscaler {
         kind: "HorizontalPodAutoscaler",
         metadata: this.metadata,
         spec: {
-          maxReplicas: this.spec.replicas.max,
-          minReplicas: this.spec.replicas.min,
-          metrics: this.spec.metrics.map(metric => {
-            return {
-              resource: {
-                name: metric.name,
-                target: {
-                  averageUtilization: metric.averageUtilization,
-                  type: "Utilization",
-                },
-              },
-            };
-          }),
+          ...this.spec,
           scaleTargetRef: this.spec.scaleTargetRef ?? {
             apiVersion: "apps/v1",
             kind: "Deployment",
