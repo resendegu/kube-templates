@@ -580,31 +580,39 @@ interface MetricIdentifier {
   selector: LabelSelector;
 }
 
-interface MetricSpec {
-  containerResource?: {
+type MetricSpec = {
+  type: "ContainerResource"
+  containerResource: {
     container: string;
     name: string;
     target: MetricTarget;
   };
-  external?: {
+} | {
+  type: "External"
+  external: {
     metric: MetricIdentifier;
     target: MetricTarget;
   };
-  object?: {
+} | {
+  type: "Object"
+  object: {
     describedObject: CrossVersionObjectReference;
     target: MetricTarget;
     metric: MetricIdentifier;
   };
-  pods?: {
+} | {
+  type: "Pods"
+  pods: {
     metric: MetricIdentifier;
     target: MetricTarget;
   };
-  resource?: {
+} | {
+  type: "Resource"
+  resource: {
     name: string;
     target: MetricTarget;
   };
-  type: "ContainerResource" | "External" | "Object" | "Pods" | "Resource";
-}
+};
 
 export interface HorizontalPodAutoscalerSpec {
   maxReplicas: number;
