@@ -580,45 +580,50 @@ interface MetricIdentifier {
   selector: LabelSelector;
 }
 
-type MetricSpec = {
-  type: "ContainerResource"
-  containerResource: {
-    container: string;
-    name: string;
-    target: MetricTarget;
-  };
-} | {
-  type: "External"
-  external: {
-    metric: MetricIdentifier;
-    target: MetricTarget;
-  };
-} | {
-  type: "Object"
-  object: {
-    describedObject: CrossVersionObjectReference;
-    target: MetricTarget;
-    metric: MetricIdentifier;
-  };
-} | {
-  type: "Pods"
-  pods: {
-    metric: MetricIdentifier;
-    target: MetricTarget;
-  };
-} | {
-  type: "Resource"
-  resource: {
-    name: string;
-    target: MetricTarget;
-  };
-};
+type MetricSpec =
+  | {
+      type: "ContainerResource";
+      containerResource: {
+        container: string;
+        name: string;
+        target: MetricTarget;
+      };
+    }
+  | {
+      type: "External";
+      external: {
+        metric: MetricIdentifier;
+        target: MetricTarget;
+      };
+    }
+  | {
+      type: "Object";
+      object: {
+        describedObject: CrossVersionObjectReference;
+        target: MetricTarget;
+        metric: MetricIdentifier;
+      };
+    }
+  | {
+      type: "Pods";
+      pods: {
+        metric: MetricIdentifier;
+        target: MetricTarget;
+      };
+    }
+  | {
+      type: "Resource";
+      resource: {
+        name: string;
+        target: MetricTarget;
+      };
+    };
 
 export interface HorizontalPodAutoscalerSpec {
   maxReplicas: number;
   minReplicas: number;
   metrics: MetricSpec[];
-  scaleTargetRef?: CrossVersionObjectReference;
+  scaleTargetRef: CrossVersionObjectReference;
 }
 
 export interface CrossVersionObjectReference {
@@ -892,14 +897,7 @@ export class HorizontalPodAutoscaler {
         apiVersion: "autoscaling/v2beta2",
         kind: "HorizontalPodAutoscaler",
         metadata: this.metadata,
-        spec: {
-          ...this.spec,
-          scaleTargetRef: this.spec.scaleTargetRef ?? {
-            apiVersion: "apps/v1",
-            kind: "Deployment",
-            name: this.metadata.name,
-          },
-        },
+        spec: this.spec,
       },
     ]);
   }

@@ -550,6 +550,11 @@ export class StatelessApp {
                   },
                 },
               ],
+              scaleTargetRef: {
+                apiVersion: "apps/v1",
+                kind: "Deployment",
+                name: this.metadata.name,
+              },
             }),
           ]
         : []),
