@@ -190,7 +190,7 @@ export class Ingress {
           : "networking.k8s.io/v1",
         kind: "Ingress",
         metadata: this.metadata,
-        spec: this.spec,
+        spec,
       },
     ]);
   }
