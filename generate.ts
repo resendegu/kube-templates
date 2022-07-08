@@ -16,7 +16,7 @@ interface ApiClassDefinition extends OpenAPIV2.SchemaObject {
 
 const apiSpecs: Record<string, string> = {
   kubernetes:
-    "https://raw.githubusercontent.com/kubernetes/kubernetes/release-1.22/api/openapi-spec/swagger.json",
+    "https://raw.githubusercontent.com/kubernetes/kubernetes/release-1.23/api/openapi-spec/swagger.json",
 };
 
 function mapType(type: string) {

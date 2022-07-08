@@ -410,7 +410,7 @@ export module io.k8s.api.apps.v1 {
     numberAvailable?: number;
     /** The number of nodes that are running the daemon pod, but are not supposed to run the daemon pod. More info: https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/ */
     numberMisscheduled: number;
-    /** The number of nodes that should be running the daemon pod and have one or more of the daemon pod running and ready. */
+    /** numberReady is the number of nodes that should be running the daemon pod and have one or more of the daemon pod running with a Ready Condition. */
     numberReady: number;
     /** The number of nodes that should be running the daemon pod and have none of the daemon pod running and available (ready for at least spec.minReadySeconds) */
     numberUnavailable?: number;
@@ -424,7 +424,11 @@ export module io.k8s.api.apps.v1 {
   export interface DaemonSetUpdateStrategy {
     /** Rolling update config params. Present only if type = "RollingUpdate". */
     rollingUpdate?: RollingUpdateDaemonSet;
-    /** Type of daemon set update. Can be "RollingUpdate" or "OnDelete". Default is RollingUpdate. */
+    /**
+     * Type of daemon set update. Can be "RollingUpdate" or "OnDelete". Default is RollingUpdate.
+     *
+     *
+     */
     type?: string;
   }
 
@@ -500,7 +504,7 @@ export module io.k8s.api.apps.v1 {
     conditions?: DeploymentCondition[];
     /** The generation observed by the deployment controller. */
     observedGeneration?: number;
-    /** Total number of ready pods targeted by this deployment. */
+    /** readyReplicas is the number of pods targeted by this Deployment with a Ready Condition. */
     readyReplicas?: number;
     /** Total number of non-terminated pods targeted by this deployment (their labels match the selector). */
     replicas?: number;
@@ -514,7 +518,11 @@ export module io.k8s.api.apps.v1 {
   export interface DeploymentStrategy {
     /** Rolling update config params. Present only if DeploymentStrategyType = RollingUpdate. */
     rollingUpdate?: RollingUpdateDeployment;
-    /** Type of deployment. Can be "Recreate" or "RollingUpdate". Default is RollingUpdate. */
+    /**
+     * Type of deployment. Can be "Recreate" or "RollingUpdate". Default is RollingUpdate.
+     *
+     *
+     */
     type?: string;
   }
 
@@ -580,7 +588,7 @@ export module io.k8s.api.apps.v1 {
     fullyLabeledReplicas?: number;
     /** ObservedGeneration reflects the generation of the most recently observed ReplicaSet. */
     observedGeneration?: number;
-    /** The number of ready replicas for this replica set. */
+    /** readyReplicas is the number of pods targeted by this ReplicaSet with a Ready Condition. */
     readyReplicas?: number;
     /** Replicas is the most recently oberved number of replicas. More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller/#what-is-a-replicationcontroller */
     replicas: number;
@@ -653,11 +661,25 @@ export module io.k8s.api.apps.v1 {
     metadata?: apimachinery.pkg.apis.meta.v1.ListMeta;
   }
 
+  /** StatefulSetPersistentVolumeClaimRetentionPolicy describes the policy used for PVCs created from the StatefulSet VolumeClaimTemplates. */
+  export interface StatefulSetPersistentVolumeClaimRetentionPolicy {
+    /** WhenDeleted specifies what happens to PVCs created from StatefulSet VolumeClaimTemplates when the StatefulSet is deleted. The default policy of `Retain` causes PVCs to not be affected by StatefulSet deletion. The `Delete` policy causes those PVCs to be deleted. */
+    whenDeleted?: string;
+    /** WhenScaled specifies what happens to PVCs created from StatefulSet VolumeClaimTemplates when the StatefulSet is scaled down. The default policy of `Retain` causes PVCs to not be affected by a scaledown. The `Delete` policy causes the associated PVCs for any excess pods above the replica count to be deleted. */
+    whenScaled?: string;
+  }
+
   /** A StatefulSetSpec is the specification of a StatefulSet. */
   export interface StatefulSetSpec {
     /** Minimum number of seconds for which a newly created pod should be ready without any of its container crashing for it to be considered available. Defaults to 0 (pod will be considered available as soon as it is ready) This is an alpha field and requires enabling StatefulSetMinReadySeconds feature gate. */
     minReadySeconds?: number;
-    /** podManagementPolicy controls how pods are created during initial scale up, when replacing pods on nodes, or when scaling down. The default policy is `OrderedReady`, where pods are created in increasing order (pod-0, then pod-1, etc) and the controller will wait until each pod is ready before continuing. When scaling down, the pods are removed in the opposite order. The alternative policy is `Parallel` which will create pods in parallel to match the desired scale without waiting, and on scale down will delete all pods at once. */
+    /** persistentVolumeClaimRetentionPolicy describes the lifecycle of persistent volume claims created from volumeClaimTemplates. By default, all persistent volume claims are created as needed and retained until manually deleted. This policy allows the lifecycle to be altered, for example by deleting persistent volume claims when their stateful set is deleted, or when their pod is scaled down. This requires the StatefulSetAutoDeletePVC feature gate to be enabled, which is alpha.  +optional */
+    persistentVolumeClaimRetentionPolicy?: StatefulSetPersistentVolumeClaimRetentionPolicy;
+    /**
+     * podManagementPolicy controls how pods are created during initial scale up, when replacing pods on nodes, or when scaling down. The default policy is `OrderedReady`, where pods are created in increasing order (pod-0, then pod-1, etc) and the controller will wait until each pod is ready before continuing. When scaling down, the pods are removed in the opposite order. The alternative policy is `Parallel` which will create pods in parallel to match the desired scale without waiting, and on scale down will delete all pods at once.
+     *
+     *
+     */
     podManagementPolicy?: string;
     /** replicas is the desired number of replicas of the given Template. These are replicas in the sense that they are instantiations of the same Template, but individual replicas also have a consistent identity. If unspecified, defaults to 1. */
     replicas?: number;
@@ -677,8 +699,8 @@ export module io.k8s.api.apps.v1 {
 
   /** StatefulSetStatus represents the current state of a StatefulSet. */
   export interface StatefulSetStatus {
-    /** Total number of available pods (ready for at least minReadySeconds) targeted by this statefulset. This is an alpha field and requires enabling StatefulSetMinReadySeconds feature gate. Remove omitempty when graduating to beta */
-    availableReplicas?: number;
+    /** Total number of available pods (ready for at least minReadySeconds) targeted by this statefulset. This is a beta field and enabled/disabled by StatefulSetMinReadySeconds feature gate. */
+    availableReplicas: number;
     /** collisionCount is the count of hash collisions for the StatefulSet. The StatefulSet controller uses this field as a collision avoidance mechanism when it needs to create the name for the newest ControllerRevision. */
     collisionCount?: number;
     /** Represents the latest available observations of a statefulset's current state. */
@@ -689,7 +711,7 @@ export module io.k8s.api.apps.v1 {
     currentRevision?: string;
     /** observedGeneration is the most recent generation observed for this StatefulSet. It corresponds to the StatefulSet's generation, which is updated on mutation by the API Server. */
     observedGeneration?: number;
-    /** readyReplicas is the number of Pods created by the StatefulSet controller that have a Ready Condition. */
+    /** readyReplicas is the number of pods created for this StatefulSet with a Ready Condition. */
     readyReplicas?: number;
     /** replicas is the number of Pods created by the StatefulSet controller. */
     replicas: number;
@@ -703,7 +725,11 @@ export module io.k8s.api.apps.v1 {
   export interface StatefulSetUpdateStrategy {
     /** RollingUpdate is used to communicate parameters when Type is RollingUpdateStatefulSetStrategyType. */
     rollingUpdate?: RollingUpdateStatefulSetStrategy;
-    /** Type indicates the type of the StatefulSetUpdateStrategy. Default is RollingUpdate. */
+    /**
+     * Type indicates the type of the StatefulSetUpdateStrategy. Default is RollingUpdate.
+     *
+     *
+     */
     type?: string;
   }
 }
@@ -1053,6 +1079,271 @@ export module io.k8s.api.autoscaling.v1 {
   }
 }
 
+export module io.k8s.api.autoscaling.v2 {
+  /** ContainerResourceMetricSource indicates how to scale on a resource metric known to Kubernetes, as specified in requests and limits, describing each pod in the current scale target (e.g. CPU or memory).  The values will be averaged together before being compared to the target.  Such metrics are built in to Kubernetes, and have special scaling options on top of those available to normal per-pod metrics using the "pods" source.  Only one "target" type should be set. */
+  export interface ContainerResourceMetricSource {
+    /** container is the name of the container in the pods of the scaling target */
+    container: string;
+    /** name is the name of the resource in question. */
+    name: string;
+    /** target specifies the target value for the given metric */
+    target: MetricTarget;
+  }
+
+  /** ContainerResourceMetricStatus indicates the current value of a resource metric known to Kubernetes, as specified in requests and limits, describing a single container in each pod in the current scale target (e.g. CPU or memory).  Such metrics are built in to Kubernetes, and have special scaling options on top of those available to normal per-pod metrics using the "pods" source. */
+  export interface ContainerResourceMetricStatus {
+    /** Container is the name of the container in the pods of the scaling target */
+    container: string;
+    /** current contains the current value for the given metric */
+    current: MetricValueStatus;
+    /** Name is the name of the resource in question. */
+    name: string;
+  }
+
+  /** CrossVersionObjectReference contains enough information to let you identify the referred resource. */
+  export interface CrossVersionObjectReference {
+    /** API version of the referent */
+    apiVersion?: string;
+    /** Kind of the referent; More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds" */
+    kind: string;
+    /** Name of the referent; More info: http://kubernetes.io/docs/user-guide/identifiers#names */
+    name: string;
+  }
+
+  /** ExternalMetricSource indicates how to scale on a metric not associated with any Kubernetes object (for example length of queue in cloud messaging service, or QPS from loadbalancer running outside of cluster). */
+  export interface ExternalMetricSource {
+    /** metric identifies the target metric by name and selector */
+    metric: MetricIdentifier;
+    /** target specifies the target value for the given metric */
+    target: MetricTarget;
+  }
+
+  /** ExternalMetricStatus indicates the current value of a global metric not associated with any Kubernetes object. */
+  export interface ExternalMetricStatus {
+    /** current contains the current value for the given metric */
+    current: MetricValueStatus;
+    /** metric identifies the target metric by name and selector */
+    metric: MetricIdentifier;
+  }
+
+  /** HPAScalingPolicy is a single policy which must hold true for a specified past interval. */
+  export interface HPAScalingPolicy {
+    /** PeriodSeconds specifies the window of time for which the policy should hold true. PeriodSeconds must be greater than zero and less than or equal to 1800 (30 min). */
+    periodSeconds: number;
+    /** Type is used to specify the scaling policy. */
+    type: string;
+    /** Value contains the amount of change which is permitted by the policy. It must be greater than zero */
+    value: number;
+  }
+
+  /** HPAScalingRules configures the scaling behavior for one direction. These Rules are applied after calculating DesiredReplicas from metrics for the HPA. They can limit the scaling velocity by specifying scaling policies. They can prevent flapping by specifying the stabilization window, so that the number of replicas is not set instantly, instead, the safest value from the stabilization window is chosen. */
+  export interface HPAScalingRules {
+    /** policies is a list of potential scaling polices which can be used during scaling. At least one policy must be specified, otherwise the HPAScalingRules will be discarded as invalid */
+    policies?: HPAScalingPolicy[];
+    /** selectPolicy is used to specify which policy should be used. If not set, the default value Max is used. */
+    selectPolicy?: string;
+    /** StabilizationWindowSeconds is the number of seconds for which past recommendations should be considered while scaling up or scaling down. StabilizationWindowSeconds must be greater than or equal to zero and less than or equal to 3600 (one hour). If not set, use the default values: - For scale up: 0 (i.e. no stabilization is done). - For scale down: 300 (i.e. the stabilization window is 300 seconds long). */
+    stabilizationWindowSeconds?: number;
+  }
+
+  /** HorizontalPodAutoscaler is the configuration for a horizontal pod autoscaler, which automatically manages the replica count of any resource implementing the scale subresource based on the metrics specified. */
+  export interface HorizontalPodAutoscaler {
+    /** APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
+    apiVersion?: string;
+    /** Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
+    kind?: string;
+    /** metadata is the standard object metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata */
+    metadata?: apimachinery.pkg.apis.meta.v1.ObjectMeta;
+    /** spec is the specification for the behaviour of the autoscaler. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status. */
+    spec?: HorizontalPodAutoscalerSpec;
+    /** status is the current information about the autoscaler. */
+    status?: HorizontalPodAutoscalerStatus;
+  }
+
+  /** HorizontalPodAutoscalerBehavior configures the scaling behavior of the target in both Up and Down directions (scaleUp and scaleDown fields respectively). */
+  export interface HorizontalPodAutoscalerBehavior {
+    /** scaleDown is scaling policy for scaling Down. If not set, the default value is to allow to scale down to minReplicas pods, with a 300 second stabilization window (i.e., the highest recommendation for the last 300sec is used). */
+    scaleDown?: HPAScalingRules;
+    /**
+     * scaleUp is scaling policy for scaling Up. If not set, the default value is the higher of:
+     *   - increase no more than 4 pods per 60 seconds
+     *   - double the number of pods per 60 seconds
+     * No stabilization is used.
+     */
+    scaleUp?: HPAScalingRules;
+  }
+
+  /** HorizontalPodAutoscalerCondition describes the state of a HorizontalPodAutoscaler at a certain point. */
+  export interface HorizontalPodAutoscalerCondition {
+    /** lastTransitionTime is the last time the condition transitioned from one status to another */
+    lastTransitionTime?: apimachinery.pkg.apis.meta.v1.Time;
+    /** message is a human-readable explanation containing details about the transition */
+    message?: string;
+    /** reason is the reason for the condition's last transition. */
+    reason?: string;
+    /** status is the status of the condition (True, False, Unknown) */
+    status: string;
+    /** type describes the current condition */
+    type: string;
+  }
+
+  /** HorizontalPodAutoscalerList is a list of horizontal pod autoscaler objects. */
+  export interface HorizontalPodAutoscalerList {
+    /** APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
+    apiVersion?: string;
+    /** items is the list of horizontal pod autoscaler objects. */
+    items: HorizontalPodAutoscaler[];
+    /** Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
+    kind?: string;
+    /** metadata is the standard list metadata. */
+    metadata?: apimachinery.pkg.apis.meta.v1.ListMeta;
+  }
+
+  /** HorizontalPodAutoscalerSpec describes the desired functionality of the HorizontalPodAutoscaler. */
+  export interface HorizontalPodAutoscalerSpec {
+    /** behavior configures the scaling behavior of the target in both Up and Down directions (scaleUp and scaleDown fields respectively). If not set, the default HPAScalingRules for scale up and scale down are used. */
+    behavior?: HorizontalPodAutoscalerBehavior;
+    /** maxReplicas is the upper limit for the number of replicas to which the autoscaler can scale up. It cannot be less that minReplicas. */
+    maxReplicas: number;
+    /** metrics contains the specifications for which to use to calculate the desired replica count (the maximum replica count across all metrics will be used).  The desired replica count is calculated multiplying the ratio between the target value and the current value by the current number of pods.  Ergo, metrics used must decrease as the pod count is increased, and vice-versa.  See the individual metric source types for more information about how each type of metric must respond. If not set, the default metric will be set to 80% average CPU utilization. */
+    metrics?: MetricSpec[];
+    /** minReplicas is the lower limit for the number of replicas to which the autoscaler can scale down.  It defaults to 1 pod.  minReplicas is allowed to be 0 if the alpha feature gate HPAScaleToZero is enabled and at least one Object or External metric is configured.  Scaling is active as long as at least one metric value is available. */
+    minReplicas?: number;
+    /** scaleTargetRef points to the target resource to scale, and is used to the pods for which metrics should be collected, as well as to actually change the replica count. */
+    scaleTargetRef: CrossVersionObjectReference;
+  }
+
+  /** HorizontalPodAutoscalerStatus describes the current status of a horizontal pod autoscaler. */
+  export interface HorizontalPodAutoscalerStatus {
+    /** conditions is the set of conditions required for this autoscaler to scale its target, and indicates whether or not those conditions are met. */
+    conditions?: HorizontalPodAutoscalerCondition[];
+    /** currentMetrics is the last read state of the metrics used by this autoscaler. */
+    currentMetrics?: MetricStatus[];
+    /** currentReplicas is current number of replicas of pods managed by this autoscaler, as last seen by the autoscaler. */
+    currentReplicas?: number;
+    /** desiredReplicas is the desired number of replicas of pods managed by this autoscaler, as last calculated by the autoscaler. */
+    desiredReplicas: number;
+    /** lastScaleTime is the last time the HorizontalPodAutoscaler scaled the number of pods, used by the autoscaler to control how often the number of pods is changed. */
+    lastScaleTime?: apimachinery.pkg.apis.meta.v1.Time;
+    /** observedGeneration is the most recent generation observed by this autoscaler. */
+    observedGeneration?: number;
+  }
+
+  /** MetricIdentifier defines the name and optionally selector for a metric */
+  export interface MetricIdentifier {
+    /** name is the name of the given metric */
+    name: string;
+    /** selector is the string-encoded form of a standard kubernetes label selector for the given metric When set, it is passed as an additional parameter to the metrics server for more specific metrics scoping. When unset, just the metricName will be used to gather metrics. */
+    selector?: apimachinery.pkg.apis.meta.v1.LabelSelector;
+  }
+
+  /** MetricSpec specifies how to scale based on a single metric (only `type` and one other matching field should be set at once). */
+  export interface MetricSpec {
+    /** containerResource refers to a resource metric (such as those specified in requests and limits) known to Kubernetes describing a single container in each pod of the current scale target (e.g. CPU or memory). Such metrics are built in to Kubernetes, and have special scaling options on top of those available to normal per-pod metrics using the "pods" source. This is an alpha feature and can be enabled by the HPAContainerMetrics feature flag. */
+    containerResource?: ContainerResourceMetricSource;
+    /** external refers to a global metric that is not associated with any Kubernetes object. It allows autoscaling based on information coming from components running outside of cluster (for example length of queue in cloud messaging service, or QPS from loadbalancer running outside of cluster). */
+    external?: ExternalMetricSource;
+    /** object refers to a metric describing a single kubernetes object (for example, hits-per-second on an Ingress object). */
+    object?: ObjectMetricSource;
+    /** pods refers to a metric describing each pod in the current scale target (for example, transactions-processed-per-second).  The values will be averaged together before being compared to the target value. */
+    pods?: PodsMetricSource;
+    /** resource refers to a resource metric (such as those specified in requests and limits) known to Kubernetes describing each pod in the current scale target (e.g. CPU or memory). Such metrics are built in to Kubernetes, and have special scaling options on top of those available to normal per-pod metrics using the "pods" source. */
+    resource?: ResourceMetricSource;
+    /** type is the type of metric source.  It should be one of "ContainerResource", "External", "Object", "Pods" or "Resource", each mapping to a matching field in the object. Note: "ContainerResource" type is available on when the feature-gate HPAContainerMetrics is enabled */
+    type: string;
+  }
+
+  /** MetricStatus describes the last-read state of a single metric. */
+  export interface MetricStatus {
+    /** container resource refers to a resource metric (such as those specified in requests and limits) known to Kubernetes describing a single container in each pod in the current scale target (e.g. CPU or memory). Such metrics are built in to Kubernetes, and have special scaling options on top of those available to normal per-pod metrics using the "pods" source. */
+    containerResource?: ContainerResourceMetricStatus;
+    /** external refers to a global metric that is not associated with any Kubernetes object. It allows autoscaling based on information coming from components running outside of cluster (for example length of queue in cloud messaging service, or QPS from loadbalancer running outside of cluster). */
+    external?: ExternalMetricStatus;
+    /** object refers to a metric describing a single kubernetes object (for example, hits-per-second on an Ingress object). */
+    object?: ObjectMetricStatus;
+    /** pods refers to a metric describing each pod in the current scale target (for example, transactions-processed-per-second).  The values will be averaged together before being compared to the target value. */
+    pods?: PodsMetricStatus;
+    /** resource refers to a resource metric (such as those specified in requests and limits) known to Kubernetes describing each pod in the current scale target (e.g. CPU or memory). Such metrics are built in to Kubernetes, and have special scaling options on top of those available to normal per-pod metrics using the "pods" source. */
+    resource?: ResourceMetricStatus;
+    /** type is the type of metric source.  It will be one of "ContainerResource", "External", "Object", "Pods" or "Resource", each corresponds to a matching field in the object. Note: "ContainerResource" type is available on when the feature-gate HPAContainerMetrics is enabled */
+    type: string;
+  }
+
+  /** MetricTarget defines the target value, average value, or average utilization of a specific metric */
+  export interface MetricTarget {
+    /** averageUtilization is the target value of the average of the resource metric across all relevant pods, represented as a percentage of the requested value of the resource for the pods. Currently only valid for Resource metric source type */
+    averageUtilization?: number;
+    /** averageValue is the target value of the average of the metric across all relevant pods (as a quantity) */
+    averageValue?: apimachinery.pkg.api.resource.Quantity;
+    /** type represents whether the metric type is Utilization, Value, or AverageValue */
+    type: string;
+    /** value is the target value of the metric (as a quantity). */
+    value?: apimachinery.pkg.api.resource.Quantity;
+  }
+
+  /** MetricValueStatus holds the current value for a metric */
+  export interface MetricValueStatus {
+    /** currentAverageUtilization is the current value of the average of the resource metric across all relevant pods, represented as a percentage of the requested value of the resource for the pods. */
+    averageUtilization?: number;
+    /** averageValue is the current value of the average of the metric across all relevant pods (as a quantity) */
+    averageValue?: apimachinery.pkg.api.resource.Quantity;
+    /** value is the current value of the metric (as a quantity). */
+    value?: apimachinery.pkg.api.resource.Quantity;
+  }
+
+  /** ObjectMetricSource indicates how to scale on a metric describing a kubernetes object (for example, hits-per-second on an Ingress object). */
+  export interface ObjectMetricSource {
+    /** describedObject specifies the descriptions of a object,such as kind,name apiVersion */
+    describedObject: CrossVersionObjectReference;
+    /** metric identifies the target metric by name and selector */
+    metric: MetricIdentifier;
+    /** target specifies the target value for the given metric */
+    target: MetricTarget;
+  }
+
+  /** ObjectMetricStatus indicates the current value of a metric describing a kubernetes object (for example, hits-per-second on an Ingress object). */
+  export interface ObjectMetricStatus {
+    /** current contains the current value for the given metric */
+    current: MetricValueStatus;
+    /** DescribedObject specifies the descriptions of a object,such as kind,name apiVersion */
+    describedObject: CrossVersionObjectReference;
+    /** metric identifies the target metric by name and selector */
+    metric: MetricIdentifier;
+  }
+
+  /** PodsMetricSource indicates how to scale on a metric describing each pod in the current scale target (for example, transactions-processed-per-second). The values will be averaged together before being compared to the target value. */
+  export interface PodsMetricSource {
+    /** metric identifies the target metric by name and selector */
+    metric: MetricIdentifier;
+    /** target specifies the target value for the given metric */
+    target: MetricTarget;
+  }
+
+  /** PodsMetricStatus indicates the current value of a metric describing each pod in the current scale target (for example, transactions-processed-per-second). */
+  export interface PodsMetricStatus {
+    /** current contains the current value for the given metric */
+    current: MetricValueStatus;
+    /** metric identifies the target metric by name and selector */
+    metric: MetricIdentifier;
+  }
+
+  /** ResourceMetricSource indicates how to scale on a resource metric known to Kubernetes, as specified in requests and limits, describing each pod in the current scale target (e.g. CPU or memory).  The values will be averaged together before being compared to the target.  Such metrics are built in to Kubernetes, and have special scaling options on top of those available to normal per-pod metrics using the "pods" source.  Only one "target" type should be set. */
+  export interface ResourceMetricSource {
+    /** name is the name of the resource in question. */
+    name: string;
+    /** target specifies the target value for the given metric */
+    target: MetricTarget;
+  }
+
+  /** ResourceMetricStatus indicates the current value of a resource metric known to Kubernetes, as specified in requests and limits, describing each pod in the current scale target (e.g. CPU or memory).  Such metrics are built in to Kubernetes, and have special scaling options on top of those available to normal per-pod metrics using the "pods" source. */
+  export interface ResourceMetricStatus {
+    /** current contains the current value for the given metric */
+    current: MetricValueStatus;
+    /** Name is the name of the resource in question. */
+    name: string;
+  }
+}
+
 export module io.k8s.api.autoscaling.v2beta1 {
   /** ContainerResourceMetricSource indicates how to scale on a resource metric known to Kubernetes, as specified in requests and limits, describing each pod in the current scale target (e.g. CPU or memory).  The values will be averaged together before being compared to the target.  Such metrics are built in to Kubernetes, and have special scaling options on top of those available to normal per-pod metrics using the "pods" source.  Only one "target" type should be set. */
   export interface ContainerResourceMetricSource {
@@ -1167,7 +1458,7 @@ export module io.k8s.api.autoscaling.v2beta1 {
   /** HorizontalPodAutoscalerStatus describes the current status of a horizontal pod autoscaler. */
   export interface HorizontalPodAutoscalerStatus {
     /** conditions is the set of conditions required for this autoscaler to scale its target, and indicates whether or not those conditions are met. */
-    conditions: HorizontalPodAutoscalerCondition[];
+    conditions?: HorizontalPodAutoscalerCondition[];
     /** currentMetrics is the last read state of the metrics used by this autoscaler. */
     currentMetrics?: MetricStatus[];
     /** currentReplicas is current number of replicas of pods managed by this autoscaler, as last seen by the autoscaler. */
@@ -1418,7 +1709,7 @@ export module io.k8s.api.autoscaling.v2beta2 {
   /** HorizontalPodAutoscalerStatus describes the current status of a horizontal pod autoscaler. */
   export interface HorizontalPodAutoscalerStatus {
     /** conditions is the set of conditions required for this autoscaler to scale its target, and indicates whether or not those conditions are met. */
-    conditions: HorizontalPodAutoscalerCondition[];
+    conditions?: HorizontalPodAutoscalerCondition[];
     /** currentMetrics is the last read state of the metrics used by this autoscaler. */
     currentMetrics?: MetricStatus[];
     /** currentReplicas is current number of replicas of pods managed by this autoscaler, as last seen by the autoscaler. */
@@ -1573,7 +1864,11 @@ export module io.k8s.api.batch.v1 {
 
   /** CronJobSpec describes how the job execution will look like and when it will actually run. */
   export interface CronJobSpec {
-    /** Specifies how to treat concurrent executions of a Job. Valid values are: - "Allow" (default): allows CronJobs to run concurrently; - "Forbid": forbids concurrent runs, skipping next run if previous run hasn't finished yet; - "Replace": cancels currently running job and replaces it with a new one */
+    /**
+     * Specifies how to treat concurrent executions of a Job. Valid values are: - "Allow" (default): allows CronJobs to run concurrently; - "Forbid": forbids concurrent runs, skipping next run if previous run hasn't finished yet; - "Replace": cancels currently running job and replaces it with a new one
+     *
+     *
+     */
     concurrencyPolicy?: string;
     /** The number of failed finished jobs to retain. Value must be non-negative integer. Defaults to 1. */
     failedJobsHistoryLimit?: number;
@@ -1673,13 +1968,13 @@ export module io.k8s.api.batch.v1 {
     suspend?: boolean;
     /** Describes the pod that will be created when executing a job. More info: https://kubernetes.io/docs/concepts/workloads/controllers/jobs-run-to-completion/ */
     template: core.v1.PodTemplateSpec;
-    /** ttlSecondsAfterFinished limits the lifetime of a Job that has finished execution (either Complete or Failed). If this field is set, ttlSecondsAfterFinished after the Job finishes, it is eligible to be automatically deleted. When the Job is being deleted, its lifecycle guarantees (e.g. finalizers) will be honored. If this field is unset, the Job won't be automatically deleted. If this field is set to zero, the Job becomes eligible to be deleted immediately after it finishes. This field is alpha-level and is only honored by servers that enable the TTLAfterFinished feature. */
+    /** ttlSecondsAfterFinished limits the lifetime of a Job that has finished execution (either Complete or Failed). If this field is set, ttlSecondsAfterFinished after the Job finishes, it is eligible to be automatically deleted. When the Job is being deleted, its lifecycle guarantees (e.g. finalizers) will be honored. If this field is unset, the Job won't be automatically deleted. If this field is set to zero, the Job becomes eligible to be deleted immediately after it finishes. */
     ttlSecondsAfterFinished?: number;
   }
 
   /** JobStatus represents the current state of a Job. */
   export interface JobStatus {
-    /** The number of actively running pods. */
+    /** The number of pending and running pods. */
     active?: number;
     /** CompletedIndexes holds the completed indexes when .spec.completionMode = "Indexed" in a text format. The indexes are represented as decimal integers separated by commas. The numbers are listed in increasing order. Three or more consecutive numbers are compressed and represented by the first and last element of the series, separated by a hyphen. For example, if the completed indexes are 1, 3, 4, 5 and 7, they are represented as "1,3-5,7". */
     completedIndexes?: string;
@@ -1689,6 +1984,12 @@ export module io.k8s.api.batch.v1 {
     conditions?: JobCondition[];
     /** The number of pods which reached phase Failed. */
     failed?: number;
+    /**
+     * The number of pods which have a Ready condition.
+     *
+     * This field is alpha-level. The job controller populates the field when the feature gate JobReadyPods is enabled (disabled by default).
+     */
+    ready?: number;
     /** Represents time when the job controller started processing a job. When a Job is created in the suspended state, this field is not set until the first time it is resumed. This field is reset every time a Job is resumed from suspension. It is represented in RFC3339 form and is in UTC. */
     startTime?: apimachinery.pkg.apis.meta.v1.Time;
     /** The number of pods which reached phase Succeeded. */
@@ -1699,7 +2000,7 @@ export module io.k8s.api.batch.v1 {
      * The job controller creates pods with a finalizer. When a pod terminates (succeeded or failed), the controller does three steps to account for it in the job status: (1) Add the pod UID to the arrays in this field. (2) Remove the pod finalizer. (3) Remove the pod UID from the arrays while increasing the corresponding
      *     counter.
      *
-     * This field is alpha-level. The job controller only makes use of this field when the feature gate PodTrackingWithFinalizers is enabled. Old jobs might not be tracked using this field, in which case the field remains null.
+     * This field is beta-level. The job controller only makes use of this field when the feature gate JobTrackingWithFinalizers is enabled (enabled by default). Old jobs might not be tracked using this field, in which case the field remains null.
      */
     uncountedTerminatedPods?: UncountedTerminatedPods;
   }
@@ -2323,7 +2624,11 @@ export module io.k8s.api.core.v1 {
     envFrom?: EnvFromSource[];
     /** Docker image name. More info: https://kubernetes.io/docs/concepts/containers/images This field is optional to allow higher level config management to default or override container images in workload controllers like Deployments and StatefulSets. */
     image?: string;
-    /** Image pull policy. One of Always, Never, IfNotPresent. Defaults to Always if :latest tag is specified, or IfNotPresent otherwise. Cannot be updated. More info: https://kubernetes.io/docs/concepts/containers/images#updating-images */
+    /**
+     * Image pull policy. One of Always, Never, IfNotPresent. Defaults to Always if :latest tag is specified, or IfNotPresent otherwise. Cannot be updated. More info: https://kubernetes.io/docs/concepts/containers/images#updating-images
+     *
+     *
+     */
     imagePullPolicy?: string;
     /** Actions that the management system should take in response to container lifecycle events. Cannot be updated. */
     lifecycle?: Lifecycle;
@@ -2347,7 +2652,11 @@ export module io.k8s.api.core.v1 {
     stdinOnce?: boolean;
     /** Optional: Path at which the file to which the container's termination message will be written is mounted into the container's filesystem. Message written is intended to be brief final status, such as an assertion failure message. Will be truncated by the node if greater than 4096 bytes. The total message length across all containers will be limited to 12kb. Defaults to /dev/termination-log. Cannot be updated. */
     terminationMessagePath?: string;
-    /** Indicate how the termination message should be populated. File will use the contents of terminationMessagePath to populate the container status message on both success and failure. FallbackToLogsOnError will use the last chunk of container log output if the termination message file is empty and the container exited with an error. The log output is limited to 2048 bytes or 80 lines, whichever is smaller. Defaults to File. Cannot be updated. */
+    /**
+     * Indicate how the termination message should be populated. File will use the contents of terminationMessagePath to populate the container status message on both success and failure. FallbackToLogsOnError will use the last chunk of container log output if the termination message file is empty and the container exited with an error. The log output is limited to 2048 bytes or 80 lines, whichever is smaller. Defaults to File. Cannot be updated.
+     *
+     *
+     */
     terminationMessagePolicy?: string;
     /** Whether this container should allocate a TTY for itself, also requires 'stdin' to be true. Default is false. */
     tty?: boolean;
@@ -2377,7 +2686,11 @@ export module io.k8s.api.core.v1 {
     hostPort?: number;
     /** If specified, this must be an IANA_SVC_NAME and unique within the pod. Each named port in a pod must have a unique name. Name for the port that can be referred to by services. */
     name?: string;
-    /** Protocol for port. Must be UDP, TCP, or SCTP. Defaults to "TCP". */
+    /**
+     * Protocol for port. Must be UDP, TCP, or SCTP. Defaults to "TCP".
+     *
+     *
+     */
     protocol?: string;
   }
 
@@ -2427,7 +2740,7 @@ export module io.k8s.api.core.v1 {
   export interface ContainerStatus {
     /** Container's ID in the format 'docker://<container_id>'. */
     containerID?: string;
-    /** The image the container is running. More info: https://kubernetes.io/docs/concepts/containers/images */
+    /** The image the container is running. More info: https://kubernetes.io/docs/concepts/containers/images. */
     image: string;
     /** ImageID of the container's image. */
     imageID: string;
@@ -2437,7 +2750,7 @@ export module io.k8s.api.core.v1 {
     name: string;
     /** Specifies whether the container has passed its readiness probe. */
     ready: boolean;
-    /** The number of times the container has been restarted, currently based on the number of dead containers that have not yet been removed. Note that this is calculated from dead containers. But those containers are subject to garbage collection. This value will get capped at 5 by GC. */
+    /** The number of times the container has been restarted. */
     restartCount: number;
     /** Specifies whether the container has passed its startup probe. Initialized as false, becomes true after startupProbe is considered successful. Resets to false when the container is restarted, or if kubelet loses state temporarily. Is always true when no startupProbe is defined. */
     started?: boolean;
@@ -2505,7 +2818,11 @@ export module io.k8s.api.core.v1 {
     name?: string;
     /** The port number of the endpoint. */
     port: number;
-    /** The IP protocol for this port. Must be UDP, TCP, or SCTP. Default is TCP. */
+    /**
+     * The IP protocol for this port. Must be UDP, TCP, or SCTP. Default is TCP.
+     *
+     *
+     */
     protocol?: string;
   }
 
@@ -2597,7 +2914,13 @@ export module io.k8s.api.core.v1 {
     secretKeyRef?: SecretKeySelector;
   }
 
-  /** An EphemeralContainer is a container that may be added temporarily to an existing pod for user-initiated activities such as debugging. Ephemeral containers have no resource or scheduling guarantees, and they will not be restarted when they exit or when a pod is removed or restarted. If an ephemeral container causes a pod to exceed its resource allocation, the pod may be evicted. Ephemeral containers may not be added by directly updating the pod spec. They must be added via the pod's ephemeralcontainers subresource, and they will appear in the pod spec once added. This is an alpha feature enabled by the EphemeralContainers feature flag. */
+  /**
+   * An EphemeralContainer is a temporary container that you may add to an existing Pod for user-initiated activities such as debugging. Ephemeral containers have no resource or scheduling guarantees, and they will not be restarted when they exit or when a Pod is removed or restarted. The kubelet may evict a Pod if an ephemeral container causes the Pod to exceed its resource allocation.
+   *
+   * To add an ephemeral container, use the ephemeralcontainers subresource of an existing Pod. Ephemeral containers may not be removed or restarted.
+   *
+   * This is a beta feature available on clusters that haven't disabled the EphemeralContainers feature gate.
+   */
   export interface EphemeralContainer {
     /** Arguments to the entrypoint. The docker image's CMD is used if this is not provided. Variable references $(VAR_NAME) are expanded using the container's environment. If a variable cannot be resolved, the reference in the input string will be unchanged. Double $$ are reduced to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e. "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)". Escaped references will never be expanded, regardless of whether the variable exists or not. Cannot be updated. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell */
     args?: string[];
@@ -2609,7 +2932,11 @@ export module io.k8s.api.core.v1 {
     envFrom?: EnvFromSource[];
     /** Docker image name. More info: https://kubernetes.io/docs/concepts/containers/images */
     image?: string;
-    /** Image pull policy. One of Always, Never, IfNotPresent. Defaults to Always if :latest tag is specified, or IfNotPresent otherwise. Cannot be updated. More info: https://kubernetes.io/docs/concepts/containers/images#updating-images */
+    /**
+     * Image pull policy. One of Always, Never, IfNotPresent. Defaults to Always if :latest tag is specified, or IfNotPresent otherwise. Cannot be updated. More info: https://kubernetes.io/docs/concepts/containers/images#updating-images
+     *
+     *
+     */
     imagePullPolicy?: string;
     /** Lifecycle is not allowed for ephemeral containers. */
     lifecycle?: Lifecycle;
@@ -2631,17 +2958,25 @@ export module io.k8s.api.core.v1 {
     stdin?: boolean;
     /** Whether the container runtime should close the stdin channel after it has been opened by a single attach. When stdin is true the stdin stream will remain open across multiple attach sessions. If stdinOnce is set to true, stdin is opened on container start, is empty until the first client attaches to stdin, and then remains open and accepts data until the client disconnects, at which time stdin is closed and remains closed until the container is restarted. If this flag is false, a container processes that reads from stdin will never receive an EOF. Default is false */
     stdinOnce?: boolean;
-    /** If set, the name of the container from PodSpec that this ephemeral container targets. The ephemeral container will be run in the namespaces (IPC, PID, etc) of this container. If not set then the ephemeral container is run in whatever namespaces are shared for the pod. Note that the container runtime must support this feature. */
+    /**
+     * If set, the name of the container from PodSpec that this ephemeral container targets. The ephemeral container will be run in the namespaces (IPC, PID, etc) of this container. If not set then the ephemeral container uses the namespaces configured in the Pod spec.
+     *
+     * The container runtime must implement support for this feature. If the runtime does not support namespace targeting then the result of setting this field is undefined.
+     */
     targetContainerName?: string;
     /** Optional: Path at which the file to which the container's termination message will be written is mounted into the container's filesystem. Message written is intended to be brief final status, such as an assertion failure message. Will be truncated by the node if greater than 4096 bytes. The total message length across all containers will be limited to 12kb. Defaults to /dev/termination-log. Cannot be updated. */
     terminationMessagePath?: string;
-    /** Indicate how the termination message should be populated. File will use the contents of terminationMessagePath to populate the container status message on both success and failure. FallbackToLogsOnError will use the last chunk of container log output if the termination message file is empty and the container exited with an error. The log output is limited to 2048 bytes or 80 lines, whichever is smaller. Defaults to File. Cannot be updated. */
+    /**
+     * Indicate how the termination message should be populated. File will use the contents of terminationMessagePath to populate the container status message on both success and failure. FallbackToLogsOnError will use the last chunk of container log output if the termination message file is empty and the container exited with an error. The log output is limited to 2048 bytes or 80 lines, whichever is smaller. Defaults to File. Cannot be updated.
+     *
+     *
+     */
     terminationMessagePolicy?: string;
     /** Whether this container should allocate a TTY for itself, also requires 'stdin' to be true. Default is false. */
     tty?: boolean;
     /** volumeDevices is the list of block devices to be used by the container. */
     volumeDevices?: VolumeDevice[];
-    /** Pod volumes to mount into the container's filesystem. Cannot be updated. */
+    /** Pod volumes to mount into the container's filesystem. Subpath mounts are not allowed for ephemeral containers. Cannot be updated. */
     volumeMounts?: VolumeMount[];
     /** Container's working directory. If not specified, the container runtime's default will be used, which might be configured in the container image. Cannot be updated. */
     workingDir?: string;
@@ -2799,6 +3134,17 @@ export module io.k8s.api.core.v1 {
     readOnly?: boolean;
   }
 
+  export interface GRPCAction {
+    /** Port number of the gRPC service. Number must be in the range 1 to 65535. */
+    port: number;
+    /**
+     * Service is the name of the service to place in the gRPC HealthCheckRequest (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
+     *
+     * If this is not specified, the default behavior is defined by gRPC.
+     */
+    service?: string;
+  }
+
   /**
    * Represents a volume that is populated with the contents of a git repository. Git repo volumes do not support ownership management. Git repo volumes support SELinux relabeling.
    *
@@ -2845,7 +3191,11 @@ export module io.k8s.api.core.v1 {
     path?: string;
     /** Name or number of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME. */
     port: apimachinery.pkg.util.intstr.IntOrString;
-    /** Scheme to use for connecting to the host. Defaults to HTTP. */
+    /**
+     * Scheme to use for connecting to the host. Defaults to HTTP.
+     *
+     *
+     */
     scheme?: string;
   }
 
@@ -2855,16 +3205,6 @@ export module io.k8s.api.core.v1 {
     name: string;
     /** The header field value */
     value: string;
-  }
-
-  /** Handler defines a specific action that should be taken */
-  export interface Handler {
-    /** One and only one of the following should be specified. Exec specifies the action to take. */
-    exec?: ExecAction;
-    /** HTTPGet specifies the http request to perform. */
-    httpGet?: HTTPGetAction;
-    /** TCPSocket specifies an action involving a TCP port. TCP hooks not yet supported */
-    tcpSocket?: TCPSocketAction;
   }
 
   /** HostAlias holds the mapping between IP and hostnames that will be injected as an entry in the pod's hosts file. */
@@ -2948,9 +3288,19 @@ export module io.k8s.api.core.v1 {
   /** Lifecycle describes actions that the management system should take in response to container lifecycle events. For the PostStart and PreStop lifecycle handlers, management of the container blocks until the action is complete, unless the container process fails, in which case the handler is aborted. */
   export interface Lifecycle {
     /** PostStart is called immediately after a container is created. If the handler fails, the container is terminated and restarted according to its restart policy. Other management of the container blocks until the hook completes. More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks */
-    postStart?: Handler;
-    /** PreStop is called immediately before a container is terminated due to an API request or management event such as liveness/startup probe failure, preemption, resource contention, etc. The handler is not called if the container crashes or exits. The reason for termination is passed to the handler. The Pod's termination grace period countdown begins before the PreStop hooked is executed. Regardless of the outcome of the handler, the container will eventually terminate within the Pod's termination grace period. Other management of the container blocks until the hook completes or until the termination grace period is reached. More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks */
-    preStop?: Handler;
+    postStart?: LifecycleHandler;
+    /** PreStop is called immediately before a container is terminated due to an API request or management event such as liveness/startup probe failure, preemption, resource contention, etc. The handler is not called if the container crashes or exits. The Pod's termination grace period countdown begins before the PreStop hook is executed. Regardless of the outcome of the handler, the container will eventually terminate within the Pod's termination grace period (unless delayed by finalizers). Other management of the container blocks until the hook completes or until the termination grace period is reached. More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks */
+    preStop?: LifecycleHandler;
+  }
+
+  /** LifecycleHandler defines a specific action that should be taken in a lifecycle hook. One and only one of the fields, except TCPSocket must be specified. */
+  export interface LifecycleHandler {
+    /** Exec specifies the action to take. */
+    exec?: ExecAction;
+    /** HTTPGet specifies the http request to perform. */
+    httpGet?: HTTPGetAction;
+    /** Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept for the backward compatibility. There are no validation of this field and lifecycle hooks will fail in runtime when tcp handler is specified. */
+    tcpSocket?: TCPSocketAction;
   }
 
   /** LimitRange sets resource usage limits for each kind of resource in a Namespace. */
@@ -3023,7 +3373,7 @@ export module io.k8s.api.core.v1 {
 
   /** Local represents directly-attached storage with node affinity (Beta feature) */
   export interface LocalVolumeSource {
-    /** Filesystem type to mount. It applies only when the Path is a block device. Must be a filesystem type supported by the host operating system. Ex. "ext4", "xfs", "ntfs". The default value is to auto-select a fileystem if unspecified. */
+    /** Filesystem type to mount. It applies only when the Path is a block device. Must be a filesystem type supported by the host operating system. Ex. "ext4", "xfs", "ntfs". The default value is to auto-select a filesystem if unspecified. */
     fsType?: string;
     /** The full path to the volume on the node. It can be either a directory or block device (disk, partition, ...). */
     path: string;
@@ -3086,7 +3436,11 @@ export module io.k8s.api.core.v1 {
   export interface NamespaceStatus {
     /** Represents the latest available observations of a namespace's current state. */
     conditions?: NamespaceCondition[];
-    /** Phase is the current lifecycle phase of the namespace. More info: https://kubernetes.io/docs/tasks/administer-cluster/namespaces/ */
+    /**
+     * Phase is the current lifecycle phase of the namespace. More info: https://kubernetes.io/docs/tasks/administer-cluster/namespaces/
+     *
+     *
+     */
     phase?: string;
   }
 
@@ -3182,7 +3536,11 @@ export module io.k8s.api.core.v1 {
   export interface NodeSelectorRequirement {
     /** The label key that the selector applies to. */
     key: string;
-    /** Represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt. */
+    /**
+     * Represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+     *
+     *
+     */
     operator: string;
     /** An array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. If the operator is Gt or Lt, the values array must have a single element, which will be interpreted as an integer. This array is replaced during a strategic merge patch. */
     values?: string[];
@@ -3232,7 +3590,11 @@ export module io.k8s.api.core.v1 {
     images?: ContainerImage[];
     /** Set of ids/uuids to uniquely identify the node. More info: https://kubernetes.io/docs/concepts/nodes/node/#info */
     nodeInfo?: NodeSystemInfo;
-    /** NodePhase is the recently observed lifecycle phase of the node. More info: https://kubernetes.io/docs/concepts/nodes/node/#phase The field is never populated, and now is deprecated. */
+    /**
+     * NodePhase is the recently observed lifecycle phase of the node. More info: https://kubernetes.io/docs/concepts/nodes/node/#phase The field is never populated, and now is deprecated.
+     *
+     *
+     */
     phase?: string;
     /** List of volumes that are attached to the node. */
     volumesAttached?: AttachedVolume[];
@@ -3359,7 +3721,7 @@ export module io.k8s.api.core.v1 {
      * (Alpha) Using this field requires the AnyVolumeDataSource feature gate to be enabled.
      */
     dataSourceRef?: TypedLocalObjectReference;
-    /** Resources represents the minimum resources the volume should have. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources */
+    /** Resources represents the minimum resources the volume should have. If RecoverVolumeExpansionFailure feature is enabled users are allowed to specify resource requirements that are lower than previous value but must still be higher than capacity recorded in the status field of the claim. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources */
     resources?: ResourceRequirements;
     /** A label query over volumes to consider for binding. */
     selector?: apimachinery.pkg.apis.meta.v1.LabelSelector;
@@ -3375,12 +3737,20 @@ export module io.k8s.api.core.v1 {
   export interface PersistentVolumeClaimStatus {
     /** AccessModes contains the actual access modes the volume backing the PVC has. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#access-modes-1 */
     accessModes?: string[];
+    /** The storage resource within AllocatedResources tracks the capacity allocated to a PVC. It may be larger than the actual capacity when a volume expansion operation is requested. For storage quota, the larger value from allocatedResources and PVC.spec.resources is used. If allocatedResources is not set, PVC.spec.resources alone is used for quota calculation. If a volume expansion capacity request is lowered, allocatedResources is only lowered if there are no expansion operations in progress and if the actual volume capacity is equal or lower than the requested capacity. This is an alpha field and requires enabling RecoverVolumeExpansionFailure feature. */
+    allocatedResources?: object;
     /** Represents the actual resources of the underlying volume. */
     capacity?: object;
     /** Current Condition of persistent volume claim. If underlying persistent volume is being resized then the Condition will be set to 'ResizeStarted'. */
     conditions?: PersistentVolumeClaimCondition[];
-    /** Phase represents the current phase of PersistentVolumeClaim. */
+    /**
+     * Phase represents the current phase of PersistentVolumeClaim.
+     *
+     *
+     */
     phase?: string;
+    /** ResizeStatus stores status of resize operation. ResizeStatus is not set by default but when expansion is complete resizeStatus is set to empty string by resize controller or kubelet. This is an alpha field and requires enabling RecoverVolumeExpansionFailure feature. */
+    resizeStatus?: string;
   }
 
   /** PersistentVolumeClaimTemplate is used to produce PersistentVolumeClaim objects as part of an EphemeralVolumeSource. */
@@ -3453,7 +3823,11 @@ export module io.k8s.api.core.v1 {
     nfs?: NFSVolumeSource;
     /** NodeAffinity defines constraints that limit what nodes this volume can be accessed from. This field influences the scheduling of pods that use this volume. */
     nodeAffinity?: VolumeNodeAffinity;
-    /** What happens to a persistent volume when released from its claim. Valid options are Retain (default for manually created PersistentVolumes), Delete (default for dynamically provisioned PersistentVolumes), and Recycle (deprecated). Recycle must be supported by the volume plugin underlying this PersistentVolume. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#reclaiming */
+    /**
+     * What happens to a persistent volume when released from its claim. Valid options are Retain (default for manually created PersistentVolumes), Delete (default for dynamically provisioned PersistentVolumes), and Recycle (deprecated). Recycle must be supported by the volume plugin underlying this PersistentVolume. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#reclaiming
+     *
+     *
+     */
     persistentVolumeReclaimPolicy?: string;
     /** PhotonPersistentDisk represents a PhotonController persistent disk attached and mounted on kubelets host machine */
     photonPersistentDisk?: PhotonPersistentDiskVolumeSource;
@@ -3479,7 +3853,11 @@ export module io.k8s.api.core.v1 {
   export interface PersistentVolumeStatus {
     /** A human-readable message indicating details about why the volume is in this state. */
     message?: string;
-    /** Phase indicates if a volume is available, bound to a claim, or released by a claim. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#phase */
+    /**
+     * Phase indicates if a volume is available, bound to a claim, or released by a claim. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#phase
+     *
+     *
+     */
     phase?: string;
     /** Reason is a brief CamelCase string that describes any failure and is meant for machine parsing and tidy display in the CLI. */
     reason?: string;
@@ -3589,6 +3967,12 @@ export module io.k8s.api.core.v1 {
     metadata?: apimachinery.pkg.apis.meta.v1.ListMeta;
   }
 
+  /** PodOS defines the OS parameters of a pod. */
+  export interface PodOS {
+    /** Name is the name of the operating system. The currently supported values are linux and windows. Additional value may be defined in future and can be one of: https://github.com/opencontainers/runtime-spec/blob/master/config.md#platform-specific-configuration Clients should expect to handle additional values and treat unrecognized values in this field as os: null */
+    name: string;
+  }
+
   /** PodReadinessGate contains the reference to a pod condition */
   export interface PodReadinessGate {
     /** ConditionType refers to a condition in the pod's condition list with matching type. */
@@ -3602,26 +3986,26 @@ export module io.k8s.api.core.v1 {
      *
      * 1. The owning GID will be the FSGroup 2. The setgid bit is set (new files created in the volume will be owned by FSGroup) 3. The permission bits are OR'd with rw-rw----
      *
-     * If unset, the Kubelet will not modify the ownership and permissions of any volume.
+     * If unset, the Kubelet will not modify the ownership and permissions of any volume. Note that this field cannot be set when spec.os.name is windows.
      */
     fsGroup?: number;
-    /** fsGroupChangePolicy defines behavior of changing ownership and permission of the volume before being exposed inside Pod. This field will only apply to volume types which support fsGroup based ownership(and permissions). It will have no effect on ephemeral volume types such as: secret, configmaps and emptydir. Valid values are "OnRootMismatch" and "Always". If not specified, "Always" is used. */
+    /** fsGroupChangePolicy defines behavior of changing ownership and permission of the volume before being exposed inside Pod. This field will only apply to volume types which support fsGroup based ownership(and permissions). It will have no effect on ephemeral volume types such as: secret, configmaps and emptydir. Valid values are "OnRootMismatch" and "Always". If not specified, "Always" is used. Note that this field cannot be set when spec.os.name is windows. */
     fsGroupChangePolicy?: string;
-    /** The GID to run the entrypoint of the container process. Uses runtime default if unset. May also be set in SecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence for that container. */
+    /** The GID to run the entrypoint of the container process. Uses runtime default if unset. May also be set in SecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence for that container. Note that this field cannot be set when spec.os.name is windows. */
     runAsGroup?: number;
     /** Indicates that the container must run as a non-root user. If true, the Kubelet will validate the image at runtime to ensure that it does not run as UID 0 (root) and fail to start the container if it does. If unset or false, no such validation will be performed. May also be set in SecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. */
     runAsNonRoot?: boolean;
-    /** The UID to run the entrypoint of the container process. Defaults to user specified in image metadata if unspecified. May also be set in SecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence for that container. */
+    /** The UID to run the entrypoint of the container process. Defaults to user specified in image metadata if unspecified. May also be set in SecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence for that container. Note that this field cannot be set when spec.os.name is windows. */
     runAsUser?: number;
-    /** The SELinux context to be applied to all containers. If unspecified, the container runtime will allocate a random SELinux context for each container.  May also be set in SecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence for that container. */
+    /** The SELinux context to be applied to all containers. If unspecified, the container runtime will allocate a random SELinux context for each container.  May also be set in SecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence for that container. Note that this field cannot be set when spec.os.name is windows. */
     seLinuxOptions?: SELinuxOptions;
-    /** The seccomp options to use by the containers in this pod. */
+    /** The seccomp options to use by the containers in this pod. Note that this field cannot be set when spec.os.name is windows. */
     seccompProfile?: SeccompProfile;
-    /** A list of groups applied to the first process run in each container, in addition to the container's primary GID.  If unspecified, no groups will be added to any container. */
+    /** A list of groups applied to the first process run in each container, in addition to the container's primary GID.  If unspecified, no groups will be added to any container. Note that this field cannot be set when spec.os.name is windows. */
     supplementalGroups?: number[];
-    /** Sysctls hold a list of namespaced sysctls used for the pod. Pods with unsupported sysctls (by the container runtime) might fail to launch. */
+    /** Sysctls hold a list of namespaced sysctls used for the pod. Pods with unsupported sysctls (by the container runtime) might fail to launch. Note that this field cannot be set when spec.os.name is windows. */
     sysctls?: Sysctl[];
-    /** The Windows specific settings applied to all containers. If unspecified, the options within a container's SecurityContext will be used. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. */
+    /** The Windows specific settings applied to all containers. If unspecified, the options within a container's SecurityContext will be used. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is linux. */
     windowsOptions?: WindowsSecurityContextOptions;
   }
 
@@ -3637,11 +4021,15 @@ export module io.k8s.api.core.v1 {
     containers: Container[];
     /** Specifies the DNS parameters of a pod. Parameters specified here will be merged to the generated DNS configuration based on DNSPolicy. */
     dnsConfig?: PodDNSConfig;
-    /** Set DNS policy for the pod. Defaults to "ClusterFirst". Valid values are 'ClusterFirstWithHostNet', 'ClusterFirst', 'Default' or 'None'. DNS parameters given in DNSConfig will be merged with the policy selected with DNSPolicy. To have DNS options set along with hostNetwork, you have to specify DNS policy explicitly to 'ClusterFirstWithHostNet'. */
+    /**
+     * Set DNS policy for the pod. Defaults to "ClusterFirst". Valid values are 'ClusterFirstWithHostNet', 'ClusterFirst', 'Default' or 'None'. DNS parameters given in DNSConfig will be merged with the policy selected with DNSPolicy. To have DNS options set along with hostNetwork, you have to specify DNS policy explicitly to 'ClusterFirstWithHostNet'.
+     *
+     *
+     */
     dnsPolicy?: string;
     /** EnableServiceLinks indicates whether information about services should be injected into pod's environment variables, matching the syntax of Docker links. Optional: Defaults to true. */
     enableServiceLinks?: boolean;
-    /** List of ephemeral containers run in this pod. Ephemeral containers may be run in an existing pod to perform user-initiated actions such as debugging. This list cannot be specified when creating a pod, and it cannot be modified by updating the pod spec. In order to add an ephemeral container to an existing pod, use the pod's ephemeralcontainers subresource. This field is alpha-level and is only honored by servers that enable the EphemeralContainers feature. */
+    /** List of ephemeral containers run in this pod. Ephemeral containers may be run in an existing pod to perform user-initiated actions such as debugging. This list cannot be specified when creating a pod, and it cannot be modified by updating the pod spec. In order to add an ephemeral container to an existing pod, use the pod's ephemeralcontainers subresource. This field is beta-level and available on clusters that haven't disabled the EphemeralContainers feature gate. */
     ephemeralContainers?: EphemeralContainer[];
     /** HostAliases is an optional list of hosts and IPs that will be injected into the pod's hosts file if specified. This is only valid for non-hostNetwork pods. */
     hostAliases?: HostAlias[];
@@ -3661,6 +4049,14 @@ export module io.k8s.api.core.v1 {
     nodeName?: string;
     /** NodeSelector is a selector which must be true for the pod to fit on a node. Selector which must match a node's labels for the pod to be scheduled on that node. More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/ */
     nodeSelector?: object;
+    /**
+     * Specifies the OS of the containers in the pod. Some pod and container fields are restricted if this is set.
+     *
+     * If the OS field is set to linux, the following fields must be unset: -securityContext.windowsOptions
+     *
+     * If the OS field is set to windows, following fields must be unset: - spec.hostPID - spec.hostIPC - spec.securityContext.seLinuxOptions - spec.securityContext.seccompProfile - spec.securityContext.fsGroup - spec.securityContext.fsGroupChangePolicy - spec.securityContext.sysctls - spec.shareProcessNamespace - spec.securityContext.runAsUser - spec.securityContext.runAsGroup - spec.securityContext.supplementalGroups - spec.containers[-].securityContext.seLinuxOptions - spec.containers[-].securityContext.seccompProfile - spec.containers[-].securityContext.capabilities - spec.containers[-].securityContext.readOnlyRootFilesystem - spec.containers[-].securityContext.privileged - spec.containers[-].securityContext.allowPrivilegeEscalation - spec.containers[-].securityContext.procMount - spec.containers[-].securityContext.runAsUser - spec.containers[-].securityContext.runAsGroup This is an alpha field and requires the IdentifyPodOS feature
+     */
+    os?: PodOS;
     /** Overhead represents the resource overhead associated with running a pod for a given RuntimeClass. This field will be autopopulated at admission time by the RuntimeClass admission controller. If the RuntimeClass admission controller is enabled, overhead must not be set in Pod create requests. The RuntimeClass admission controller will reject Pod create requests which have the overhead already set. If RuntimeClass is configured and selected in the PodSpec, Overhead will be set to the value defined in the corresponding RuntimeClass, otherwise it will remain unset and treated as zero. More info: https://git.k8s.io/enhancements/keps/sig-node/688-pod-overhead/README.md This field is beta-level as of Kubernetes v1.18, and is only honored by servers that enable the PodOverhead feature. */
     overhead?: object;
     /** PreemptionPolicy is the Policy for preempting pods with lower priority. One of Never, PreemptLowerPriority. Defaults to PreemptLowerPriority if unset. This field is beta-level, gated by the NonPreemptingPriority feature-gate. */
@@ -3671,7 +4067,11 @@ export module io.k8s.api.core.v1 {
     priorityClassName?: string;
     /** If specified, all readiness gates will be evaluated for pod readiness. A pod is ready when all its containers are ready AND all conditions specified in the readiness gates have status equal to "True" More info: https://git.k8s.io/enhancements/keps/sig-network/580-pod-readiness-gates */
     readinessGates?: PodReadinessGate[];
-    /** Restart policy for all containers within the pod. One of Always, OnFailure, Never. Default to Always. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#restart-policy */
+    /**
+     * Restart policy for all containers within the pod. One of Always, OnFailure, Never. Default to Always. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#restart-policy
+     *
+     *
+     */
     restartPolicy?: string;
     /** RuntimeClassName refers to a RuntimeClass object in the node.k8s.io group, which should be used to run this pod.  If no RuntimeClass resource matches the named class, the pod will not be run. If unset or empty, the "legacy" RuntimeClass will be used, which is an implicit class with an empty definition that uses the default runtime handler. More info: https://git.k8s.io/enhancements/keps/sig-node/585-runtime-class This is a beta feature as of Kubernetes v1.14. */
     runtimeClassName?: string;
@@ -3705,7 +4105,7 @@ export module io.k8s.api.core.v1 {
     conditions?: PodCondition[];
     /** The list has one entry per container in the manifest. Each entry is currently the output of `docker inspect`. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#pod-and-container-status */
     containerStatuses?: ContainerStatus[];
-    /** Status for any ephemeral containers that have run in this pod. This field is alpha-level and is only populated by servers that enable the EphemeralContainers feature. */
+    /** Status for any ephemeral containers that have run in this pod. This field is beta-level and available on clusters that haven't disabled the EphemeralContainers feature gate. */
     ephemeralContainerStatuses?: ContainerStatus[];
     /** IP address of the host to which the pod is assigned. Empty if not yet scheduled. */
     hostIP?: string;
@@ -3721,13 +4121,19 @@ export module io.k8s.api.core.v1 {
      * Pending: The pod has been accepted by the Kubernetes system, but one or more of the container images has not been created. This includes time before being scheduled as well as time spent downloading images over the network, which could take a while. Running: The pod has been bound to a node, and all of the containers have been created. At least one container is still running, or is in the process of starting or restarting. Succeeded: All containers in the pod have terminated in success, and will not be restarted. Failed: All containers in the pod have terminated, and at least one container has terminated in failure. The container either exited with non-zero status or was terminated by the system. Unknown: For some reason the state of the pod could not be obtained, typically due to an error in communicating with the host of the pod.
      *
      * More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#pod-phase
+     *
+     *
      */
     phase?: string;
     /** IP address allocated to the pod. Routable at least within the cluster. Empty if not yet allocated. */
     podIP?: string;
     /** podIPs holds the IP addresses allocated to the pod. If this field is specified, the 0th entry must match the podIP field. Pods may be allocated at most 1 value for each of IPv4 and IPv6. This list is empty if no IPs have been allocated yet. */
     podIPs?: PodIP[];
-    /** The Quality of Service (QOS) classification assigned to the pod based on resource requirements See PodQOSClass type for available QOS classes More info: https://git.k8s.io/community/contributors/design-proposals/node/resource-qos.md */
+    /**
+     * The Quality of Service (QOS) classification assigned to the pod based on resource requirements See PodQOSClass type for available QOS classes More info: https://git.k8s.io/community/contributors/design-proposals/node/resource-qos.md
+     *
+     *
+     */
     qosClass?: string;
     /** A brief CamelCase message indicating details about why the pod is in this state. e.g. 'Evicted' */
     reason?: string;
@@ -3777,7 +4183,11 @@ export module io.k8s.api.core.v1 {
     error?: string;
     /** Port is the port number of the service port of which status is recorded here */
     port: number;
-    /** Protocol is the protocol of the service port of which status is recorded here The supported values are: "TCP", "UDP", "SCTP" */
+    /**
+     * Protocol is the protocol of the service port of which status is recorded here The supported values are: "TCP", "UDP", "SCTP"
+     *
+     *
+     */
     protocol: string;
   }
 
@@ -3801,10 +4211,12 @@ export module io.k8s.api.core.v1 {
 
   /** Probe describes a health check to be performed against a container to determine whether it is alive or ready to receive traffic. */
   export interface Probe {
-    /** One and only one of the following should be specified. Exec specifies the action to take. */
+    /** Exec specifies the action to take. */
     exec?: ExecAction;
     /** Minimum consecutive failures for the probe to be considered failed after having succeeded. Defaults to 3. Minimum value is 1. */
     failureThreshold?: number;
+    /** GRPC specifies an action involving a GRPC port. This is an alpha field and requires enabling GRPCContainerProbe feature gate. */
+    grpc?: GRPCAction;
     /** HTTPGet specifies the http request to perform. */
     httpGet?: HTTPGetAction;
     /** Number of seconds after the container has started before liveness probes are initiated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes */
@@ -3813,7 +4225,7 @@ export module io.k8s.api.core.v1 {
     periodSeconds?: number;
     /** Minimum consecutive successes for the probe to be considered successful after having failed. Defaults to 1. Must be 1 for liveness and startup. Minimum value is 1. */
     successThreshold?: number;
-    /** TCPSocket specifies an action involving a TCP port. TCP hooks not yet supported */
+    /** TCPSocket specifies an action involving a TCP port. */
     tcpSocket?: TCPSocketAction;
     /** Optional duration in seconds the pod needs to terminate gracefully upon probe failure. The grace period is the duration in seconds after the processes running in the pod are sent a termination signal and the time when the processes are forcibly halted with a kill signal. Set this value longer than the expected cleanup time for your process. If this value is nil, the pod's terminationGracePeriodSeconds will be used. Otherwise, this value overrides the value provided by the pod spec. Value must be non-negative integer. The value zero indicates stop immediately via the kill signal (no opportunity to shut down). This is a beta field and requires enabling ProbeTerminationGracePeriod feature gate. Minimum value is 1. spec.terminationGracePeriodSeconds is used if unset. */
     terminationGracePeriodSeconds?: number;
@@ -4083,9 +4495,17 @@ export module io.k8s.api.core.v1 {
 
   /** A scoped-resource selector requirement is a selector that contains values, a scope name, and an operator that relates the scope name and values. */
   export interface ScopedResourceSelectorRequirement {
-    /** Represents a scope's relationship to a set of values. Valid operators are In, NotIn, Exists, DoesNotExist. */
+    /**
+     * Represents a scope's relationship to a set of values. Valid operators are In, NotIn, Exists, DoesNotExist.
+     *
+     *
+     */
     operator: string;
-    /** The name of the scope that the selector applies to. */
+    /**
+     * The name of the scope that the selector applies to.
+     *
+     *
+     */
     scopeName: string;
     /** An array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch. */
     values?: string[];
@@ -4099,6 +4519,8 @@ export module io.k8s.api.core.v1 {
      * type indicates which kind of seccomp profile will be applied. Valid options are:
      *
      * Localhost - a profile defined in a file on the node should be used. RuntimeDefault - the container runtime default profile should be used. Unconfined - no profile should be applied.
+     *
+     *
      */
     type: string;
   }
@@ -4117,7 +4539,7 @@ export module io.k8s.api.core.v1 {
     metadata?: apimachinery.pkg.apis.meta.v1.ObjectMeta;
     /** stringData allows specifying non-binary secret data in string form. It is provided as a write-only input field for convenience. All keys and values are merged into the data field on write, overwriting any existing values. The stringData field is never output when reading from the API. */
     stringData?: object;
-    /** Used to facilitate programmatic handling of secret data. */
+    /** Used to facilitate programmatic handling of secret data. More info: https://kubernetes.io/docs/concepts/configuration/secret/#secret-types */
     type?: string;
   }
 
@@ -4195,27 +4617,27 @@ export module io.k8s.api.core.v1 {
 
   /** SecurityContext holds security configuration that will be applied to a container. Some fields are present in both SecurityContext and PodSecurityContext.  When both are set, the values in SecurityContext take precedence. */
   export interface SecurityContext {
-    /** AllowPrivilegeEscalation controls whether a process can gain more privileges than its parent process. This bool directly controls if the no_new_privs flag will be set on the container process. AllowPrivilegeEscalation is true always when the container is: 1) run as Privileged 2) has CAP_SYS_ADMIN */
+    /** AllowPrivilegeEscalation controls whether a process can gain more privileges than its parent process. This bool directly controls if the no_new_privs flag will be set on the container process. AllowPrivilegeEscalation is true always when the container is: 1) run as Privileged 2) has CAP_SYS_ADMIN Note that this field cannot be set when spec.os.name is windows. */
     allowPrivilegeEscalation?: boolean;
-    /** The capabilities to add/drop when running containers. Defaults to the default set of capabilities granted by the container runtime. */
+    /** The capabilities to add/drop when running containers. Defaults to the default set of capabilities granted by the container runtime. Note that this field cannot be set when spec.os.name is windows. */
     capabilities?: Capabilities;
-    /** Run container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false. */
+    /** Run container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false. Note that this field cannot be set when spec.os.name is windows. */
     privileged?: boolean;
-    /** procMount denotes the type of proc mount to use for the containers. The default is DefaultProcMount which uses the container runtime defaults for readonly paths and masked paths. This requires the ProcMountType feature flag to be enabled. */
+    /** procMount denotes the type of proc mount to use for the containers. The default is DefaultProcMount which uses the container runtime defaults for readonly paths and masked paths. This requires the ProcMountType feature flag to be enabled. Note that this field cannot be set when spec.os.name is windows. */
     procMount?: string;
-    /** Whether this container has a read-only root filesystem. Default is false. */
+    /** Whether this container has a read-only root filesystem. Default is false. Note that this field cannot be set when spec.os.name is windows. */
     readOnlyRootFilesystem?: boolean;
-    /** The GID to run the entrypoint of the container process. Uses runtime default if unset. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. */
+    /** The GID to run the entrypoint of the container process. Uses runtime default if unset. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows. */
     runAsGroup?: number;
     /** Indicates that the container must run as a non-root user. If true, the Kubelet will validate the image at runtime to ensure that it does not run as UID 0 (root) and fail to start the container if it does. If unset or false, no such validation will be performed. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. */
     runAsNonRoot?: boolean;
-    /** The UID to run the entrypoint of the container process. Defaults to user specified in image metadata if unspecified. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. */
+    /** The UID to run the entrypoint of the container process. Defaults to user specified in image metadata if unspecified. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows. */
     runAsUser?: number;
-    /** The SELinux context to be applied to the container. If unspecified, the container runtime will allocate a random SELinux context for each container.  May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. */
+    /** The SELinux context to be applied to the container. If unspecified, the container runtime will allocate a random SELinux context for each container.  May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows. */
     seLinuxOptions?: SELinuxOptions;
-    /** The seccomp options to use by this container. If seccomp options are provided at both the pod & container level, the container options override the pod options. */
+    /** The seccomp options to use by this container. If seccomp options are provided at both the pod & container level, the container options override the pod options. Note that this field cannot be set when spec.os.name is windows. */
     seccompProfile?: SeccompProfile;
-    /** The Windows specific settings applied to all containers. If unspecified, the options from the PodSecurityContext will be used. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. */
+    /** The Windows specific settings applied to all containers. If unspecified, the options from the PodSecurityContext will be used. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is linux. */
     windowsOptions?: WindowsSecurityContextOptions;
   }
 
@@ -4293,7 +4715,11 @@ export module io.k8s.api.core.v1 {
     nodePort?: number;
     /** The port that will be exposed by this service. */
     port: number;
-    /** The IP protocol for this port. Supports "TCP", "UDP", and "SCTP". Default is TCP. */
+    /**
+     * The IP protocol for this port. Supports "TCP", "UDP", and "SCTP". Default is TCP.
+     *
+     *
+     */
     protocol?: string;
     /** Number or name of the port to access on the pods targeted by the service. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME. If this is a string, it will be looked up as a named port in the target Pod's container ports. If this is not specified, the value of the 'port' field is used (an identity map). This field is ignored for services with clusterIP=None, and should be omitted or set equal to the 'port' field. More info: https://kubernetes.io/docs/concepts/services-networking/service/#defining-a-service */
     targetPort?: apimachinery.pkg.util.intstr.IntOrString;
@@ -4308,26 +4734,30 @@ export module io.k8s.api.core.v1 {
     /**
      * ClusterIPs is a list of IP addresses assigned to this service, and are usually assigned randomly.  If an address is specified manually, is in-range (as per system configuration), and is not in use, it will be allocated to the service; otherwise creation of the service will fail. This field may not be changed through updates unless the type field is also being changed to ExternalName (which requires this field to be empty) or the type field is being changed from ExternalName (in which case this field may optionally be specified, as describe above).  Valid values are "None", empty string (""), or a valid IP address.  Setting this to "None" makes a "headless service" (no virtual IP), which is useful when direct endpoint connections are preferred and proxying is not required.  Only applies to types ClusterIP, NodePort, and LoadBalancer. If this field is specified when creating a Service of type ExternalName, creation will fail. This field will be wiped when updating a Service to type ExternalName.  If this field is not specified, it will be initialized from the clusterIP field.  If this field is specified, clients must ensure that clusterIPs[0] and clusterIP have the same value.
      *
-     * Unless the "IPv6DualStack" feature gate is enabled, this field is limited to one value, which must be the same as the clusterIP field.  If the feature gate is enabled, this field may hold a maximum of two entries (dual-stack IPs, in either order).  These IPs must correspond to the values of the ipFamilies field. Both clusterIPs and ipFamilies are governed by the ipFamilyPolicy field. More info: https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies
+     * This field may hold a maximum of two entries (dual-stack IPs, in either order). These IPs must correspond to the values of the ipFamilies field. Both clusterIPs and ipFamilies are governed by the ipFamilyPolicy field. More info: https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies
      */
     clusterIPs?: string[];
     /** externalIPs is a list of IP addresses for which nodes in the cluster will also accept traffic for this service.  These IPs are not managed by Kubernetes.  The user is responsible for ensuring that traffic arrives at a node with this IP.  A common example is external load-balancers that are not part of the Kubernetes system. */
     externalIPs?: string[];
     /** externalName is the external reference that discovery mechanisms will return as an alias for this service (e.g. a DNS CNAME record). No proxying will be involved.  Must be a lowercase RFC-1123 hostname (https://tools.ietf.org/html/rfc1123) and requires `type` to be "ExternalName". */
     externalName?: string;
-    /** externalTrafficPolicy denotes if this Service desires to route external traffic to node-local or cluster-wide endpoints. "Local" preserves the client source IP and avoids a second hop for LoadBalancer and Nodeport type services, but risks potentially imbalanced traffic spreading. "Cluster" obscures the client source IP and may cause a second hop to another node, but should have good overall load-spreading. */
+    /**
+     * externalTrafficPolicy denotes if this Service desires to route external traffic to node-local or cluster-wide endpoints. "Local" preserves the client source IP and avoids a second hop for LoadBalancer and Nodeport type services, but risks potentially imbalanced traffic spreading. "Cluster" obscures the client source IP and may cause a second hop to another node, but should have good overall load-spreading.
+     *
+     *
+     */
     externalTrafficPolicy?: string;
     /** healthCheckNodePort specifies the healthcheck nodePort for the service. This only applies when type is set to LoadBalancer and externalTrafficPolicy is set to Local. If a value is specified, is in-range, and is not in use, it will be used.  If not specified, a value will be automatically allocated.  External systems (e.g. load-balancers) can use this port to determine if a given node holds endpoints for this service or not.  If this field is specified when creating a Service which does not need it, creation will fail. This field will be wiped when updating a Service to no longer need it (e.g. changing type). */
     healthCheckNodePort?: number;
     /** InternalTrafficPolicy specifies if the cluster internal traffic should be routed to all endpoints or node-local endpoints only. "Cluster" routes internal traffic to a Service to all endpoints. "Local" routes traffic to node-local endpoints only, traffic is dropped if no node-local endpoints are ready. The default value is "Cluster". */
     internalTrafficPolicy?: string;
     /**
-     * IPFamilies is a list of IP families (e.g. IPv4, IPv6) assigned to this service, and is gated by the "IPv6DualStack" feature gate.  This field is usually assigned automatically based on cluster configuration and the ipFamilyPolicy field. If this field is specified manually, the requested family is available in the cluster, and ipFamilyPolicy allows it, it will be used; otherwise creation of the service will fail.  This field is conditionally mutable: it allows for adding or removing a secondary IP family, but it does not allow changing the primary IP family of the Service.  Valid values are "IPv4" and "IPv6".  This field only applies to Services of types ClusterIP, NodePort, and LoadBalancer, and does apply to "headless" services.  This field will be wiped when updating a Service to type ExternalName.
+     * IPFamilies is a list of IP families (e.g. IPv4, IPv6) assigned to this service. This field is usually assigned automatically based on cluster configuration and the ipFamilyPolicy field. If this field is specified manually, the requested family is available in the cluster, and ipFamilyPolicy allows it, it will be used; otherwise creation of the service will fail. This field is conditionally mutable: it allows for adding or removing a secondary IP family, but it does not allow changing the primary IP family of the Service. Valid values are "IPv4" and "IPv6".  This field only applies to Services of types ClusterIP, NodePort, and LoadBalancer, and does apply to "headless" services. This field will be wiped when updating a Service to type ExternalName.
      *
      * This field may hold a maximum of two entries (dual-stack families, in either order).  These families must correspond to the values of the clusterIPs field, if specified. Both clusterIPs and ipFamilies are governed by the ipFamilyPolicy field.
      */
     ipFamilies?: string[];
-    /** IPFamilyPolicy represents the dual-stack-ness requested or required by this Service, and is gated by the "IPv6DualStack" feature gate.  If there is no value provided, then this field will be set to SingleStack. Services can be "SingleStack" (a single IP family), "PreferDualStack" (two IP families on dual-stack configured clusters or a single IP family on single-stack clusters), or "RequireDualStack" (two IP families on dual-stack configured clusters, otherwise fail). The ipFamilies and clusterIPs fields depend on the value of this field.  This field will be wiped when updating a service to type ExternalName. */
+    /** IPFamilyPolicy represents the dual-stack-ness requested or required by this Service. If there is no value provided, then this field will be set to SingleStack. Services can be "SingleStack" (a single IP family), "PreferDualStack" (two IP families on dual-stack configured clusters or a single IP family on single-stack clusters), or "RequireDualStack" (two IP families on dual-stack configured clusters, otherwise fail). The ipFamilies and clusterIPs fields depend on the value of this field. This field will be wiped when updating a service to type ExternalName. */
     ipFamilyPolicy?: string;
     /** loadBalancerClass is the class of the load balancer implementation this Service belongs to. If specified, the value of this field must be a label-style identifier, with an optional prefix, e.g. "internal-vip" or "example.com/internal-vip". Unprefixed names are reserved for end-users. This field can only be set when the Service type is 'LoadBalancer'. If not set, the default load balancer implementation is used, today this is typically done through the cloud provider integration, but should apply for any default implementation. If set, it is assumed that a load balancer implementation is watching for Services with a matching class. Any default load balancer implementation (e.g. cloud providers) should ignore Services that set this field. This field can only be set when creating or updating a Service to type 'LoadBalancer'. Once set, it can not be changed. This field will be wiped when a service is updated to a non 'LoadBalancer' type. */
     loadBalancerClass?: string;
@@ -4341,11 +4771,19 @@ export module io.k8s.api.core.v1 {
     publishNotReadyAddresses?: boolean;
     /** Route service traffic to pods with label keys and values matching this selector. If empty or not present, the service is assumed to have an external process managing its endpoints, which Kubernetes will not modify. Only applies to types ClusterIP, NodePort, and LoadBalancer. Ignored if type is ExternalName. More info: https://kubernetes.io/docs/concepts/services-networking/service/ */
     selector?: object;
-    /** Supports "ClientIP" and "None". Used to maintain session affinity. Enable client IP based session affinity. Must be ClientIP or None. Defaults to None. More info: https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies */
+    /**
+     * Supports "ClientIP" and "None". Used to maintain session affinity. Enable client IP based session affinity. Must be ClientIP or None. Defaults to None. More info: https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies
+     *
+     *
+     */
     sessionAffinity?: string;
     /** sessionAffinityConfig contains the configurations of session affinity. */
     sessionAffinityConfig?: SessionAffinityConfig;
-    /** type determines how the Service is exposed. Defaults to ClusterIP. Valid options are ExternalName, ClusterIP, NodePort, and LoadBalancer. "ClusterIP" allocates a cluster-internal IP address for load-balancing to endpoints. Endpoints are determined by the selector or if that is not specified, by manual construction of an Endpoints object or EndpointSlice objects. If clusterIP is "None", no virtual IP is allocated and the endpoints are published as a set of endpoints rather than a virtual IP. "NodePort" builds on ClusterIP and allocates a port on every node which routes to the same endpoints as the clusterIP. "LoadBalancer" builds on NodePort and creates an external load-balancer (if supported in the current cloud) which routes to the same endpoints as the clusterIP. "ExternalName" aliases this service to the specified externalName. Several other fields do not apply to ExternalName services. More info: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types */
+    /**
+     * type determines how the Service is exposed. Defaults to ClusterIP. Valid options are ExternalName, ClusterIP, NodePort, and LoadBalancer. "ClusterIP" allocates a cluster-internal IP address for load-balancing to endpoints. Endpoints are determined by the selector or if that is not specified, by manual construction of an Endpoints object or EndpointSlice objects. If clusterIP is "None", no virtual IP is allocated and the endpoints are published as a set of endpoints rather than a virtual IP. "NodePort" builds on ClusterIP and allocates a port on every node which routes to the same endpoints as the clusterIP. "LoadBalancer" builds on NodePort and creates an external load-balancer (if supported in the current cloud) which routes to the same endpoints as the clusterIP. "ExternalName" aliases this service to the specified externalName. Several other fields do not apply to ExternalName services. More info: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
+     *
+     *
+     */
     type?: string;
   }
 
@@ -4409,7 +4847,11 @@ export module io.k8s.api.core.v1 {
 
   /** The node this Taint is attached to has the "effect" on any pod that does not tolerate the Taint. */
   export interface Taint {
-    /** Required. The effect of the taint on pods that do not tolerate the taint. Valid effects are NoSchedule, PreferNoSchedule and NoExecute. */
+    /**
+     * Required. The effect of the taint on pods that do not tolerate the taint. Valid effects are NoSchedule, PreferNoSchedule and NoExecute.
+     *
+     *
+     */
     effect: string;
     /** Required. The taint key to be applied to a node. */
     key: string;
@@ -4421,11 +4863,19 @@ export module io.k8s.api.core.v1 {
 
   /** The pod this Toleration is attached to tolerates any taint that matches the triple <key,value,effect> using the matching operator <operator>. */
   export interface Toleration {
-    /** Effect indicates the taint effect to match. Empty means match all taint effects. When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute. */
+    /**
+     * Effect indicates the taint effect to match. Empty means match all taint effects. When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
+     *
+     *
+     */
     effect?: string;
     /** Key is the taint key that the toleration applies to. Empty means match all taint keys. If the key is empty, operator must be Exists; this combination means to match all values and all keys. */
     key?: string;
-    /** Operator represents a key's relationship to the value. Valid operators are Exists and Equal. Defaults to Equal. Exists is equivalent to wildcard for value, so that a pod can tolerate all taints of a particular category. */
+    /**
+     * Operator represents a key's relationship to the value. Valid operators are Exists and Equal. Defaults to Equal. Exists is equivalent to wildcard for value, so that a pod can tolerate all taints of a particular category.
+     *
+     *
+     */
     operator?: string;
     /** TolerationSeconds represents the period of time the toleration (which must be of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately) by the system. */
     tolerationSeconds?: number;
@@ -4459,7 +4909,9 @@ export module io.k8s.api.core.v1 {
      * WhenUnsatisfiable indicates how to deal with a pod if it doesn't satisfy the spread constraint. - DoNotSchedule (default) tells the scheduler not to schedule it. - ScheduleAnyway tells the scheduler to schedule the pod in any location,
      *   but giving higher precedence to topologies that would help reduce the
      *   skew.
-     * A constraint is considered "Unsatisfiable" for an incoming pod if and only if every possible node assigment for that pod would violate "MaxSkew" on some topology. For example, in a 3-zone cluster, MaxSkew is set to 1, and pods with the same labelSelector spread as 3/1/1: | zone1 | zone2 | zone3 | | P P P |   P   |   P   | If WhenUnsatisfiable is set to DoNotSchedule, incoming pod can only be scheduled to zone2(zone3) to become 3/2/1(3/1/2) as ActualSkew(2-1) on zone2(zone3) satisfies MaxSkew(1). In other words, the cluster can still be imbalanced, but scheduler won't make it -more- imbalanced. It's a required field.
+     * A constraint is considered "Unsatisfiable" for an incoming pod if and only if every possible node assignment for that pod would violate "MaxSkew" on some topology. For example, in a 3-zone cluster, MaxSkew is set to 1, and pods with the same labelSelector spread as 3/1/1: | zone1 | zone2 | zone3 | | P P P |   P   |   P   | If WhenUnsatisfiable is set to DoNotSchedule, incoming pod can only be scheduled to zone2(zone3) to become 3/2/1(3/1/2) as ActualSkew(2-1) on zone2(zone3) satisfies MaxSkew(1). In other words, the cluster can still be imbalanced, but scheduler won't make it -more- imbalanced. It's a required field.
+     *
+     *
      */
     whenUnsatisfiable: string;
   }
@@ -4509,8 +4961,6 @@ export module io.k8s.api.core.v1 {
      * Use CSI for light-weight local ephemeral volumes if the CSI driver is meant to be used that way - see the documentation of the driver for more information.
      *
      * A pod can use both types of ephemeral volumes and persistent volumes at the same time.
-     *
-     * This is a beta feature and only available when the GenericEphemeralVolume feature gate is enabled.
      */
     ephemeral?: EphemeralVolumeSource;
     /** FC represents a Fibre Channel resource that is attached to a kubelet's host machine and then exposed to the pod. */
@@ -4681,7 +5131,11 @@ export module io.k8s.api.discovery.v1 {
 
   /** EndpointSlice represents a subset of the endpoints that implement a service. For a given service there may be multiple EndpointSlice objects, selected by labels, which must be joined to produce the full set of endpoints. */
   export interface EndpointSlice {
-    /** addressType specifies the type of address carried by this EndpointSlice. All addresses in this slice must be the same type. This field is immutable after creation. The following address types are currently supported: - IPv4: Represents an IPv4 Address. - IPv6: Represents an IPv6 Address. - FQDN: Represents a Fully Qualified Domain Name. */
+    /**
+     * addressType specifies the type of address carried by this EndpointSlice. All addresses in this slice must be the same type. This field is immutable after creation. The following address types are currently supported: - IPv4: Represents an IPv4 Address. - IPv6: Represents an IPv6 Address. - FQDN: Represents a Fully Qualified Domain Name.
+     *
+     *
+     */
     addressType: string;
     /** APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
     apiVersion?: string;
@@ -5118,7 +5572,241 @@ export module io.k8s.api.flowcontrol.v1beta1 {
     queues?: number;
   }
 
-  /** ResourcePolicyRule is a predicate that matches some resource requests, testing the request's verb and the target resource. A ResourcePolicyRule matches a resource request if and only if: (a) at least one member of verbs matches the request, (b) at least one member of apiGroups matches the request, (c) at least one member of resources matches the request, and (d) least one member of namespaces matches the request. */
+  /** ResourcePolicyRule is a predicate that matches some resource requests, testing the request's verb and the target resource. A ResourcePolicyRule matches a resource request if and only if: (a) at least one member of verbs matches the request, (b) at least one member of apiGroups matches the request, (c) at least one member of resources matches the request, and (d) either (d1) the request does not specify a namespace (i.e., `Namespace==""`) and clusterScope is true or (d2) the request specifies a namespace and least one member of namespaces matches the request's namespace. */
+  export interface ResourcePolicyRule {
+    /** `apiGroups` is a list of matching API groups and may not be empty. "-" matches all API groups and, if present, must be the only entry. Required. */
+    apiGroups: string[];
+    /** `clusterScope` indicates whether to match requests that do not specify a namespace (which happens either because the resource is not namespaced or the request targets all namespaces). If this field is omitted or false then the `namespaces` field must contain a non-empty list. */
+    clusterScope?: boolean;
+    /** `namespaces` is a list of target namespaces that restricts matches.  A request that specifies a target namespace matches only if either (a) this list contains that target namespace or (b) this list contains "-".  Note that "-" matches any specified namespace but does not match a request that _does not specify_ a namespace (see the `clusterScope` field for that). This list may be empty, but only if `clusterScope` is true. */
+    namespaces?: string[];
+    /** `resources` is a list of matching resources (i.e., lowercase and plural) with, if desired, subresource.  For example, [ "services", "nodes/status" ].  This list may not be empty. "-" matches all resources and, if present, must be the only entry. Required. */
+    resources: string[];
+    /** `verbs` is a list of matching verbs and may not be empty. "-" matches all verbs and, if present, must be the only entry. Required. */
+    verbs: string[];
+  }
+
+  /** ServiceAccountSubject holds detailed information for service-account-kind subject. */
+  export interface ServiceAccountSubject {
+    /** `name` is the name of matching ServiceAccount objects, or "-" to match regardless of name. Required. */
+    name: string;
+    /** `namespace` is the namespace of matching ServiceAccount objects. Required. */
+    namespace: string;
+  }
+
+  /** Subject matches the originator of a request, as identified by the request authentication system. There are three ways of matching an originator; by user, group, or service account. */
+  export interface Subject {
+    /** `group` matches based on user group name. */
+    group?: GroupSubject;
+    /** `kind` indicates which one of the other fields is non-empty. Required */
+    kind: string;
+    /** `serviceAccount` matches ServiceAccounts. */
+    serviceAccount?: ServiceAccountSubject;
+    /** `user` matches based on username. */
+    user?: UserSubject;
+  }
+
+  /** UserSubject holds detailed information for user-kind subject. */
+  export interface UserSubject {
+    /** `name` is the username that matches, or "-" to match all usernames. Required. */
+    name: string;
+  }
+}
+
+export module io.k8s.api.flowcontrol.v1beta2 {
+  /** FlowDistinguisherMethod specifies the method of a flow distinguisher. */
+  export interface FlowDistinguisherMethod {
+    /** `type` is the type of flow distinguisher method The supported types are "ByUser" and "ByNamespace". Required. */
+    type: string;
+  }
+
+  /** FlowSchema defines the schema of a group of flows. Note that a flow is made up of a set of inbound API requests with similar attributes and is identified by a pair of strings: the name of the FlowSchema and a "flow distinguisher". */
+  export interface FlowSchema {
+    /** APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
+    apiVersion?: string;
+    /** Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
+    kind?: string;
+    /** `metadata` is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata */
+    metadata?: apimachinery.pkg.apis.meta.v1.ObjectMeta;
+    /** `spec` is the specification of the desired behavior of a FlowSchema. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status */
+    spec?: FlowSchemaSpec;
+    /** `status` is the current status of a FlowSchema. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status */
+    status?: FlowSchemaStatus;
+  }
+
+  /** FlowSchemaCondition describes conditions for a FlowSchema. */
+  export interface FlowSchemaCondition {
+    /** `lastTransitionTime` is the last time the condition transitioned from one status to another. */
+    lastTransitionTime?: apimachinery.pkg.apis.meta.v1.Time;
+    /** `message` is a human-readable message indicating details about last transition. */
+    message?: string;
+    /** `reason` is a unique, one-word, CamelCase reason for the condition's last transition. */
+    reason?: string;
+    /** `status` is the status of the condition. Can be True, False, Unknown. Required. */
+    status?: string;
+    /** `type` is the type of the condition. Required. */
+    type?: string;
+  }
+
+  /** FlowSchemaList is a list of FlowSchema objects. */
+  export interface FlowSchemaList {
+    /** APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
+    apiVersion?: string;
+    /** `items` is a list of FlowSchemas. */
+    items: FlowSchema[];
+    /** Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
+    kind?: string;
+    /** `metadata` is the standard list metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata */
+    metadata?: apimachinery.pkg.apis.meta.v1.ListMeta;
+  }
+
+  /** FlowSchemaSpec describes how the FlowSchema's specification looks like. */
+  export interface FlowSchemaSpec {
+    /** `distinguisherMethod` defines how to compute the flow distinguisher for requests that match this schema. `nil` specifies that the distinguisher is disabled and thus will always be the empty string. */
+    distinguisherMethod?: FlowDistinguisherMethod;
+    /** `matchingPrecedence` is used to choose among the FlowSchemas that match a given request. The chosen FlowSchema is among those with the numerically lowest (which we take to be logically highest) MatchingPrecedence.  Each MatchingPrecedence value must be ranged in [1,10000]. Note that if the precedence is not specified, it will be set to 1000 as default. */
+    matchingPrecedence?: number;
+    /** `priorityLevelConfiguration` should reference a PriorityLevelConfiguration in the cluster. If the reference cannot be resolved, the FlowSchema will be ignored and marked as invalid in its status. Required. */
+    priorityLevelConfiguration: PriorityLevelConfigurationReference;
+    /** `rules` describes which requests will match this flow schema. This FlowSchema matches a request if and only if at least one member of rules matches the request. if it is an empty slice, there will be no requests matching the FlowSchema. */
+    rules?: PolicyRulesWithSubjects[];
+  }
+
+  /** FlowSchemaStatus represents the current state of a FlowSchema. */
+  export interface FlowSchemaStatus {
+    /** `conditions` is a list of the current states of FlowSchema. */
+    conditions?: FlowSchemaCondition[];
+  }
+
+  /** GroupSubject holds detailed information for group-kind subject. */
+  export interface GroupSubject {
+    /** name is the user group that matches, or "-" to match all user groups. See https://github.com/kubernetes/apiserver/blob/master/pkg/authentication/user/user.go for some well-known group names. Required. */
+    name: string;
+  }
+
+  /** LimitResponse defines how to handle requests that can not be executed right now. */
+  export interface LimitResponse {
+    /** `queuing` holds the configuration parameters for queuing. This field may be non-empty only if `type` is `"Queue"`. */
+    queuing?: QueuingConfiguration;
+    /** `type` is "Queue" or "Reject". "Queue" means that requests that can not be executed upon arrival are held in a queue until they can be executed or a queuing limit is reached. "Reject" means that requests that can not be executed upon arrival are rejected. Required. */
+    type: string;
+  }
+
+  /**
+   * LimitedPriorityLevelConfiguration specifies how to handle requests that are subject to limits. It addresses two issues:
+   *  - How are requests for this priority level limited?
+   *  - What should be done with requests that exceed the limit?
+   */
+  export interface LimitedPriorityLevelConfiguration {
+    /**
+     * `assuredConcurrencyShares` (ACS) configures the execution limit, which is a limit on the number of requests of this priority level that may be exeucting at a given time.  ACS must be a positive number. The server's concurrency limit (SCL) is divided among the concurrency-controlled priority levels in proportion to their assured concurrency shares. This produces the assured concurrency value (ACV) --- the number of requests that may be executing at a time --- for each such priority level:
+     *
+     *             ACV(l) = ceil( SCL - ACS(l) / ( sum[priority levels k] ACS(k) ) )
+     *
+     * bigger numbers of ACS mean more reserved concurrent requests (at the expense of every other PL). This field has a default value of 30.
+     */
+    assuredConcurrencyShares?: number;
+    /** `limitResponse` indicates what to do with requests that can not be executed right now */
+    limitResponse?: LimitResponse;
+  }
+
+  /** NonResourcePolicyRule is a predicate that matches non-resource requests according to their verb and the target non-resource URL. A NonResourcePolicyRule matches a request if and only if both (a) at least one member of verbs matches the request and (b) at least one member of nonResourceURLs matches the request. */
+  export interface NonResourcePolicyRule {
+    /**
+     * `nonResourceURLs` is a set of url prefixes that a user should have access to and may not be empty. For example:
+     *   - "/healthz" is legal
+     *   - "/hea-" is illegal
+     *   - "/hea" is legal but matches nothing
+     *   - "/hea/-" also matches nothing
+     *   - "/healthz/-" matches all per-component health checks.
+     * "-" matches all non-resource urls. if it is present, it must be the only entry. Required.
+     */
+    nonResourceURLs: string[];
+    /** `verbs` is a list of matching verbs and may not be empty. "-" matches all verbs. If it is present, it must be the only entry. Required. */
+    verbs: string[];
+  }
+
+  /** PolicyRulesWithSubjects prescribes a test that applies to a request to an apiserver. The test considers the subject making the request, the verb being requested, and the resource to be acted upon. This PolicyRulesWithSubjects matches a request if and only if both (a) at least one member of subjects matches the request and (b) at least one member of resourceRules or nonResourceRules matches the request. */
+  export interface PolicyRulesWithSubjects {
+    /** `nonResourceRules` is a list of NonResourcePolicyRules that identify matching requests according to their verb and the target non-resource URL. */
+    nonResourceRules?: NonResourcePolicyRule[];
+    /** `resourceRules` is a slice of ResourcePolicyRules that identify matching requests according to their verb and the target resource. At least one of `resourceRules` and `nonResourceRules` has to be non-empty. */
+    resourceRules?: ResourcePolicyRule[];
+    /** subjects is the list of normal user, serviceaccount, or group that this rule cares about. There must be at least one member in this slice. A slice that includes both the system:authenticated and system:unauthenticated user groups matches every request. Required. */
+    subjects: Subject[];
+  }
+
+  /** PriorityLevelConfiguration represents the configuration of a priority level. */
+  export interface PriorityLevelConfiguration {
+    /** APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
+    apiVersion?: string;
+    /** Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
+    kind?: string;
+    /** `metadata` is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata */
+    metadata?: apimachinery.pkg.apis.meta.v1.ObjectMeta;
+    /** `spec` is the specification of the desired behavior of a "request-priority". More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status */
+    spec?: PriorityLevelConfigurationSpec;
+    /** `status` is the current status of a "request-priority". More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status */
+    status?: PriorityLevelConfigurationStatus;
+  }
+
+  /** PriorityLevelConfigurationCondition defines the condition of priority level. */
+  export interface PriorityLevelConfigurationCondition {
+    /** `lastTransitionTime` is the last time the condition transitioned from one status to another. */
+    lastTransitionTime?: apimachinery.pkg.apis.meta.v1.Time;
+    /** `message` is a human-readable message indicating details about last transition. */
+    message?: string;
+    /** `reason` is a unique, one-word, CamelCase reason for the condition's last transition. */
+    reason?: string;
+    /** `status` is the status of the condition. Can be True, False, Unknown. Required. */
+    status?: string;
+    /** `type` is the type of the condition. Required. */
+    type?: string;
+  }
+
+  /** PriorityLevelConfigurationList is a list of PriorityLevelConfiguration objects. */
+  export interface PriorityLevelConfigurationList {
+    /** APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
+    apiVersion?: string;
+    /** `items` is a list of request-priorities. */
+    items: PriorityLevelConfiguration[];
+    /** Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
+    kind?: string;
+    /** `metadata` is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata */
+    metadata?: apimachinery.pkg.apis.meta.v1.ListMeta;
+  }
+
+  /** PriorityLevelConfigurationReference contains information that points to the "request-priority" being used. */
+  export interface PriorityLevelConfigurationReference {
+    /** `name` is the name of the priority level configuration being referenced Required. */
+    name: string;
+  }
+
+  /** PriorityLevelConfigurationSpec specifies the configuration of a priority level. */
+  export interface PriorityLevelConfigurationSpec {
+    /** `limited` specifies how requests are handled for a Limited priority level. This field must be non-empty if and only if `type` is `"Limited"`. */
+    limited?: LimitedPriorityLevelConfiguration;
+    /** `type` indicates whether this priority level is subject to limitation on request execution.  A value of `"Exempt"` means that requests of this priority level are not subject to a limit (and thus are never queued) and do not detract from the capacity made available to other priority levels.  A value of `"Limited"` means that (a) requests of this priority level _are_ subject to limits and (b) some of the server's limited capacity is made available exclusively to this priority level. Required. */
+    type: string;
+  }
+
+  /** PriorityLevelConfigurationStatus represents the current state of a "request-priority". */
+  export interface PriorityLevelConfigurationStatus {
+    /** `conditions` is the current state of "request-priority". */
+    conditions?: PriorityLevelConfigurationCondition[];
+  }
+
+  /** QueuingConfiguration holds the configuration parameters for queuing */
+  export interface QueuingConfiguration {
+    /** `handSize` is a small positive number that configures the shuffle sharding of requests into queues.  When enqueuing a request at this priority level the request's flow identifier (a string pair) is hashed and the hash value is used to shuffle the list of queues and deal a hand of the size specified here.  The request is put into one of the shortest queues in that hand. `handSize` must be no larger than `queues`, and should be significantly smaller (so that a few heavy flows do not saturate most of the queues).  See the user-facing documentation for more extensive guidance on setting this field.  This field has a default value of 8. */
+    handSize?: number;
+    /** `queueLengthLimit` is the maximum number of requests allowed to be waiting in a given queue of this priority level at a time; excess requests are rejected.  This value must be positive.  If not specified, it will be defaulted to 50. */
+    queueLengthLimit?: number;
+    /** `queues` is the number of queues for this priority level. The queues exist independently at each apiserver. The value must be positive.  Setting it to 1 effectively precludes shufflesharding and thus makes the distinguisher method of associated flow schemas irrelevant.  This field has a default value of 64. */
+    queues?: number;
+  }
+
+  /** ResourcePolicyRule is a predicate that matches some resource requests, testing the request's verb and the target resource. A ResourcePolicyRule matches a resource request if and only if: (a) at least one member of verbs matches the request, (b) at least one member of apiGroups matches the request, (c) at least one member of resources matches the request, and (d) either (d1) the request does not specify a namespace (i.e., `Namespace==""`) and clusterScope is true or (d2) the request specifies a namespace and least one member of namespaces matches the request's namespace. */
   export interface ResourcePolicyRule {
     /** `apiGroups` is a list of matching API groups and may not be empty. "-" matches all API groups and, if present, must be the only entry. Required. */
     apiGroups: string[];
@@ -5252,7 +5940,7 @@ export module io.k8s.api.networking.v1 {
     name: string;
     /** Namespace is the namespace of the resource being referenced. This field is required when scope is set to "Namespace" and must be unset when scope is set to "Cluster". */
     namespace?: string;
-    /** Scope represents if this refers to a cluster or namespace scoped resource. This may be set to "Cluster" (default) or "Namespace". Field can be enabled with IngressClassNamespacedParams feature gate. */
+    /** Scope represents if this refers to a cluster or namespace scoped resource. This may be set to "Cluster" (default) or "Namespace". */
     scope?: string;
   }
 
@@ -5942,7 +6630,7 @@ export module io.k8s.api.rbac.v1 {
     resourceNames?: string[];
     /** Resources is a list of resources this rule applies to. '-' represents all resources. */
     resources?: string[];
-    /** Verbs is a list of Verbs that apply to ALL the ResourceKinds and AttributeRestrictions contained in this rule. '-' represents all verbs. */
+    /** Verbs is a list of Verbs that apply to ALL the ResourceKinds contained in this rule. '-' represents all verbs. */
     verbs: string[];
   }
 
@@ -6019,186 +6707,8 @@ export module io.k8s.api.rbac.v1 {
   }
 }
 
-export module io.k8s.api.rbac.v1alpha1 {
-  /** AggregationRule describes how to locate ClusterRoles to aggregate into the ClusterRole */
-  export interface AggregationRule {
-    /** ClusterRoleSelectors holds a list of selectors which will be used to find ClusterRoles and create the rules. If any of the selectors match, then the ClusterRole's permissions will be added */
-    clusterRoleSelectors?: apimachinery.pkg.apis.meta.v1.LabelSelector[];
-  }
-
-  /** ClusterRole is a cluster level, logical grouping of PolicyRules that can be referenced as a unit by a RoleBinding or ClusterRoleBinding. Deprecated in v1.17 in favor of rbac.authorization.k8s.io/v1 ClusterRole, and will no longer be served in v1.22. */
-  export interface ClusterRole {
-    /** AggregationRule is an optional field that describes how to build the Rules for this ClusterRole. If AggregationRule is set, then the Rules are controller managed and direct changes to Rules will be stomped by the controller. */
-    aggregationRule?: AggregationRule;
-    /** APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
-    apiVersion?: string;
-    /** Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
-    kind?: string;
-    /** Standard object's metadata. */
-    metadata?: apimachinery.pkg.apis.meta.v1.ObjectMeta;
-    /** Rules holds all the PolicyRules for this ClusterRole */
-    rules?: PolicyRule[];
-  }
-
-  /** ClusterRoleBinding references a ClusterRole, but not contain it.  It can reference a ClusterRole in the global namespace, and adds who information via Subject. Deprecated in v1.17 in favor of rbac.authorization.k8s.io/v1 ClusterRoleBinding, and will no longer be served in v1.22. */
-  export interface ClusterRoleBinding {
-    /** APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
-    apiVersion?: string;
-    /** Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
-    kind?: string;
-    /** Standard object's metadata. */
-    metadata?: apimachinery.pkg.apis.meta.v1.ObjectMeta;
-    /** RoleRef can only reference a ClusterRole in the global namespace. If the RoleRef cannot be resolved, the Authorizer must return an error. */
-    roleRef: RoleRef;
-    /** Subjects holds references to the objects the role applies to. */
-    subjects?: Subject[];
-  }
-
-  /** ClusterRoleBindingList is a collection of ClusterRoleBindings. Deprecated in v1.17 in favor of rbac.authorization.k8s.io/v1 ClusterRoleBindings, and will no longer be served in v1.22. */
-  export interface ClusterRoleBindingList {
-    /** APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
-    apiVersion?: string;
-    /** Items is a list of ClusterRoleBindings */
-    items: ClusterRoleBinding[];
-    /** Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
-    kind?: string;
-    /** Standard object's metadata. */
-    metadata?: apimachinery.pkg.apis.meta.v1.ListMeta;
-  }
-
-  /** ClusterRoleList is a collection of ClusterRoles. Deprecated in v1.17 in favor of rbac.authorization.k8s.io/v1 ClusterRoles, and will no longer be served in v1.22. */
-  export interface ClusterRoleList {
-    /** APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
-    apiVersion?: string;
-    /** Items is a list of ClusterRoles */
-    items: ClusterRole[];
-    /** Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
-    kind?: string;
-    /** Standard object's metadata. */
-    metadata?: apimachinery.pkg.apis.meta.v1.ListMeta;
-  }
-
-  /** PolicyRule holds information that describes a policy rule, but does not contain information about who the rule applies to or which namespace the rule applies to. */
-  export interface PolicyRule {
-    /** APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of the enumerated resources in any API group will be allowed. */
-    apiGroups?: string[];
-    /** NonResourceURLs is a set of partial urls that a user should have access to.  -s are allowed, but only as the full, final step in the path Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding. Rules can either apply to API resources (such as "pods" or "secrets") or non-resource URL paths (such as "/api"),  but not both. */
-    nonResourceURLs?: string[];
-    /** ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed. */
-    resourceNames?: string[];
-    /** Resources is a list of resources this rule applies to. '-' represents all resources. */
-    resources?: string[];
-    /** Verbs is a list of Verbs that apply to ALL the ResourceKinds and AttributeRestrictions contained in this rule. '-' represents all verbs. */
-    verbs: string[];
-  }
-
-  /** Role is a namespaced, logical grouping of PolicyRules that can be referenced as a unit by a RoleBinding. Deprecated in v1.17 in favor of rbac.authorization.k8s.io/v1 Role, and will no longer be served in v1.22. */
-  export interface Role {
-    /** APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
-    apiVersion?: string;
-    /** Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
-    kind?: string;
-    /** Standard object's metadata. */
-    metadata?: apimachinery.pkg.apis.meta.v1.ObjectMeta;
-    /** Rules holds all the PolicyRules for this Role */
-    rules?: PolicyRule[];
-  }
-
-  /** RoleBinding references a role, but does not contain it.  It can reference a Role in the same namespace or a ClusterRole in the global namespace. It adds who information via Subjects and namespace information by which namespace it exists in.  RoleBindings in a given namespace only have effect in that namespace. Deprecated in v1.17 in favor of rbac.authorization.k8s.io/v1 RoleBinding, and will no longer be served in v1.22. */
-  export interface RoleBinding {
-    /** APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
-    apiVersion?: string;
-    /** Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
-    kind?: string;
-    /** Standard object's metadata. */
-    metadata?: apimachinery.pkg.apis.meta.v1.ObjectMeta;
-    /** RoleRef can reference a Role in the current namespace or a ClusterRole in the global namespace. If the RoleRef cannot be resolved, the Authorizer must return an error. */
-    roleRef: RoleRef;
-    /** Subjects holds references to the objects the role applies to. */
-    subjects?: Subject[];
-  }
-
-  /** RoleBindingList is a collection of RoleBindings Deprecated in v1.17 in favor of rbac.authorization.k8s.io/v1 RoleBindingList, and will no longer be served in v1.22. */
-  export interface RoleBindingList {
-    /** APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
-    apiVersion?: string;
-    /** Items is a list of RoleBindings */
-    items: RoleBinding[];
-    /** Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
-    kind?: string;
-    /** Standard object's metadata. */
-    metadata?: apimachinery.pkg.apis.meta.v1.ListMeta;
-  }
-
-  /** RoleList is a collection of Roles. Deprecated in v1.17 in favor of rbac.authorization.k8s.io/v1 RoleList, and will no longer be served in v1.22. */
-  export interface RoleList {
-    /** APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
-    apiVersion?: string;
-    /** Items is a list of Roles */
-    items: Role[];
-    /** Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
-    kind?: string;
-    /** Standard object's metadata. */
-    metadata?: apimachinery.pkg.apis.meta.v1.ListMeta;
-  }
-
-  /** RoleRef contains information that points to the role being used */
-  export interface RoleRef {
-    /** APIGroup is the group for the resource being referenced */
-    apiGroup: string;
-    /** Kind is the type of resource being referenced */
-    kind: string;
-    /** Name is the name of resource being referenced */
-    name: string;
-  }
-
-  /** Subject contains a reference to the object or user identities a role binding applies to.  This can either hold a direct API object reference, or a value for non-objects such as user and group names. */
-  export interface Subject {
-    /** APIVersion holds the API group and version of the referenced subject. Defaults to "v1" for ServiceAccount subjects. Defaults to "rbac.authorization.k8s.io/v1alpha1" for User and Group subjects. */
-    apiVersion?: string;
-    /** Kind of object being referenced. Values defined by this API group are "User", "Group", and "ServiceAccount". If the Authorizer does not recognized the kind value, the Authorizer should report an error. */
-    kind: string;
-    /** Name of the object being referenced. */
-    name: string;
-    /** Namespace of the referenced object.  If the object kind is non-namespace, such as "User" or "Group", and this value is not empty the Authorizer should report an error. */
-    namespace?: string;
-  }
-}
-
 export module io.k8s.api.scheduling.v1 {
   /** PriorityClass defines mapping from a priority class name to the priority integer value. The value can be any valid integer. */
-  export interface PriorityClass {
-    /** APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
-    apiVersion?: string;
-    /** description is an arbitrary string that usually provides guidelines on when this priority class should be used. */
-    description?: string;
-    /** globalDefault specifies whether this PriorityClass should be considered as the default priority for pods that do not have any priority class. Only one PriorityClass can be marked as `globalDefault`. However, if more than one PriorityClasses exists with their `globalDefault` field set to true, the smallest value of such global default PriorityClasses will be used as the default priority. */
-    globalDefault?: boolean;
-    /** Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
-    kind?: string;
-    /** Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata */
-    metadata?: apimachinery.pkg.apis.meta.v1.ObjectMeta;
-    /** PreemptionPolicy is the Policy for preempting pods with lower priority. One of Never, PreemptLowerPriority. Defaults to PreemptLowerPriority if unset. This field is beta-level, gated by the NonPreemptingPriority feature-gate. */
-    preemptionPolicy?: string;
-    /** The value of this priority class. This is the actual priority that pods receive when they have the name of this class in their pod spec. */
-    value: number;
-  }
-
-  /** PriorityClassList is a collection of priority classes. */
-  export interface PriorityClassList {
-    /** APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
-    apiVersion?: string;
-    /** items is the list of PriorityClasses */
-    items: PriorityClass[];
-    /** Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
-    kind?: string;
-    /** Standard list metadata More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata */
-    metadata?: apimachinery.pkg.apis.meta.v1.ListMeta;
-  }
-}
-
-export module io.k8s.api.scheduling.v1alpha1 {
-  /** DEPRECATED - This group version of PriorityClass is deprecated by scheduling.k8s.io/v1/PriorityClass. PriorityClass defines mapping from a priority class name to the priority integer value. The value can be any valid integer. */
   export interface PriorityClass {
     /** APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
     apiVersion?: string;
@@ -6263,7 +6773,7 @@ export module io.k8s.api.storage.v1 {
      */
     attachRequired?: boolean;
     /**
-     * Defines if the underlying volume supports changing ownership and permission of the volume before being mounted. Refer to the specific FSGroupPolicy values for additional details. This field is beta, and is only honored by servers that enable the CSIVolumeFSGroupPolicy feature gate.
+     * Defines if the underlying volume supports changing ownership and permission of the volume before being mounted. Refer to the specific FSGroupPolicy values for additional details.
      *
      * This field is immutable.
      *
@@ -6292,7 +6802,7 @@ export module io.k8s.api.storage.v1 {
      *
      * Alternatively, the driver can be deployed with the field unset or false and it can be flipped later when storage capacity information has been published.
      *
-     * This field is immutable.
+     * This field was immutable in Kubernetes <= 1.22 and now is mutable.
      *
      * This is a beta field and only available when the CSIStorageCapacity feature is enabled. The default is false.
      */
@@ -6535,74 +7045,6 @@ export module io.k8s.api.storage.v1alpha1 {
     kind?: string;
     /** Standard list metadata More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata */
     metadata?: apimachinery.pkg.apis.meta.v1.ListMeta;
-  }
-
-  /**
-   * VolumeAttachment captures the intent to attach or detach the specified volume to/from the specified node.
-   *
-   * VolumeAttachment objects are non-namespaced.
-   */
-  export interface VolumeAttachment {
-    /** APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
-    apiVersion?: string;
-    /** Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
-    kind?: string;
-    /** Standard object metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata */
-    metadata?: apimachinery.pkg.apis.meta.v1.ObjectMeta;
-    /** Specification of the desired attach/detach volume behavior. Populated by the Kubernetes system. */
-    spec: VolumeAttachmentSpec;
-    /** Status of the VolumeAttachment request. Populated by the entity completing the attach or detach operation, i.e. the external-attacher. */
-    status?: VolumeAttachmentStatus;
-  }
-
-  /** VolumeAttachmentList is a collection of VolumeAttachment objects. */
-  export interface VolumeAttachmentList {
-    /** APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
-    apiVersion?: string;
-    /** Items is the list of VolumeAttachments */
-    items: VolumeAttachment[];
-    /** Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
-    kind?: string;
-    /** Standard list metadata More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata */
-    metadata?: apimachinery.pkg.apis.meta.v1.ListMeta;
-  }
-
-  /** VolumeAttachmentSource represents a volume that should be attached. Right now only PersistenVolumes can be attached via external attacher, in future we may allow also inline volumes in pods. Exactly one member can be set. */
-  export interface VolumeAttachmentSource {
-    /** inlineVolumeSpec contains all the information necessary to attach a persistent volume defined by a pod's inline VolumeSource. This field is populated only for the CSIMigration feature. It contains translated fields from a pod's inline VolumeSource to a PersistentVolumeSpec. This field is alpha-level and is only honored by servers that enabled the CSIMigration feature. */
-    inlineVolumeSpec?: core.v1.PersistentVolumeSpec;
-    /** Name of the persistent volume to attach. */
-    persistentVolumeName?: string;
-  }
-
-  /** VolumeAttachmentSpec is the specification of a VolumeAttachment request. */
-  export interface VolumeAttachmentSpec {
-    /** Attacher indicates the name of the volume driver that MUST handle this request. This is the name returned by GetPluginName(). */
-    attacher: string;
-    /** The node that the volume should be attached to. */
-    nodeName: string;
-    /** Source represents the volume that should be attached. */
-    source: VolumeAttachmentSource;
-  }
-
-  /** VolumeAttachmentStatus is the status of a VolumeAttachment request. */
-  export interface VolumeAttachmentStatus {
-    /** The last error encountered during attach operation, if any. This field must only be set by the entity completing the attach operation, i.e. the external-attacher. */
-    attachError?: VolumeError;
-    /** Indicates the volume is successfully attached. This field must only be set by the entity completing the attach operation, i.e. the external-attacher. */
-    attached: boolean;
-    /** Upon successful attach, this field is populated with any information returned by the attach operation that must be passed into subsequent WaitForAttach or Mount calls. This field must only be set by the entity completing the attach operation, i.e. the external-attacher. */
-    attachmentMetadata?: object;
-    /** The last error encountered during detach operation, if any. This field must only be set by the entity completing the detach operation, i.e. the external-attacher. */
-    detachError?: VolumeError;
-  }
-
-  /** VolumeError captures an error encountered during a volume operation. */
-  export interface VolumeError {
-    /** String detailing the error encountered during Attach or Detach operation. This string maybe logged, so it should not contain sensitive information. */
-    message?: string;
-    /** Time the error was encountered. */
-    time?: apimachinery.pkg.apis.meta.v1.Time;
   }
 }
 
@@ -6926,6 +7368,8 @@ export module io.k8s.apiextensions_apiserver.pkg.apis.apiextensions.v1 {
     x_kubernetes_map_type?: string;
     /** x-kubernetes-preserve-unknown-fields stops the API server decoding step from pruning fields which are not specified in the validation schema. This affects fields recursively, but switches back to normal pruning behaviour if nested properties or additionalProperties are specified in the schema. This can either be true or undefined. False is forbidden. */
     x_kubernetes_preserve_unknown_fields?: boolean;
+    /** x-kubernetes-validations describes a list of validation rules written in the CEL expression language. This field is an alpha-level. Using this field requires the feature gate `CustomResourceValidationExpressions` to be enabled. */
+    x_kubernetes_validations?: ValidationRule[];
   }
 
   /** JSONSchemaPropsOrArray represents a value that can either be a JSONSchemaProps or an array of JSONSchemaProps. Mainly here for serialization purposes. */
@@ -6947,6 +7391,40 @@ export module io.k8s.apiextensions_apiserver.pkg.apis.apiextensions.v1 {
     path?: string;
     /** port is an optional service port at which the webhook will be contacted. `port` should be a valid port number (1-65535, inclusive). Defaults to 443 for backward compatibility. */
     port?: number;
+  }
+
+  /** ValidationRule describes a validation rule written in the CEL expression language. */
+  export interface ValidationRule {
+    /** Message represents the message displayed when validation fails. The message is required if the Rule contains line breaks. The message must not contain line breaks. If unset, the message is "failed rule: {Rule}". e.g. "must be a URL with the host matching spec.host" */
+    message?: string;
+    /**
+     * Rule represents the expression which will be evaluated by CEL. ref: https://github.com/google/cel-spec The Rule is scoped to the location of the x-kubernetes-validations extension in the schema. The `self` variable in the CEL expression is bound to the scoped value. Example: - Rule scoped to the root of a resource with a status subresource: {"rule": "self.status.actual <= self.spec.maxDesired"}
+     *
+     * If the Rule is scoped to an object with properties, the accessible properties of the object are field selectable via `self.field` and field presence can be checked via `has(self.field)`. Null valued fields are treated as absent fields in CEL expressions. If the Rule is scoped to an object with additionalProperties (i.e. a map) the value of the map are accessible via `self[mapKey]`, map containment can be checked via `mapKey in self` and all entries of the map are accessible via CEL macros and functions such as `self.all(...)`. If the Rule is scoped to an array, the elements of the array are accessible via `self[i]` and also by macros and functions. If the Rule is scoped to a scalar, `self` is bound to the scalar value. Examples: - Rule scoped to a map of objects: {"rule": "self.components['Widget'].priority < 10"} - Rule scoped to a list of integers: {"rule": "self.values.all(value, value >= 0 && value < 100)"} - Rule scoped to a string value: {"rule": "self.startsWith('kube')"}
+     *
+     * The `apiVersion`, `kind`, `metadata.name` and `metadata.generateName` are always accessible from the root of the object and from any x-kubernetes-embedded-resource annotated objects. No other metadata properties are accessible.
+     *
+     * Unknown data preserved in custom resources via x-kubernetes-preserve-unknown-fields is not accessible in CEL expressions. This includes: - Unknown field values that are preserved by object schemas with x-kubernetes-preserve-unknown-fields. - Object properties where the property schema is of an "unknown type". An "unknown type" is recursively defined as:
+     *   - A schema with no type and x-kubernetes-preserve-unknown-fields set to true
+     *   - An array where the items schema is of an "unknown type"
+     *   - An object where the additionalProperties schema is of an "unknown type"
+     *
+     * Only property names of the form `[a-zA-Z_.-/][a-zA-Z0-9_.-/]-` are accessible. Accessible property names are escaped according to the following rules when accessed in the expression: - '__' escapes to '__underscores__' - '.' escapes to '__dot__' - '-' escapes to '__dash__' - '/' escapes to '__slash__' - Property names that exactly match a CEL RESERVED keyword escape to '__{keyword}__'. The keywords are:
+     * 	  "true", "false", "null", "in", "as", "break", "const", "continue", "else", "for", "function", "if",
+     * 	  "import", "let", "loop", "package", "namespace", "return".
+     * Examples:
+     *   - Rule accessing a property named "namespace": {"rule": "self.__namespace__ > 0"}
+     *   - Rule accessing a property named "x-prop": {"rule": "self.x__dash__prop > 0"}
+     *   - Rule accessing a property named "redact__d": {"rule": "self.redact__underscores__d > 0"}
+     *
+     * Equality on arrays with x-kubernetes-list-type of 'set' or 'map' ignores element order, i.e. [1, 2] == [2, 1]. Concatenation on arrays with x-kubernetes-list-type use the semantics of the list type:
+     *   - 'set': `X + Y` performs a union where the array positions of all elements in `X` are preserved and
+     *     non-intersecting elements in `Y` are appended, retaining their partial order.
+     *   - 'map': `X + Y` performs a merge where the array positions of all keys in `X` are preserved but the values
+     *     are overwritten by values in `Y` when the key sets of `X` and `Y` intersect. Elements in `Y` with
+     *     non-intersecting keys are appended, retaining their partial order.
+     */
+    rule: string;
   }
 
   /** WebhookClientConfig contains the information to make a TLS connection with the webhook. */
