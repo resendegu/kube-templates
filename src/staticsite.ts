@@ -2,7 +2,7 @@ import { URL } from "url";
 
 import { generateYaml } from "./helpers";
 import type { ObjectMeta } from "./kubernetes";
-import { Ingress, Service } from "./kubernetes";
+import { IngressV1, Service } from "./kubernetes";
 
 interface StaticSiteSpec {
   provider?: "gcs" | "s3";
@@ -46,7 +46,7 @@ export class StaticSite {
         },
       ),
 
-      new Ingress(
+      new IngressV1(
         {
           ...this.metadata,
           annotations: {

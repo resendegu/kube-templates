@@ -1,3 +1,5 @@
+import * as _ from "lodash";
+
 import type { io } from "./generated/kubernetes";
 import { env, generateYaml } from "./helpers";
 import type { ObjectMeta } from "./kubernetes";
@@ -165,11 +167,11 @@ export class Cron {
                   },
                 ],
                 restartPolicy: "Never",
-                ...(this.spec.backoffLimit ?? false
-                  ? { backoffLimit: this.spec.backoffLimit }
-                  : {}),
               },
             },
+            ...(_.isUndefined(this.spec.backoffLimit)
+              ? {}
+              : { backoffLimit: this.spec.backoffLimit }),
           },
         },
       }),

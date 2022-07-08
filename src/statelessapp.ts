@@ -7,7 +7,7 @@ import type { ObjectMeta } from "./kubernetes";
 import {
   Deployment,
   HorizontalPodAutoscaler,
-  Ingress,
+  IngressV1,
   Service,
 } from "./kubernetes";
 
@@ -15,7 +15,9 @@ interface StatelessAppSpec {
   replicas?: number | [number, number];
   disablePreemptibility?: boolean;
   image: string;
+  imagePullPolicy?: io.k8s.api.core.v1.Container["imagePullPolicy"];
   command?: string[];
+  args?: string[];
   envs?: {
     [env: string]: string | number | { secretName: string; key: string };
   };
@@ -104,7 +106,7 @@ export class StatelessApp {
   constructor(private metadata: ObjectMeta, private spec: StatelessAppSpec) {}
 
   get yaml() {
-    const ingress = new Ingress(clone(this.metadata), { rules: [], tls: [] });
+    const ingress = new IngressV1(clone(this.metadata), { rules: [], tls: [] });
 
     for (const portSpec of this.spec.ports ?? []) {
       if (
@@ -420,7 +422,9 @@ export class StatelessApp {
               {
                 name: this.metadata.name,
                 image: this.spec.image,
+                imagePullPolicy: this.spec.imagePullPolicy,
                 command: this.spec.command,
+                args: this.spec.args,
                 env: [
                   ...(this.spec.envs
                     ? Object.entries(this.spec.envs).map(([name, value]) =>
@@ -538,14 +542,25 @@ export class StatelessApp {
       ...(this.spec.replicas && Array.isArray(this.spec.replicas)
         ? [
             new HorizontalPodAutoscaler(this.metadata, {
-              maxReplicas: this.spec.replicas[1],
               minReplicas: this.spec.replicas[0],
+              maxReplicas: this.spec.replicas[1],
+              metrics: [
+                {
+                  type: "Resource",
+                  resource: {
+                    name: "cpu",
+                    target: {
+                      type: "Utilization",
+                      averageUtilization: 75,
+                    },
+                  },
+                },
+              ],
               scaleTargetRef: {
                 apiVersion: "apps/v1",
                 kind: "Deployment",
                 name: this.metadata.name,
               },
-              targetCPUUtilizationPercentage: 75,
             }),
           ]
         : []),

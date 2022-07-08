@@ -1,3 +1,5 @@
+import _ from "lodash";
+
 import type { io } from "./generated/kubernetes";
 import { generateYaml } from "./helpers";
 
@@ -35,6 +37,39 @@ export class Namespace {
     ]);
   }
 }
+
+// region Ingress v1beta1 for compatibility purposes
+export interface IngressSpec {
+  backend?: IngressBackend;
+  rules?: IngressRule[];
+  tls?: IngressTLS[];
+}
+
+export interface IngressBackend {
+  serviceName: string;
+  servicePort: number;
+}
+
+export interface IngressRule {
+  host: string;
+  http?: HTTPIngressRuleValue;
+}
+
+export interface IngressTLS {
+  hosts?: string[];
+  secretName: string;
+}
+
+export interface HTTPIngressRuleValue {
+  paths: HTTPIngressPath[];
+}
+
+export interface HTTPIngressPath {
+  backend: IngressBackend;
+  path: string;
+}
+
+// endregion
 
 export class Deployment {
   constructor(
@@ -90,7 +125,7 @@ export class Service {
   }
 }
 
-export class Ingress {
+export class IngressV1 {
   constructor(
     public metadata: ObjectMeta,
     public spec: io.k8s.api.networking.v1.IngressSpec,
@@ -108,16 +143,69 @@ export class Ingress {
   }
 }
 
+export class Ingress {
+  constructor(public metadata: ObjectMeta, public spec: IngressSpec) {}
+
+  get yaml() {
+    let spec: IngressSpec | io.k8s.api.networking.v1.IngressSpec = _.clone(
+      this.spec,
+    );
+
+    if (!process.env.FF_KUBE_TEMPLATES_DISABLE_INGRESS_V1) {
+      spec = {
+        ingressClassName:
+          // eslint-disable-next-line
+          this.metadata.annotations?.["kubernetes.io/ingress-class"] ||
+          undefined,
+        tls: spec.tls,
+        rules: spec.rules?.map(rule => ({
+          host: rule.host,
+          http: rule.http
+            ? {
+                paths: rule.http.paths.map(
+                  path =>
+                    ({
+                      backend: {
+                        service: {
+                          name: path.backend.serviceName,
+                          port: {
+                            number: path.backend.servicePort,
+                          },
+                        },
+                      },
+                      path: path.path,
+                      pathType: "Prefix",
+                    } as io.k8s.api.networking.v1.HTTPIngressPath),
+                ),
+              }
+            : undefined,
+        })),
+      } as io.k8s.api.networking.v1.IngressSpec;
+    }
+
+    return generateYaml([
+      {
+        apiVersion: process.env.FF_KUBE_TEMPLATES_DISABLE_INGRESS_V1
+          ? "networking.k8s.io/v1beta1"
+          : "networking.k8s.io/v1",
+        kind: "Ingress",
+        metadata: this.metadata,
+        spec: this.spec,
+      },
+    ]);
+  }
+}
+
 export class HorizontalPodAutoscaler {
   constructor(
     public metadata: ObjectMeta,
-    public spec: io.k8s.api.autoscaling.v1.HorizontalPodAutoscalerSpec,
+    public spec: io.k8s.api.autoscaling.v2beta2.HorizontalPodAutoscalerSpec,
   ) {}
 
   get yaml() {
     return generateYaml([
       {
-        apiVersion: "autoscaling/v1",
+        apiVersion: "autoscaling/v2beta2",
         kind: "HorizontalPodAutoscaler",
         metadata: this.metadata,
         spec: this.spec,
