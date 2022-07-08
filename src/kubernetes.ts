@@ -1,7 +1,5 @@
-import _ from "lodash";
-
 import type { io } from "./generated/kubernetes";
-import { generateYaml } from "./helpers";
+import { clone, generateYaml } from "./helpers";
 
 export interface BasicObjectMeta {
   annotations?: {
@@ -147,7 +145,7 @@ export class Ingress {
   constructor(public metadata: ObjectMeta, public spec: IngressSpec) {}
 
   get yaml() {
-    let spec: IngressSpec | io.k8s.api.networking.v1.IngressSpec = _.clone(
+    let spec: IngressSpec | io.k8s.api.networking.v1.IngressSpec = clone(
       this.spec,
     );
 
