@@ -2,7 +2,7 @@ import { URL } from "url";
 
 import { generateYaml, parseMemory } from "./helpers";
 import type { ObjectMeta } from "./kubernetes";
-import { Ingress, Service, StatefulSet } from "./kubernetes";
+import { IngressV1, Service, StatefulSet } from "./kubernetes";
 
 interface WordPressSpec {
   version: string;
@@ -216,7 +216,7 @@ export class WordPress {
 
       ...(url
         ? [
-            new Ingress(
+            new IngressV1(
               {
                 name: this.metadata.name,
                 namespace: this.metadata.namespace,
@@ -250,9 +250,14 @@ export class WordPress {
                       paths: [
                         {
                           path: url.pathname,
+                          pathType: "Prefix",
                           backend: {
-                            serviceName: this.metadata.name,
-                            servicePort: 80,
+                            service: {
+                              name: this.metadata.name,
+                              port: {
+                                number: 80,
+                              },
+                            },
                           },
                         },
                       ],

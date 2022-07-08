@@ -1,12 +1,13 @@
 import { URL } from "url";
 
 import { Cron } from "./cron";
+import type { io } from "./generated/kubernetes";
 import { clone, env, generateYaml, parseMemory } from "./helpers";
-import type { Container, ObjectMeta, Volume, VolumeMount } from "./kubernetes";
+import type { ObjectMeta } from "./kubernetes";
 import {
   Deployment,
   HorizontalPodAutoscaler,
-  Ingress,
+  IngressV1,
   Service,
 } from "./kubernetes";
 
@@ -14,7 +15,7 @@ interface StatelessAppSpec {
   replicas?: number | [number, number];
   disablePreemptibility?: boolean;
   image: string;
-  imagePullPolicy?: Container["imagePullPolicy"];
+  imagePullPolicy?: io.k8s.api.core.v1.Container["imagePullPolicy"];
   command?: string[];
   args?: string[];
   envs?: {
@@ -105,7 +106,7 @@ export class StatelessApp {
   constructor(private metadata: ObjectMeta, private spec: StatelessAppSpec) {}
 
   get yaml() {
-    const ingress = new Ingress(clone(this.metadata), { rules: [], tls: [] });
+    const ingress = new IngressV1(clone(this.metadata), { rules: [], tls: [] });
 
     for (const portSpec of this.spec.ports ?? []) {
       if (
@@ -182,9 +183,14 @@ export class StatelessApp {
 
         rule.http.paths.push({
           backend: {
-            serviceName: this.metadata.name,
-            servicePort: portSpec.port,
+            service: {
+              name: this.metadata.name,
+              port: {
+                number: portSpec.port,
+              },
+            },
           },
+          pathType: "Prefix",
           path:
             pathname === "/"
               ? portSpec.ingressClass === "alb"
@@ -286,8 +292,8 @@ export class StatelessApp {
       }
     }
 
-    const volumes: Volume[] = [];
-    const volumeMounts: VolumeMount[] = [];
+    const volumes: io.k8s.api.core.v1.Volume[] = [];
+    const volumeMounts: io.k8s.api.core.v1.VolumeMount[] = [];
 
     for (const volume of this.spec.volumes ?? []) {
       const name = `vol-${volume.mountPath.replace(/[^a-zA-Z0-9]/gu, "")}`;
