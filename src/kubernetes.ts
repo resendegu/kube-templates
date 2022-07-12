@@ -315,7 +315,7 @@ export class Job {
   get yaml() {
     return generateYaml([
       {
-        apiVersion: "batch/v1beta1",
+        apiVersion: "batch/v1",
         kind: "Job",
         metadata: this.metadata,
         spec: this.spec,
