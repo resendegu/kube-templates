@@ -279,7 +279,7 @@ export class CronJob {
   get yaml() {
     return generateYaml([
       {
-        apiVersion: "batch/v1",
+        apiVersion: "batch/v1beta1",
         kind: "CronJob",
         metadata: this.metadata,
         spec: this.spec,
