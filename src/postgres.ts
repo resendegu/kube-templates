@@ -259,7 +259,6 @@ interface PostgresSpec {
     trackCommitTimestamp?: boolean;
     listenAddresses?: string;
     maxWalSenders?: number;
-    walKeepSegments?: number;
     sharedPreloadLibraries?: string;
     "pgStatStatements.track"?: "all" | "top" | "none";
   };
@@ -273,8 +272,7 @@ export class Postgres {
     const commonReplicationOptions = this.spec.readReplicas
       ? {
           walLevel: "replica",
-          maxWalSenders: 20,
-          walKeepSegments: 16,
+          maxWalSenders: this.spec.options?.maxWalSenders ?? 20,
         }
       : {};
 
