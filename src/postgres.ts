@@ -273,8 +273,10 @@ export class Postgres {
     const commonReplicationOptions = this.spec.readReplicas
       ? {
           walLevel: "replica",
-          maxWalSenders: 20,
-          walKeepSegments: 16,
+          maxWalSenders: this.spec.options?.maxWalSenders ?? 20,
+          ...(["9", "10", "11", "12"].some(v => this.spec.version.startsWith(v))
+            ? { walKeepSegments: this.spec.options?.walKeepSegments ?? 16 }
+            : {}),
         }
       : {};
 
