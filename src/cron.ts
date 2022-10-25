@@ -33,6 +33,7 @@ interface CronSpec {
     items?: Array<{ key: string; path: string }>;
   }>;
   backoffLimit?: number;
+  imagePullSecrets?: string[];
 }
 
 export class Cron {
@@ -73,23 +74,14 @@ export class Cron {
     }
 
     const basicPodSpec = {
-      ...(this.spec.image.startsWith("registry.cubos.io") ||
-      this.spec.image.startsWith("registry.gitlab.com/mimic1")
+      ...(this.spec.imagePullSecrets?.length
         ? {
-            imagePullSecrets: [
-              {
-                name: "gitlab-registry",
-              },
-            ],
+            imagePullSecrets: this.spec.imagePullSecrets.map(name => ({
+              name,
+            })),
           }
-        : this.spec.image.includes("gcr.io/cubos-203208")
-        ? {
-            imagePullSecrets: [
-              {
-                name: "google-cloud-registry",
-              },
-            ],
-          }
+        : this.spec.image.startsWith("registry.cubos.io")
+        ? { imagePullSecrets: [{ name: "gitlab-registry" }] }
         : {}),
       automountServiceAccountToken: false,
     };
