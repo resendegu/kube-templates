@@ -73,8 +73,11 @@ export class Cron {
     }
 
     const basicPodSpec = {
-      ...(this.spec.image.startsWith("registry.cubos.io") ||
-      this.spec.image.startsWith("registry.gitlab.com/mimic1")
+      ...([
+        "registry.cubos.io",
+        "registry.gitlab.com/mimic1",
+        "registry.gitlab.com/credifit",
+      ].some(imageDomain => this.spec.image.startsWith(imageDomain))
         ? {
             imagePullSecrets: [
               {
