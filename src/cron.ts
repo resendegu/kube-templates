@@ -34,6 +34,7 @@ interface CronSpec {
   }>;
   backoffLimit?: number;
   imagePullSecrets?: string[];
+  allowConcurrentExecution?: boolean;
 }
 
 export class Cron {
@@ -89,6 +90,9 @@ export class Cron {
     return generateYaml([
       new CronJob(this.metadata, {
         schedule: this.spec.schedule,
+        concurrencyPolicy: this.spec.allowConcurrentExecution
+          ? "Allow"
+          : "Forbid",
         jobTemplate: {
           spec: {
             template: {
