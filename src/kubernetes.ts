@@ -197,13 +197,13 @@ export class Ingress {
 export class HorizontalPodAutoscaler {
   constructor(
     public metadata: ObjectMeta,
-    public spec: io.k8s.api.autoscaling.v2beta2.HorizontalPodAutoscalerSpec,
+    public spec: io.k8s.api.autoscaling.v2.HorizontalPodAutoscalerSpec,
   ) {}
 
   get yaml() {
     return generateYaml([
       {
-        apiVersion: "autoscaling/v2beta2",
+        apiVersion: "autoscaling/v2",
         kind: "HorizontalPodAutoscaler",
         metadata: this.metadata,
         spec: this.spec,
