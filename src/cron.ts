@@ -35,7 +35,6 @@ interface CronSpec {
   backoffLimit?: number;
   imagePullSecrets?: string[];
   allowConcurrentExecution?: boolean;
-  preemptibleNodeSelection?: boolean;
   serviceAccountName?: string;
 }
 
