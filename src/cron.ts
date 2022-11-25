@@ -36,7 +36,7 @@ interface CronSpec {
   imagePullSecrets?: string[];
   allowConcurrentExecution?: boolean;
   preemptibleNodeSelection?: boolean;
-  serviceAccountTokenAutoCreation?: boolean;
+  serviceAccountName?: string;
 }
 
 export class Cron {
@@ -86,9 +86,8 @@ export class Cron {
         : this.spec.image.startsWith("registry.cubos.io")
         ? { imagePullSecrets: [{ name: "gitlab-registry" }] }
         : {}),
-      automountServiceAccountToken: this.spec.serviceAccountTokenAutoCreation
-        ? true
-        : false,
+      automountServiceAccountToken: Boolean(this.spec.serviceAccountName),
+      serviceAccountName: this.spec.serviceAccountName,
     };
 
     return generateYaml([
@@ -114,9 +113,7 @@ export class Cron {
                         },
                       ],
                       nodeSelector: {
-                        preemptible: this.spec.preemptibleNodeSelection
-                          ? true
-                          : false,
+                        preemptible: "true",
                       },
                     }),
                 volumes,
