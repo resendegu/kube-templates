@@ -35,6 +35,7 @@ interface CronSpec {
   backoffLimit?: number;
   imagePullSecrets?: string[];
   allowConcurrentExecution?: boolean;
+  serviceAccountName?: string;
 }
 
 export class Cron {
@@ -84,7 +85,8 @@ export class Cron {
         : this.spec.image.startsWith("registry.cubos.io")
         ? { imagePullSecrets: [{ name: "gitlab-registry" }] }
         : {}),
-      automountServiceAccountToken: false,
+      automountServiceAccountToken: Boolean(this.spec.serviceAccountName),
+      serviceAccountName: this.spec.serviceAccountName,
     };
 
     return generateYaml([
