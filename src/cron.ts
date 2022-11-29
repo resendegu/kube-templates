@@ -35,6 +35,10 @@ interface CronSpec {
   imagePullSecrets?: string[];
   allowConcurrentExecution?: boolean;
   serviceAccountName?: string;
+  /**
+   * @deprecated does nothing! kept only for compatibility purposes
+   */
+  disablePreemptibility?: boolean;
 }
 
 export class Cron {

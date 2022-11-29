@@ -99,6 +99,10 @@ interface StatelessAppSpec {
       limit?: string | number;
     };
   }>;
+  /**
+   * @deprecated does nothing! kept only for compatibility purposes
+   */
+  disablePreemptibility?: boolean;
 }
 
 export class StatelessApp {
