@@ -13,7 +13,6 @@ import {
 
 interface StatelessAppSpec {
   replicas?: number | [number, number];
-  disablePreemptibility?: boolean;
   image: string;
   imagePullPolicy?: io.k8s.api.core.v1.Container["imagePullPolicy"];
   command?: string[];
@@ -384,26 +383,8 @@ export class StatelessApp {
               },
             },
             ...basicPodSpec,
-            ...(process.env.PRODUCTION_CUBOS &&
-            this.spec.replicas !== undefined &&
-            ((Array.isArray(this.spec.replicas) &&
-              this.spec.replicas[0] >= 2) ||
-              this.spec.replicas >= 2) &&
-            !(this.spec.disablePreemptibility ?? false)
-              ? {
-                  tolerations: [
-                    {
-                      key: "preemptible",
-                      operator: "Equal",
-                      value: "true",
-                      effect: "NoSchedule",
-                    },
-                  ],
-                  nodeSelector: {
-                    preemptible: "true",
-                  },
-                }
-              : {}),
+            tolerations: [],
+            nodeSelector: {},
             volumes,
             containers: [
               {
@@ -496,7 +477,6 @@ export class StatelessApp {
               schedule: cron.schedule,
               args: cron.args,
               command: cron.command,
-              disablePreemptibility: this.spec.disablePreemptibility,
               envs: { ...this.spec.envs, ...cron.envs },
               forwardEnvs: [
                 ...(this.spec.forwardEnvs ?? []),
