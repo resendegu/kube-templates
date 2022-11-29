@@ -7,7 +7,6 @@ import { CronJob } from "./kubernetes";
 
 interface CronSpec {
   schedule: string;
-  disablePreemptibility?: boolean;
   image: string;
   args?: string[];
   command?: string[];
@@ -100,21 +99,6 @@ export class Cron {
             template: {
               spec: {
                 ...basicPodSpec,
-                ...(this.spec.disablePreemptibility ?? false
-                  ? {}
-                  : {
-                      tolerations: [
-                        {
-                          key: "preemptible",
-                          operator: "Equal",
-                          value: "true",
-                          effect: "NoSchedule",
-                        },
-                      ],
-                      nodeSelector: {
-                        preemptible: "true",
-                      },
-                    }),
                 volumes,
                 containers: [
                   {
