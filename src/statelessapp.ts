@@ -331,7 +331,11 @@ export class StatelessApp {
 
     const basicPodSpec = {
       ...(this.spec.imagePullSecrets
-        ? { imagePullSecrets: this.spec.imagePullSecrets }
+        ? {
+            imagePullSecrets: this.spec.imagePullSecrets.map(secret => ({
+              name: secret,
+            })),
+          }
         : this.spec.image.startsWith("registry.cubos.io")
         ? { imagePullSecrets: [{ name: "gitlab-registry" }] }
         : {}),
