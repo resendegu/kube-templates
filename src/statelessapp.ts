@@ -99,6 +99,7 @@ interface StatelessAppSpec {
       limit?: string | number;
     };
   }>;
+  imagePullSecrets?: string[];
   /**
    * @deprecated does nothing! kept only for compatibility purposes
    */
@@ -329,23 +330,10 @@ export class StatelessApp {
     }
 
     const basicPodSpec = {
-      ...(this.spec.image.startsWith("registry.cubos.io") ||
-      this.spec.image.startsWith("registry.gitlab.com/mimic1")
-        ? {
-            imagePullSecrets: [
-              {
-                name: "gitlab-registry",
-              },
-            ],
-          }
-        : this.spec.image.includes("gcr.io/cubos-203208")
-        ? {
-            imagePullSecrets: [
-              {
-                name: "google-cloud-registry",
-              },
-            ],
-          }
+      ...(this.spec.imagePullSecrets
+        ? { imagePullSecrets: this.spec.imagePullSecrets }
+        : this.spec.image.startsWith("registry.cubos.io")
+        ? { imagePullSecrets: [{ name: "gitlab-registry" }] }
         : {}),
       automountServiceAccountToken: Boolean(this.spec.serviceAccountName),
       serviceAccountName: this.spec.serviceAccountName,
