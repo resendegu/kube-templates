@@ -263,6 +263,7 @@ interface PostgresSpec {
     sharedPreloadLibraries?: string;
     "pgStatStatements.track"?: "all" | "top" | "none";
   };
+  overrides?: Partial<io.k8s.api.core.v1.Container>;
 }
 
 export class Postgres {
@@ -643,6 +644,7 @@ export class Postgres {
                   periodSeconds: 5,
                   initialDelaySeconds: 10,
                 },
+                ...this.spec.overrides,
               },
               {
                 name: "setup",
@@ -1016,6 +1018,7 @@ export class Postgres {
                           periodSeconds: 5,
                           initialDelaySeconds: 10,
                         },
+                        ...this.spec.overrides,
                       },
                       {
                         name: "pg-monitor",
