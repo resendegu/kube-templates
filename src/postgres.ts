@@ -264,6 +264,7 @@ interface PostgresSpec {
     "pgStatStatements.track"?: "all" | "top" | "none";
   };
   overrides?: Partial<io.k8s.api.core.v1.Container>;
+  imagePullSecrets?: string[];
 }
 
 export class Postgres {
@@ -544,6 +545,13 @@ export class Postgres {
                 ]
               : this.spec.initContainers,
             automountServiceAccountToken: false,
+            ...(this.spec.imagePullSecrets
+              ? {
+                  imagePullSecrets: this.spec.imagePullSecrets.map(secret => ({
+                    name: secret,
+                  })),
+                }
+              : {}),
             containers: [
               {
                 name: "postgres",
