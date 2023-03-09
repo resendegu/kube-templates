@@ -245,7 +245,9 @@ export class Cockroach {
                   "/bin/bash",
                   "-ecx",
                   `exec /cockroach/cockroach start ${
-                    this.isLogToStderrDeprecated ? "--log='sinks: {stderr: {filter: INFO}}'" : "--logtostderr"
+                    this.isLogToStderrDeprecated
+                      ? "--log='sinks: {stderr: {filter: INFO}}'"
+                      : "--logtostderr"
                   } ${
                     this.spec.certs ? "--certs-dir /certs" : "--insecure"
                   } --advertise-host ${
