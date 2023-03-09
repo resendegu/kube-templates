@@ -152,6 +152,9 @@ export class Ingress {
   constructor(public metadata: ObjectMeta, public spec: IngressSpec) {}
 
   get yaml() {
+    this.metadata.annotations ??= {};
+    this.metadata.annotations["kubernetes.io/ingress.class"] ??= "nginx";
+
     return generateYaml([
       {
         apiVersion: "networking.k8s.io/v1",
@@ -159,9 +162,7 @@ export class Ingress {
         metadata: this.metadata,
         spec: {
           ingressClassName:
-            // eslint-disable-next-line
-            this.metadata.annotations?.["kubernetes.io/ingress-class"] ||
-            undefined,
+            this.metadata.annotations["kubernetes.io/ingress-class"],
           tls: this.spec.tls,
           rules: this.spec.rules?.map(rule => ({
             host: rule.host,
