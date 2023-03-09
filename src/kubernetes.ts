@@ -136,7 +136,7 @@ export class IngressV1 {
       "nginx";
 
     this.metadata.annotations ??= {};
-    this.metadata.annotations["kubernetes.io/ingress.class"] = ingressClassName;
+    this.metadata.annotations["kubernetes.io/ingress.class"] = "";
 
     return generateYaml([
       {
