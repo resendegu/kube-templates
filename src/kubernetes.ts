@@ -139,14 +139,12 @@ export class IngressV1 {
     delete this.metadata.annotations["kubernetes.io/ingress.class"];
 
     if (
-      process.env.CUBOS_DEV_GKE &&
-      process.env.CUBOS_INTERNAL_CLUSTER &&
-      !process.env.PRODUCTION &&
-      ingressClassName === "private"
+      ingressClassName === "private" &&
+      !process.env.FF_KUBE_TEMPLATES_IGNORE_PRIVATE_INGRESS
     ) {
       console.warn("⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️");
-      console.warn("O ingressClass 'private' não é válido no cluster de dev.");
-      console.warn("O correto é deixá-lo vazio ou usar o 'nginx'.");
+      console.warn("O ingressClass 'private' não é válido.");
+      console.warn("O correto é deixá-lo vazio ou utilizar o 'nginx'.");
       console.warn("⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️");
 
       ingressClassName = "nginx";
