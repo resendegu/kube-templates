@@ -1,5 +1,5 @@
 import type { io } from "./generated/kubernetes";
-import { clone, generateYaml } from "./helpers";
+import { generateYaml } from "./helpers";
 
 export interface BasicObjectMeta {
   annotations?: {
@@ -130,12 +130,23 @@ export class IngressV1 {
   ) {}
 
   get yaml() {
+    const ingressClassName =
+      this.spec.ingressClassName ||
+      this.metadata.annotations?.["kubernetes.io/ingress.class"] ||
+      "nginx";
+
+    this.metadata.annotations ??= {};
+    this.metadata.annotations["kubernetes.io/ingress.class"] = ingressClassName;
+
     return generateYaml([
       {
         apiVersion: "networking.k8s.io/v1",
         kind: "Ingress",
         metadata: this.metadata,
-        spec: this.spec,
+        spec: {
+          ...this.spec,
+          ingressClassName,
+        },
       },
     ]);
   }
@@ -145,52 +156,31 @@ export class Ingress {
   constructor(public metadata: ObjectMeta, public spec: IngressSpec) {}
 
   get yaml() {
-    let spec: IngressSpec | io.k8s.api.networking.v1.IngressSpec = clone(
-      this.spec,
-    );
-
-    if (!process.env.FF_KUBE_TEMPLATES_DISABLE_INGRESS_V1) {
-      spec = {
-        ingressClassName:
-          // eslint-disable-next-line
-          this.metadata.annotations?.["kubernetes.io/ingress-class"] ||
-          undefined,
-        tls: spec.tls,
-        rules: spec.rules?.map(rule => ({
-          host: rule.host,
-          http: rule.http
-            ? {
-                paths: rule.http.paths.map(
-                  path =>
-                    ({
-                      backend: {
-                        service: {
-                          name: path.backend.serviceName,
-                          port: {
-                            number: path.backend.servicePort,
-                          },
+    return new IngressV1(this.metadata, {
+      tls: this.spec.tls,
+      rules: this.spec.rules?.map(rule => ({
+        host: rule.host,
+        http: rule.http
+          ? {
+              paths:
+                rule.http.paths.map<io.k8s.api.networking.v1.HTTPIngressPath>(
+                  path => ({
+                    backend: {
+                      service: {
+                        name: path.backend.serviceName,
+                        port: {
+                          number: path.backend.servicePort,
                         },
                       },
-                      path: path.path,
-                      pathType: "Prefix",
-                    } as io.k8s.api.networking.v1.HTTPIngressPath),
+                    },
+                    path: path.path,
+                    pathType: "Prefix",
+                  }),
                 ),
-              }
-            : undefined,
-        })),
-      } as io.k8s.api.networking.v1.IngressSpec;
-    }
-
-    return generateYaml([
-      {
-        apiVersion: process.env.FF_KUBE_TEMPLATES_DISABLE_INGRESS_V1
-          ? "networking.k8s.io/v1beta1"
-          : "networking.k8s.io/v1",
-        kind: "Ingress",
-        metadata: this.metadata,
-        spec,
-      },
-    ]);
+            }
+          : undefined,
+      })),
+    }).yaml;
   }
 }
 

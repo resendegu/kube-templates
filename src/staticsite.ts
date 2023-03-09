@@ -29,9 +29,8 @@ export class StaticSite {
 
     const annotations = this.metadata.annotations ?? {};
 
-    if (process.env.CUBOS_DEV_GKE && !process.env.PRODUCTION) {
-      annotations["kubernetes.io/ingress.class"] =
-        this.spec.ingressClass ?? "private";
+    if (this.spec.ingressClass) {
+      annotations["kubernetes.io/ingress.class"] = this.spec.ingressClass;
     }
 
     return generateYaml([
