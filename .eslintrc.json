@@ -2,6 +2,7 @@
   "extends": ["@cubos"],
   "rules": {
     "@typescript-eslint/no-namespace": "off",
+    "@typescript-eslint/prefer-nullish-coalescing": "off",
     "@typescript-eslint/prefer-namespace-keyword": "off",
     "import/export": "off",
     "no-tabs": "off"

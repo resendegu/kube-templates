@@ -130,9 +130,13 @@ export class IngressV1 {
   ) {}
 
   get yaml() {
+    const ingressClassName =
+      this.spec.ingressClassName ||
+      this.metadata.annotations?.["kubernetes.io/ingress.class"] ||
+      "nginx";
+
     this.metadata.annotations ??= {};
-    this.metadata.annotations["kubernetes.io/ingress.class"] ||=
-      this.spec.ingressClassName ?? "nginx";
+    this.metadata.annotations["kubernetes.io/ingress.class"] = ingressClassName;
 
     return generateYaml([
       {
@@ -140,9 +144,8 @@ export class IngressV1 {
         kind: "Ingress",
         metadata: this.metadata,
         spec: {
-          ingressClassName:
-            this.metadata.annotations["kubernetes.io/ingress.class"],
           ...this.spec,
+          ingressClassName,
         },
       },
     ]);
