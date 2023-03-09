@@ -255,13 +255,9 @@ export class StatelessApp {
         ] = "/$2";
       }
 
-      if (
-        process.env.CUBOS_DEV_GKE &&
-        process.env.CUBOS_INTERNAL_CLUSTER &&
-        !process.env.PRODUCTION
-      ) {
+      if (portSpec.ingressClass) {
         ingress.metadata.annotations["kubernetes.io/ingress.class"] =
-          portSpec.ingressClass ?? "private";
+          portSpec.ingressClass;
       }
     }
 
