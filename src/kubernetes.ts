@@ -152,43 +152,31 @@ export class Ingress {
   constructor(public metadata: ObjectMeta, public spec: IngressSpec) {}
 
   get yaml() {
-    this.metadata.annotations ??= {};
-    this.metadata.annotations["kubernetes.io/ingress.class"] ??= "nginx";
-
-    return generateYaml([
-      {
-        apiVersion: "networking.k8s.io/v1",
-        kind: "Ingress",
-        metadata: this.metadata,
-        spec: {
-          ingressClassName:
-            this.metadata.annotations["kubernetes.io/ingress-class"],
-          tls: this.spec.tls,
-          rules: this.spec.rules?.map(rule => ({
-            host: rule.host,
-            http: rule.http
-              ? {
-                  paths: rule.http.paths.map(
-                    path =>
-                      ({
-                        backend: {
-                          service: {
-                            name: path.backend.serviceName,
-                            port: {
-                              number: path.backend.servicePort,
-                            },
-                          },
+    return new IngressV1(this.metadata, {
+      tls: this.spec.tls,
+      rules: this.spec.rules?.map(rule => ({
+        host: rule.host,
+        http: rule.http
+          ? {
+              paths:
+                rule.http.paths.map<io.k8s.api.networking.v1.HTTPIngressPath>(
+                  path => ({
+                    backend: {
+                      service: {
+                        name: path.backend.serviceName,
+                        port: {
+                          number: path.backend.servicePort,
                         },
-                        path: path.path,
-                        pathType: "Prefix",
-                      } as io.k8s.api.networking.v1.HTTPIngressPath),
-                  ),
-                }
-              : undefined,
-          })),
-        } as io.k8s.api.networking.v1.IngressSpec,
-      },
-    ]);
+                      },
+                    },
+                    path: path.path,
+                    pathType: "Prefix",
+                  }),
+                ),
+            }
+          : undefined,
+      })),
+    }).yaml;
   }
 }
 
