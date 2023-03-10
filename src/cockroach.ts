@@ -21,6 +21,7 @@ interface CockroachSpec {
   certs?: {
     [key: string]: Buffer;
   };
+  secretEnvs?: string;
 }
 
 export class Cockroach {
@@ -43,8 +44,14 @@ export class Cockroach {
   }
 
   get yaml() {
+    if (this.spec.certs && this.spec.secretEnvs) {
+      throw new Error(`Choose between certs or secretEnvs property.`);
+    }
+
+    const hasCerts = this.spec.certs || this.spec.secretEnvs;
+
     return generateYaml([
-      ...(this.spec.certs
+      ...(hasCerts && !this.spec.secretEnvs
         ? [
             new Secret(
               {
@@ -186,7 +193,7 @@ export class Cockroach {
                   httpGet: {
                     path: "/health",
                     port: 8080,
-                    scheme: this.spec.certs && "HTTPS",
+                    scheme: hasCerts && "HTTPS",
                   },
                   initialDelaySeconds: 30,
                   periodSeconds: 5,
@@ -195,7 +202,7 @@ export class Cockroach {
                   httpGet: {
                     path: "/health?ready=1",
                     port: 8080,
-                    scheme: this.spec.certs && "HTTPS",
+                    scheme: hasCerts && "HTTPS",
                   },
                   initialDelaySeconds: 10,
                   periodSeconds: 5,
@@ -206,7 +213,7 @@ export class Cockroach {
                     mountPath: "/cockroach/cockroach-data",
                     name: "datadir",
                   },
-                  ...(this.spec.certs
+                  ...(hasCerts
                     ? [
                         {
                           mountPath: "/certs",
@@ -218,7 +225,7 @@ export class Cockroach {
                 env: [
                   {
                     name: "COCKROACH_CHANNEL",
-                    value: this.spec.certs
+                    value: hasCerts
                       ? "kubernetes-secure"
                       : "kubernetes-insecure",
                   },
@@ -249,9 +256,9 @@ export class Cockroach {
                       ? "--log='sinks: {stderr: {filter: INFO}}'"
                       : "--logtostderr"
                   } ${
-                    this.spec.certs ? "--certs-dir /certs" : "--insecure"
+                    hasCerts ? "--certs-dir /certs" : "--insecure"
                   } --advertise-host ${
-                    this.spec.certs
+                    hasCerts
                       ? `$(hostname).${this.metadata.name}`
                       : "$(hostname -f)"
                   } --http-addr 0.0.0.0 --join ${_.range(this.spec.replicas)
@@ -280,12 +287,14 @@ export class Cockroach {
                   claimName: "datadir",
                 },
               },
-              ...(this.spec.certs
+              ...(hasCerts
                 ? [
                     {
                       name: "certs",
                       secret: {
-                        secretName: `${this.metadata.name}-certs`,
+                        secretName: this.spec.secretEnvs
+                          ? this.spec.secretEnvs
+                          : `${this.metadata.name}-certs`,
                         defaultMode: 0o600,
                       },
                     },
@@ -326,12 +335,14 @@ export class Cockroach {
         {
           template: {
             spec: {
-              volumes: this.spec.certs
+              volumes: hasCerts
                 ? [
                     {
                       name: "certs",
                       secret: {
-                        secretName: `${this.metadata.name}-certs`,
+                        secretName: this.spec.secretEnvs
+                          ? this.spec.secretEnvs
+                          : `${this.metadata.name}-certs`,
                         defaultMode: 0o600,
                       },
                     },
@@ -345,7 +356,7 @@ export class Cockroach {
                       : `${this.metadata.name}-cluster-init`,
                   image: `cockroachdb/cockroach:v${this.spec.version}`,
                   imagePullPolicy: "IfNotPresent",
-                  volumeMounts: this.spec.certs
+                  volumeMounts: hasCerts
                     ? [
                         {
                           mountPath: "/certs",
@@ -356,7 +367,7 @@ export class Cockroach {
                   command: [
                     "/cockroach/cockroach",
                     "init",
-                    this.spec.certs ? "--certs-dir=/certs" : "--insecure",
+                    hasCerts ? "--certs-dir=/certs" : "--insecure",
                     `--host=${this.metadata.name}-0.${this.metadata.name}`,
                   ],
                 },
