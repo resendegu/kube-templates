@@ -45,7 +45,7 @@ export class Cockroach {
 
   get yaml() {
     if (this.spec.certs && this.spec.certsSecretName) {
-      throw new Error(`Choose between certs or secretEnvs property.`);
+      throw new Error(`Choose between certs or certsSecretName property.`);
     }
 
     const hasCerts = this.spec.certs || this.spec.certsSecretName;
@@ -292,9 +292,9 @@ export class Cockroach {
                     {
                       name: "certs",
                       secret: {
-                        secretName: this.spec.certsSecretName
-                          ? this.spec.certsSecretName
-                          : `${this.metadata.name}-certs`,
+                        secretName:
+                          this.spec.certsSecretName ??
+                          `${this.metadata.name}-certs`,
                         defaultMode: 0o600,
                       },
                     },
@@ -340,9 +340,9 @@ export class Cockroach {
                     {
                       name: "certs",
                       secret: {
-                        secretName: this.spec.certsSecretName
-                          ? this.spec.certsSecretName
-                          : `${this.metadata.name}-certs`,
+                        secretName:
+                          this.spec.certsSecretName ??
+                          `${this.metadata.name}-certs`,
                         defaultMode: 0o600,
                       },
                     },
