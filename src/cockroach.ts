@@ -21,7 +21,7 @@ interface CockroachSpec {
   certs?: {
     [key: string]: Buffer;
   };
-  secretEnvs?: string;
+  certsSecretName?: string;
 }
 
 export class Cockroach {
@@ -44,14 +44,14 @@ export class Cockroach {
   }
 
   get yaml() {
-    if (this.spec.certs && this.spec.secretEnvs) {
+    if (this.spec.certs && this.spec.certsSecretName) {
       throw new Error(`Choose between certs or secretEnvs property.`);
     }
 
-    const hasCerts = this.spec.certs || this.spec.secretEnvs;
+    const hasCerts = this.spec.certs || this.spec.certsSecretName;
 
     return generateYaml([
-      ...(hasCerts && !this.spec.secretEnvs
+      ...(hasCerts && !this.spec.certsSecretName
         ? [
             new Secret(
               {
@@ -292,8 +292,8 @@ export class Cockroach {
                     {
                       name: "certs",
                       secret: {
-                        secretName: this.spec.secretEnvs
-                          ? this.spec.secretEnvs
+                        secretName: this.spec.certsSecretName
+                          ? this.spec.certsSecretName
                           : `${this.metadata.name}-certs`,
                         defaultMode: 0o600,
                       },
@@ -340,8 +340,8 @@ export class Cockroach {
                     {
                       name: "certs",
                       secret: {
-                        secretName: this.spec.secretEnvs
-                          ? this.spec.secretEnvs
+                        secretName: this.spec.certsSecretName
+                          ? this.spec.certsSecretName
                           : `${this.metadata.name}-certs`,
                         defaultMode: 0o600,
                       },
