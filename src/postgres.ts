@@ -310,6 +310,13 @@ export class Postgres {
     const MB = 1024 * 1024;
     const GB = 1024 * MB;
 
+    const probeCheck = [
+      "bash",
+      "-c",
+      // eslint-disable-next-line no-template-curly-in-string
+      "PGPASSWORD=${POSTGRES_PASSWORD} psql -h 127.0.0.1 -U postgres -c 'SELECT 1'",
+    ];
+
     if (this.spec.monitoring?.type === "pgAnalyze") {
       this.spec.options ??= {};
       this.spec.options.sharedPreloadLibraries = this.spec.options
@@ -654,24 +661,14 @@ EOF
                 },
                 readinessProbe: {
                   exec: {
-                    command: [
-                      "bash",
-                      "-c",
-                      // eslint-disable-next-line no-template-curly-in-string
-                      "PGPASSWORD=${POSTGRES_PASSWORD} psql -h 127.0.0.1 -U postgres -c 'SELECT 1'",
-                    ],
+                    command: probeCheck,
                   },
                   failureThreshold: 1,
                   periodSeconds: 3,
                 },
                 livenessProbe: {
                   exec: {
-                    command: [
-                      "bash",
-                      "-c",
-                      // eslint-disable-next-line no-template-curly-in-string
-                      "PGPASSWORD=${POSTGRES_PASSWORD} psql -h 127.0.0.1 -U postgres -c 'SELECT 1'",
-                    ],
+                    command: probeCheck,
                   },
                   failureThreshold: 2,
                   periodSeconds: 5,
@@ -1030,24 +1027,14 @@ EOF
                         },
                         readinessProbe: {
                           exec: {
-                            command: [
-                              "bash",
-                              "-c",
-                              // eslint-disable-next-line no-template-curly-in-string
-                              "PGPASSWORD=${POSTGRES_PASSWORD} psql -h 127.0.0.1 -U postgres -c 'SELECT 1'",
-                            ],
+                            command: probeCheck,
                           },
                           failureThreshold: 1,
                           periodSeconds: 3,
                         },
                         livenessProbe: {
                           exec: {
-                            command: [
-                              "bash",
-                              "-c",
-                              // eslint-disable-next-line no-template-curly-in-string
-                              "PGPASSWORD=${POSTGRES_PASSWORD} psql -h 127.0.0.1 -U postgres -c 'SELECT 1'",
-                            ],
+                            command: probeCheck,
                           },
                           failureThreshold: 2,
                           periodSeconds: 5,
