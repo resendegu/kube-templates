@@ -3,7 +3,7 @@ import { createHash } from "crypto";
 import type { io } from "./generated/kubernetes";
 import { generateYaml, parseMemory } from "./helpers";
 import type { ObjectMeta } from "./kubernetes";
-import { Service, StatefulSet } from "./kubernetes";
+import { Service, StatefulSet, ConfigMap } from "./kubernetes";
 
 interface PostgresSpec {
   readReplicas?: number;
@@ -32,7 +32,7 @@ interface PostgresSpec {
     monitorPostgresDatabase?: boolean;
   };
   initContainers?: io.k8s.api.core.v1.Container[];
-  pgHbaConf?: string;
+  pgHbaConf?: ConfigMap;
   storageClassName?: string;
   storageRequest?: string;
   nodeSelector?: {
@@ -313,8 +313,7 @@ export class Postgres {
     const probeCheck = [
       "bash",
       "-c",
-      // eslint-disable-next-line no-template-curly-in-string
-      "PGPASSWORD=${POSTGRES_PASSWORD} psql -h 127.0.0.1 -U postgres -c 'SELECT 1'",
+      "PGPASSWORD='$POSTGRES_PASSWORD' psql -h 127.0.0.1 -U postgres -c 'SELECT 1'",
     ];
 
     if (this.spec.monitoring?.type === "pgAnalyze") {
@@ -574,7 +573,7 @@ EOF
                       this.spec.pgHbaConf
                         ? {
                             mountPath: "/pg_hba/",
-                            name: this.spec.pgHbaConf,
+                            name: this.spec.pgHbaConf.metadata.name,
                           }
                         : ({} as any),
                     ],
@@ -875,9 +874,9 @@ EOF
               },
               this.spec.pgHbaConf
                 ? {
-                    name: this.spec.pgHbaConf,
+                    name: this.spec.pgHbaConf.metadata.name,
                     configMap: {
-                      name: this.spec.pgHbaConf,
+                      name: this.spec.pgHbaConf.metadata.name,
                     },
                   }
                 : ({} as any),
