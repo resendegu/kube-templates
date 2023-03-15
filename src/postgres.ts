@@ -2,8 +2,8 @@ import { createHash } from "crypto";
 
 import type { io } from "./generated/kubernetes";
 import { generateYaml, parseMemory } from "./helpers";
-import type { ObjectMeta } from "./kubernetes";
-import { Service, StatefulSet, ConfigMap } from "./kubernetes";
+import type { ObjectMeta, ConfigMap } from "./kubernetes";
+import { Service, StatefulSet } from "./kubernetes";
 
 interface PostgresSpec {
   readReplicas?: number;
