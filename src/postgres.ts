@@ -32,6 +32,7 @@ interface PostgresSpec {
     monitorPostgresDatabase?: boolean;
   };
   initContainers?: io.k8s.api.core.v1.Container[];
+  pgHbaConf?: string;
   storageClassName?: string;
   storageRequest?: string;
   nodeSelector?: {
@@ -513,6 +514,30 @@ export class Postgres {
                             su postgres -c "initdb -D /var/lib/postgresql/data"
                         fi
 
+                        echo Configuring pg_hba.conf...
+                        cat > /var/lib/postgresql/data/pg_hba.conf << EOF
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+
+# "local" is for Unix domain socket connections only
+local   all             all                                     md5
+# IPv4 local connections:
+host    all             all             127.0.0.1/32            md5
+# IPv6 local connections:
+host    all             all             ::1/128                 md5
+# Allow replication connections from localhost, by a user with the
+# replication privilege.
+local   replication     all                                     trust
+host    replication     all             127.0.0.1/32            trust
+host    replication     all             ::1/128                 trust
+
+host all all all md5
+EOF
+
+                        if [[ -f /pg_hba/pg_hba.conf ]]; then
+                          echo overwriting pg_hba.conf with custom pg_hba.conf...
+                          cp -v /pg_hba/pg_hba.conf /var/lib/postgresql/data/pg_hba.conf
+                        fi
+
                         echo Adding replication user to pg_hba...
                         echo "host replication ${replicationCredentials.user} 0.0.0.0/0 trust" >> /var/lib/postgresql/data/pg_hba.conf
 
@@ -539,6 +564,12 @@ export class Postgres {
                         mountPath: "/dev/shm",
                         name: "shm",
                       },
+                      this.spec.pgHbaConf
+                        ? {
+                            mountPath: "/pg_hba/",
+                            name: this.spec.pgHbaConf,
+                          }
+                        : ({} as any),
                     ],
                   },
                   ...(this.spec.initContainers ?? []),
@@ -626,13 +657,8 @@ export class Postgres {
                     command: [
                       "bash",
                       "-c",
-                      `PGPASSWORD=${
-                        this.spec.postgresUserPassword
-                          ? typeof this.spec.postgresUserPassword === "object"
-                            ? this.spec.postgresUserPassword.key
-                            : this.spec.postgresUserPassword
-                          : "postgres"
-                      } psql -h 127.0.0.1 -U postgres -c "SELECT 1"`,
+                      // eslint-disable-next-line no-template-curly-in-string
+                      "PGPASSWORD=${POSTGRES_PASSWORD} psql -h 127.0.0.1 -U postgres -c 'SELECT 1'",
                     ],
                   },
                   failureThreshold: 1,
@@ -643,13 +669,8 @@ export class Postgres {
                     command: [
                       "bash",
                       "-c",
-                      `PGPASSWORD=${
-                        this.spec.postgresUserPassword
-                          ? typeof this.spec.postgresUserPassword === "object"
-                            ? this.spec.postgresUserPassword.key
-                            : this.spec.postgresUserPassword
-                          : "postgres"
-                      } psql -h 127.0.0.1 -U postgres -c "SELECT 1"`,
+                      // eslint-disable-next-line no-template-curly-in-string
+                      "PGPASSWORD=${POSTGRES_PASSWORD} psql -h 127.0.0.1 -U postgres -c 'SELECT 1'",
                     ],
                   },
                   failureThreshold: 2,
@@ -855,6 +876,14 @@ export class Postgres {
                   medium: "Memory" as const,
                 },
               },
+              this.spec.pgHbaConf
+                ? {
+                    name: this.spec.pgHbaConf,
+                    configMap: {
+                      name: this.spec.pgHbaConf,
+                    },
+                  }
+                : ({} as any),
             ],
             tolerations: this.spec.tolerations,
             nodeSelector: this.spec.nodeSelector,
@@ -1004,14 +1033,8 @@ export class Postgres {
                             command: [
                               "bash",
                               "-c",
-                              `PGPASSWORD=${
-                                this.spec.postgresUserPassword
-                                  ? typeof this.spec.postgresUserPassword ===
-                                    "object"
-                                    ? this.spec.postgresUserPassword.key
-                                    : this.spec.postgresUserPassword
-                                  : "postgres"
-                              } psql -h 127.0.0.1 -U postgres -c "SELECT 1"`,
+                              // eslint-disable-next-line no-template-curly-in-string
+                              "PGPASSWORD=${POSTGRES_PASSWORD} psql -h 127.0.0.1 -U postgres -c 'SELECT 1'",
                             ],
                           },
                           failureThreshold: 1,
@@ -1022,14 +1045,8 @@ export class Postgres {
                             command: [
                               "bash",
                               "-c",
-                              `PGPASSWORD=${
-                                this.spec.postgresUserPassword
-                                  ? typeof this.spec.postgresUserPassword ===
-                                    "object"
-                                    ? this.spec.postgresUserPassword.key
-                                    : this.spec.postgresUserPassword
-                                  : "postgres"
-                              } psql -h 127.0.0.1 -U postgres -c "SELECT 1"`,
+                              // eslint-disable-next-line no-template-curly-in-string
+                              "PGPASSWORD=${POSTGRES_PASSWORD} psql -h 127.0.0.1 -U postgres -c 'SELECT 1'",
                             ],
                           },
                           failureThreshold: 2,
