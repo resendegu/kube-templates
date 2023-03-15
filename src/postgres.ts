@@ -624,13 +624,15 @@ export class Postgres {
                 readinessProbe: {
                   exec: {
                     command: [
-                      "psql",
-                      "-h",
-                      "127.0.0.1",
-                      "-U",
-                      "postgres",
+                      "bash",
                       "-c",
-                      "SELECT 1",
+                      `PGPASSWORD=${
+                        this.spec.postgresUserPassword
+                          ? typeof this.spec.postgresUserPassword === "object"
+                            ? this.spec.postgresUserPassword.key
+                            : this.spec.postgresUserPassword
+                          : "postgres"
+                      } psql -h 127.0.0.1 -U postgres -c "SELECT 1"`,
                     ],
                   },
                   failureThreshold: 1,
@@ -639,13 +641,15 @@ export class Postgres {
                 livenessProbe: {
                   exec: {
                     command: [
-                      "psql",
-                      "-h",
-                      "127.0.0.1",
-                      "-U",
-                      "postgres",
+                      "bash",
                       "-c",
-                      "SELECT 1",
+                      `PGPASSWORD=${
+                        this.spec.postgresUserPassword
+                          ? typeof this.spec.postgresUserPassword === "object"
+                            ? this.spec.postgresUserPassword.key
+                            : this.spec.postgresUserPassword
+                          : "postgres"
+                      } psql -h 127.0.0.1 -U postgres -c "SELECT 1"`,
                     ],
                   },
                   failureThreshold: 2,
@@ -998,13 +1002,16 @@ export class Postgres {
                         readinessProbe: {
                           exec: {
                             command: [
-                              "psql",
-                              "-h",
-                              "127.0.0.1",
-                              "-U",
-                              "postgres",
+                              "bash",
                               "-c",
-                              "SELECT 1",
+                              `PGPASSWORD=${
+                                this.spec.postgresUserPassword
+                                  ? typeof this.spec.postgresUserPassword ===
+                                    "object"
+                                    ? this.spec.postgresUserPassword.key
+                                    : this.spec.postgresUserPassword
+                                  : "postgres"
+                              } psql -h 127.0.0.1 -U postgres -c "SELECT 1"`,
                             ],
                           },
                           failureThreshold: 1,
@@ -1013,13 +1020,16 @@ export class Postgres {
                         livenessProbe: {
                           exec: {
                             command: [
-                              "psql",
-                              "-h",
-                              "127.0.0.1",
-                              "-U",
-                              "postgres",
+                              "bash",
                               "-c",
-                              "SELECT 1",
+                              `PGPASSWORD=${
+                                this.spec.postgresUserPassword
+                                  ? typeof this.spec.postgresUserPassword ===
+                                    "object"
+                                    ? this.spec.postgresUserPassword.key
+                                    : this.spec.postgresUserPassword
+                                  : "postgres"
+                              } psql -h 127.0.0.1 -U postgres -c "SELECT 1"`,
                             ],
                           },
                           failureThreshold: 2,
