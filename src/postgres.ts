@@ -313,7 +313,7 @@ export class Postgres {
     const probeCheck = [
       "bash",
       "-c",
-      "PGPASSWORD='$POSTGRES_PASSWORD' psql -h 127.0.0.1 -U postgres -c 'SELECT 1'",
+      "PGPASSWORD=$POSTGRES_PASSWORD psql -h 127.0.0.1 -U postgres -c 'SELECT 1'",
     ];
 
     if (this.spec.monitoring?.type === "pgAnalyze") {
