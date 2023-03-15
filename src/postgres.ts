@@ -570,12 +570,14 @@ EOF
                         mountPath: "/dev/shm",
                         name: "shm",
                       },
-                      this.spec.pgHbaConf
-                        ? {
-                            mountPath: "/pg_hba/",
-                            name: this.spec.pgHbaConf.metadata.name,
-                          }
-                        : ({} as any),
+                      ...(this.spec.pgHbaConf
+                        ? [
+                            {
+                              mountPath: "/pg_hba/",
+                              name: this.spec.pgHbaConf.metadata.name,
+                            },
+                          ]
+                        : []),
                     ],
                   },
                   ...(this.spec.initContainers ?? []),
@@ -872,14 +874,16 @@ EOF
                   medium: "Memory" as const,
                 },
               },
-              this.spec.pgHbaConf
-                ? {
-                    name: this.spec.pgHbaConf.metadata.name,
-                    configMap: {
+              ...(this.spec.pgHbaConf
+                ? [
+                    {
                       name: this.spec.pgHbaConf.metadata.name,
+                      configMap: {
+                        name: this.spec.pgHbaConf.metadata.name,
+                      },
                     },
-                  }
-                : ({} as any),
+                  ]
+                : []),
             ],
             tolerations: this.spec.tolerations,
             nodeSelector: this.spec.nodeSelector,
