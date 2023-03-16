@@ -316,6 +316,27 @@ export class Postgres {
       "PGPASSWORD=$POSTGRES_PASSWORD psql -h 127.0.0.1 -U postgres -c 'SELECT 1'",
     ];
 
+    const pghba = `EOF
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+
+# "local" is for Unix domain socket connections only
+local   all             all                                     md5
+# IPv4 local connections:
+host    all             all             127.0.0.1/32            md5
+# IPv6 local connections:
+host    all             all             ::1/128                 md5
+# Allow replication connections from localhost, by a user with the
+# replication privilege.
+local   replication     all                                     md5
+host    replication     all             127.0.0.1/32            md5
+host    replication     all             ::1/128                 md5
+
+host replication ${replicationCredentials.user} 0.0.0.0/0 md5
+
+host all all all md5
+EOF
+    `;
+
     if (this.spec.monitoring?.type === "pgAnalyze") {
       this.spec.options ??= {};
       this.spec.options.sharedPreloadLibraries = this.spec.options
@@ -813,25 +834,7 @@ export class Postgres {
                   }
 
                   echo Configuring pg_hba.conf...
-                  cat > /db_data/pg_hba.conf << EOF
-# TYPE  DATABASE        USER            ADDRESS                 METHOD
-
-# "local" is for Unix domain socket connections only
-local   all             all                                     md5
-# IPv4 local connections:
-host    all             all             127.0.0.1/32            md5
-# IPv6 local connections:
-host    all             all             ::1/128                 md5
-# Allow replication connections from localhost, by a user with the
-# replication privilege.
-local   replication     all                                     md5
-host    replication     all             127.0.0.1/32            md5
-host    replication     all             ::1/128                 md5
-
-host replication ${replicationCredentials.user} 0.0.0.0/0 md5
-
-host all all all md5
-EOF
+                  cat > /db_data/pg_hba.conf << ${pghba}
 
                   if [[ -f /pg_hba/pg_hba.conf ]]; then
                     echo overwriting pg_hba.conf with custom pg_hba.conf...
@@ -1007,25 +1010,7 @@ EOF
                             fi
 
                             echo Configuring pg_hba.conf...
-                            cat > /var/lib/postgresql/data/pg_hba.conf << EOF
-# TYPE  DATABASE        USER            ADDRESS                 METHOD
-
-# "local" is for Unix domain socket connections only
-local   all             all                                     md5
-# IPv4 local connections:
-host    all             all             127.0.0.1/32            md5
-# IPv6 local connections:
-host    all             all             ::1/128                 md5
-# Allow replication connections from localhost, by a user with the
-# replication privilege.
-local   replication     all                                     md5
-host    replication     all             127.0.0.1/32            md5
-host    replication     all             ::1/128                 md5
-
-host replication ${replicationCredentials.user} 0.0.0.0/0 md5
-
-host all all all md5
-EOF
+                            cat > /var/lib/postgresql/data/pg_hba.conf << ${pghba}
           
                             if [[ -f /pg_hba/pg_hba.conf ]]; then
                               echo overwriting pg_hba.conf with custom pg_hba.conf...
