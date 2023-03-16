@@ -521,9 +521,6 @@ export class Postgres {
                             su postgres -c "initdb -D /var/lib/postgresql/data"
                         fi
 
-                        echo Adding replication user to pg_hba...
-                        echo "host replication ${replicationCredentials.user} 0.0.0.0/0 md5" >> /var/lib/postgresql/data/pg_hba.conf
-
                         echo Done.
                       `,
                       ],
@@ -831,6 +828,8 @@ local   replication     all                                     md5
 host    replication     all             127.0.0.1/32            md5
 host    replication     all             ::1/128                 md5
 
+host replication ${replicationCredentials.user} 0.0.0.0/0 md5
+
 host all all all md5
 EOF
 
@@ -838,6 +837,8 @@ EOF
                     echo overwriting pg_hba.conf with custom pg_hba.conf...
                     cp -v /pg_hba/pg_hba.conf /db_data/pg_hba.conf
                   fi
+
+                  psql -h 127.0.0.1 -U postgres -c "SELECT pg_reload_conf();"
 
                   echo Done.
                   touch /ready
@@ -1021,13 +1022,15 @@ local   replication     all                                     md5
 host    replication     all             127.0.0.1/32            md5
 host    replication     all             ::1/128                 md5
 
+host replication ${replicationCredentials.user} 0.0.0.0/0 md5
+
 host all all all md5
 EOF
           
                             if [[ -f /pg_hba/pg_hba.conf ]]; then
                               echo overwriting pg_hba.conf with custom pg_hba.conf...
                               cp -v /pg_hba/pg_hba.conf /var/lib/postgresql/data/pg_hba.conf
-                            fi
+                            fi          
 
                             echo Done.
 
