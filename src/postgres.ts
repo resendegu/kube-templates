@@ -32,7 +32,13 @@ interface PostgresSpec {
     monitorPostgresDatabase?: boolean;
   };
   initContainers?: io.k8s.api.core.v1.Container[];
-  pgHbaConf?: string;
+  accessConfig?: Array<{
+    type: string;
+    database: string;
+    user: string;
+    address: string;
+    method: string;
+  }>;
   storageClassName?: string;
   storageRequest?: string;
   nodeSelector?: {
@@ -336,6 +342,20 @@ host replication ${replicationCredentials.user} 0.0.0.0/0 md5
 host all all all md5
 EOF
     `;
+
+    const pghbaCustom = this.spec.accessConfig
+      ? `EOF
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+host replication ${replicationCredentials.user} 0.0.0.0/0 md5
+${this.spec.accessConfig
+  .map(
+    conf =>
+      `${conf.type} ${conf.database} ${conf.user} ${conf.address} ${conf.method}`,
+  )
+  .join("\n")}
+EOF
+    `
+      : "";
 
     if (this.spec.monitoring?.type === "pgAnalyze") {
       this.spec.options ??= {};
@@ -834,12 +854,9 @@ EOF
                   }
 
                   echo Configuring pg_hba.conf...
-                  cat > /db_data/pg_hba.conf << ${pghba}
-
-                  if [[ -f /pg_hba/pg_hba.conf ]]; then
-                    echo overwriting pg_hba.conf with custom pg_hba.conf...
-                    cp -v /pg_hba/pg_hba.conf /db_data/pg_hba.conf
-                  fi
+                  cat > /db_data/pg_hba.conf << ${
+                    this.spec.accessConfig ? pghbaCustom : pghba
+                  }
 
                   psql -h 127.0.0.1 -U postgres -c "SELECT pg_reload_conf();"
 
@@ -866,14 +883,6 @@ EOF
                   periodSeconds: 3,
                 },
                 volumeMounts: [
-                  ...(this.spec.pgHbaConf
-                    ? [
-                        {
-                          name: this.spec.pgHbaConf,
-                          mountPath: "/pg_hba/",
-                        },
-                      ]
-                    : []),
                   {
                     name: "data",
                     mountPath: "/db_data/",
@@ -890,16 +899,6 @@ EOF
                   medium: "Memory" as const,
                 },
               },
-              ...(this.spec.pgHbaConf
-                ? [
-                    {
-                      name: this.spec.pgHbaConf,
-                      configMap: {
-                        name: this.spec.pgHbaConf,
-                      },
-                    },
-                  ]
-                : []),
             ],
             tolerations: this.spec.tolerations,
             nodeSelector: this.spec.nodeSelector,
@@ -1006,16 +1005,17 @@ EOF
                                 rm -rf /var/lib/postgresql/data/*
                                 rm -rf /var/lib/postgresql/log/*
                                 echo Proceeding to base backup from master...
-                                PGPASSWORD=${replicationCredentials.pass} pg_basebackup -h ${this.metadata.name} -U ${replicationCredentials.user} -p 5432 -D /var/lib/postgresql/data -Fp -Xs -P -R
+                                PGPASSWORD=${
+                                  replicationCredentials.pass
+                                } pg_basebackup -h ${this.metadata.name} -U ${
+                            replicationCredentials.user
+                          } -p 5432 -D /var/lib/postgresql/data -Fp -Xs -P -R
                             fi
 
                             echo Configuring pg_hba.conf...
-                            cat > /var/lib/postgresql/data/pg_hba.conf << ${pghba}
-          
-                            if [[ -f /pg_hba/pg_hba.conf ]]; then
-                              echo overwriting pg_hba.conf with custom pg_hba.conf...
-                              cp -v /pg_hba/pg_hba.conf /var/lib/postgresql/data/pg_hba.conf
-                            fi          
+                            cat > /var/lib/postgresql/data/pg_hba.conf << ${
+                              this.spec.accessConfig ? pghbaCustom : pghba
+                            }         
 
                             echo Done.
 
@@ -1028,14 +1028,6 @@ EOF
                           `,
                         ],
                         volumeMounts: [
-                          ...(this.spec.pgHbaConf
-                            ? [
-                                {
-                                  name: this.spec.pgHbaConf,
-                                  mountPath: "/pg_hba/",
-                                },
-                              ]
-                            : []),
                           {
                             mountPath: "/var/lib/postgresql/data",
                             name: "data",
@@ -1136,16 +1128,6 @@ EOF
                         name: "logs",
                         emptyDir: {},
                       },
-                      ...(this.spec.pgHbaConf
-                        ? [
-                            {
-                              name: this.spec.pgHbaConf,
-                              configMap: {
-                                name: this.spec.pgHbaConf,
-                              },
-                            },
-                          ]
-                        : []),
                     ],
                   },
                 },
