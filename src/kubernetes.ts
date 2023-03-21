@@ -130,15 +130,16 @@ export class IngressV1 {
   ) {}
 
   get yaml() {
-    let ingressClassName =
-      this.spec.ingressClassName ||
-      this.metadata.annotations?.["kubernetes.io/ingress.class"] ||
-      "nginx";
+    let ingressClassName = this.spec.ingressClassName || "nginx";
 
     if (this.metadata.annotations?.["kubernetes.io/ingress.class"]) {
       console.warn("⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️");
-      console.warn("O ingress.class nas annotations está depreciado.");
-      console.warn("O correto é removê-lo e utilizar o 'ingressClass'.");
+      console.warn(
+        "O ingress.class nas annotations não é mais suportado, o valor passado foi ignorado.",
+      );
+      console.warn(
+        "Por favor, altere o seu deploy para utilizar a propriedade 'ingressClass' ao invés da annotation manual.",
+      );
       console.warn("⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️");
 
       ingressClassName = "nginx";
@@ -149,11 +150,11 @@ export class IngressV1 {
     if (
       ingressClassName !== "nginx" &&
       !process.env.CUBOS_DEV_GKE &&
-      !process.env.FF_KUBE_TEMPLATES_NOT_NGINX_INGRESS_CLASS
+      !process.env.FF_KUBE_TEMPLATES_OVERRIDE_NGINX_INGRESS_CLASS
     ) {
       throw new Error(
-        `O ingressClass '${ingressClassName}' provavelmente não é válido, pode removê-la sem problemas. 
-        Caso realmente queira usar esse ingressClass, defina a variável de ambiente 'FF_KUBE_TEMPLATES_NOT_NGINX_INGRESS_CLASS'
+        `O ingressClass '${ingressClassName}' provavelmente não é válido, você pode removê-lo sem problemas. 
+        Caso realmente queira usar esse ingressClass, defina a variável de ambiente 'FF_KUBE_TEMPLATES_OVERRIDE_NGINX_INGRESS_CLASS'
         Mais informações em: https://cubos.link/ingress-class-deprecated`,
       );
     }
