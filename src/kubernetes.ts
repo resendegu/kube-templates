@@ -153,7 +153,7 @@ export class IngressV1 {
       !process.env.FF_KUBE_TEMPLATES_OVERRIDE_NGINX_INGRESS_CLASS
     ) {
       throw new Error(
-        `O ingressClass '${ingressClassName}' provavelmente não é válido, você pode removê-lo sem problemas. 
+        `O ingressClass '${ingressClassName}' não é válido, você pode removê-lo sem problemas. 
         Caso realmente queira usar esse ingressClass, defina a variável de ambiente 'FF_KUBE_TEMPLATES_OVERRIDE_NGINX_INGRESS_CLASS'
         Mais informações em: https://cubos.link/ingress-class-deprecated`,
       );
