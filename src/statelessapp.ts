@@ -256,8 +256,7 @@ export class StatelessApp {
       }
 
       if (portSpec.ingressClass) {
-        ingress.metadata.annotations["kubernetes.io/ingress.class"] =
-          portSpec.ingressClass;
+        ingress.spec.ingressClassName = portSpec.ingressClass;
       }
     }
 

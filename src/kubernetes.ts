@@ -130,24 +130,33 @@ export class IngressV1 {
   ) {}
 
   get yaml() {
-    let ingressClassName =
-      this.spec.ingressClassName ||
-      this.metadata.annotations?.["kubernetes.io/ingress.class"] ||
-      "nginx";
+    let ingressClassName = this.spec.ingressClassName || "nginx";
 
-    this.metadata.annotations ??= {};
-    delete this.metadata.annotations["kubernetes.io/ingress.class"];
-
-    if (
-      ingressClassName === "private" &&
-      !process.env.FF_KUBE_TEMPLATES_IGNORE_PRIVATE_INGRESS
-    ) {
+    if (this.metadata.annotations?.["kubernetes.io/ingress.class"]) {
       console.warn("⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️");
-      console.warn("O ingressClass 'private' não é válido.");
-      console.warn("O correto é deixá-lo vazio ou utilizar o 'nginx'.");
+      console.warn(
+        "O ingress.class nas annotations não é mais suportado, o valor passado foi ignorado.",
+      );
+      console.warn(
+        "Por favor, altere o seu deploy para utilizar a propriedade 'ingressClass' ao invés da annotation manual.",
+      );
       console.warn("⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️");
 
       ingressClassName = "nginx";
+
+      delete this.metadata.annotations["kubernetes.io/ingress.class"];
+    }
+
+    if (
+      ingressClassName !== "nginx" &&
+      !process.env.CUBOS_DEV_GKE &&
+      !process.env.FF_KUBE_TEMPLATES_OVERRIDE_NGINX_INGRESS_CLASS
+    ) {
+      throw new Error(
+        `O ingressClass '${ingressClassName}' não é válido, você pode removê-lo sem problemas. 
+        Caso realmente queira usar esse ingressClass, defina a variável de ambiente 'FF_KUBE_TEMPLATES_OVERRIDE_NGINX_INGRESS_CLASS'
+        Mais informações em: https://cubos.link/ingress-class-deprecated`,
+      );
     }
 
     return generateYaml([
