@@ -29,10 +29,6 @@ export class StaticSite {
 
     const annotations = this.metadata.annotations ?? {};
 
-    if (this.spec.ingressClass) {
-      annotations["kubernetes.io/ingress.class"] = this.spec.ingressClass;
-    }
-
     return generateYaml([
       new Service(
         {
@@ -70,6 +66,7 @@ export class StaticSite {
         },
         {
           tls: [{ secretName: this.spec.tlsCert }],
+          ingressClassName: this.spec.ingressClass,
           rules: [
             {
               host: hostname,
