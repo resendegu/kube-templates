@@ -761,12 +761,12 @@ export class Postgres {
                         ${
                           user.username === "readOnly"
                             ? `psql -h 127.0.0.1 -U postgres -c "GRANT USAGE ON SCHEMA public TO ${user.username}"`
-                            : ''
+                            : ""
                         }
                         ${
                           user.username === "readOnly"
                             ? `psql -h 127.0.0.1 -U postgres -c "GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${user.username}"`
-                            : ''
+                            : ""
                         }
                       `,
                     )
