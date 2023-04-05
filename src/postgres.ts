@@ -32,13 +32,6 @@ interface PostgresSpec {
     monitorPostgresDatabase?: boolean;
   };
   initContainers?: io.k8s.api.core.v1.Container[];
-  accessConfig?: Array<{
-    type: string;
-    database: string;
-    user: string;
-    address: string;
-    method: string;
-  }>;
   storageClassName?: string;
   storageRequest?: string;
   nodeSelector?: {
@@ -316,47 +309,6 @@ export class Postgres {
     const MB = 1024 * 1024;
     const GB = 1024 * MB;
 
-    const probeCheck = [
-      "bash",
-      "-c",
-      "PGPASSWORD=$POSTGRES_PASSWORD psql -h 127.0.0.1 -U postgres -c 'SELECT 1'",
-    ];
-
-    const pghba = `EOF
-# TYPE  DATABASE        USER            ADDRESS                 METHOD
-
-# "local" is for Unix domain socket connections only
-local   all             all                                     md5
-# IPv4 local connections:
-host    all             all             127.0.0.1/32            md5
-# IPv6 local connections:
-host    all             all             ::1/128                 md5
-# Allow replication connections from localhost, by a user with the
-# replication privilege.
-local   replication     all                                     md5
-host    replication     all             127.0.0.1/32            md5
-host    replication     all             ::1/128                 md5
-
-host replication ${replicationCredentials.user} 0.0.0.0/0 md5
-
-host all all all md5
-EOF
-    `;
-
-    const pghbaCustom = this.spec.accessConfig
-      ? `EOF
-# TYPE  DATABASE        USER            ADDRESS                 METHOD
-host replication ${replicationCredentials.user} 0.0.0.0/0 md5
-${this.spec.accessConfig
-  .map(
-    conf =>
-      `${conf.type} ${conf.database} ${conf.user} ${conf.address} ${conf.method}`,
-  )
-  .join("\n")}
-EOF
-    `
-      : "";
-
     if (this.spec.monitoring?.type === "pgAnalyze") {
       this.spec.options ??= {};
       this.spec.options.sharedPreloadLibraries = this.spec.options
@@ -518,39 +470,38 @@ EOF
             },
           },
           spec: {
-            initContainers: [
-              ...(this.spec.readReplicas
-                ? [
-                    {
-                      name: "pg-init",
-                      image: `postgres:${this.spec.version}-alpine`,
-                      imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
-                      env: [
-                        {
-                          name: "POSTGRES_PASSWORD",
-                          ...(this.spec.postgresUserPassword
-                            ? typeof this.spec.postgresUserPassword === "object"
-                              ? {
-                                  valueFrom: {
-                                    secretKeyRef: {
-                                      name: this.spec.postgresUserPassword
-                                        .secretName,
-                                      key: this.spec.postgresUserPassword.key,
-                                    },
+            initContainers: this.spec.readReplicas
+              ? [
+                  {
+                    name: "pg-init",
+                    image: `postgres:${this.spec.version}-alpine`,
+                    imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
+                    env: [
+                      {
+                        name: "POSTGRES_PASSWORD",
+                        ...(this.spec.postgresUserPassword
+                          ? typeof this.spec.postgresUserPassword === "object"
+                            ? {
+                                valueFrom: {
+                                  secretKeyRef: {
+                                    name: this.spec.postgresUserPassword
+                                      .secretName,
+                                    key: this.spec.postgresUserPassword.key,
                                   },
-                                }
-                              : {
-                                  value: `${this.spec.postgresUserPassword}`,
-                                }
+                                },
+                              }
                             : {
-                                value: "postgres",
-                              }),
-                        },
-                      ],
-                      command: [
-                        "/bin/bash",
-                        "-ec",
-                        `
+                                value: `${this.spec.postgresUserPassword}`,
+                              }
+                          : {
+                              value: "postgres",
+                            }),
+                      },
+                    ],
+                    command: [
+                      "/bin/bash",
+                      "-ec",
+                      `
                         echo Configuring Master...
 
                         sed -i -r -e "s/^postgres:(.*):\\/sbin\\/nologin$/postgres:\\1:\\/bin\\/sh/" /etc/passwd
@@ -562,35 +513,37 @@ EOF
                             su postgres -c "initdb -D /var/lib/postgresql/data"
                         fi
 
+                        echo Adding replication user to pg_hba...
+                        echo "host replication ${replicationCredentials.user} 0.0.0.0/0 trust" >> /var/lib/postgresql/data/pg_hba.conf
+
                         echo Done.
                       `,
-                      ],
-                      resources: {
-                        limits: {
-                          cpu: "100m",
-                          memory: "128Mi",
-                        },
-                        requests: {
-                          cpu: 0,
-                          memory: "128Mi",
-                        },
+                    ],
+                    resources: {
+                      limits: {
+                        cpu: "100m",
+                        memory: "128Mi",
                       },
-                      volumeMounts: [
-                        {
-                          mountPath: "/var/lib/postgresql/data",
-                          name: "data",
-                          subPath: "data",
-                        },
-                        {
-                          mountPath: "/dev/shm",
-                          name: "shm",
-                        },
-                      ],
+                      requests: {
+                        cpu: 0,
+                        memory: "128Mi",
+                      },
                     },
-                  ]
-                : []),
-              ...(this.spec.initContainers ?? []),
-            ],
+                    volumeMounts: [
+                      {
+                        mountPath: "/var/lib/postgresql/data",
+                        name: "data",
+                        subPath: "data",
+                      },
+                      {
+                        mountPath: "/dev/shm",
+                        name: "shm",
+                      },
+                    ],
+                  },
+                  ...(this.spec.initContainers ?? []),
+                ]
+              : this.spec.initContainers,
             automountServiceAccountToken: false,
             ...(this.spec.imagePullSecrets
               ? {
@@ -670,14 +623,30 @@ EOF
                 },
                 readinessProbe: {
                   exec: {
-                    command: probeCheck,
+                    command: [
+                      "psql",
+                      "-h",
+                      "127.0.0.1",
+                      "-U",
+                      "postgres",
+                      "-c",
+                      "SELECT 1",
+                    ],
                   },
                   failureThreshold: 1,
                   periodSeconds: 3,
                 },
                 livenessProbe: {
                   exec: {
-                    command: probeCheck,
+                    command: [
+                      "psql",
+                      "-h",
+                      "127.0.0.1",
+                      "-U",
+                      "postgres",
+                      "-c",
+                      "SELECT 1",
+                    ],
                   },
                   failureThreshold: 2,
                   periodSeconds: 5,
@@ -714,9 +683,6 @@ EOF
                   "/bin/bash",
                   "-ec",
                   `
-                  echo Exporting Postgres user password
-                  export PGPASSWORD=$POSTGRES_PASSWORD
-
                   echo Wait for Postgres to be ready.
                   until psql -h 127.0.0.1 -U postgres -c 'SELECT 1'
                   do
@@ -792,6 +758,16 @@ EOF
                           ? "REPLICATION "
                           : ""
                       } ENCRYPTED PASSWORD '"'${user.password}'"'"
+                        ${
+                          user.username === 'readOnly'
+                            ? `psql -h 127.0.0.1 -U postgres -c "GRANT USAGE ON SCHEMA public TO ${user.username}"`
+                            : ''
+                        }
+                        ${
+                          user.username === 'readOnly'
+                            ? `psql -h 127.0.0.1 -U postgres -c "GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${user.username}"`
+                            : ''
+                        }
                       `,
                     )
                     .join("\n")}
@@ -853,13 +829,6 @@ EOF
                       : ""
                   }
 
-                  echo Configuring pg_hba.conf...
-                  cat > /db_data/pg_hba.conf << ${
-                    this.spec.accessConfig ? pghbaCustom : pghba
-                  }
-
-                  psql -h 127.0.0.1 -U postgres -c "SELECT pg_reload_conf();"
-
                   echo Done.
                   touch /ready
                   keep_alive
@@ -882,13 +851,6 @@ EOF
                   failureThreshold: 1,
                   periodSeconds: 3,
                 },
-                volumeMounts: [
-                  {
-                    name: "data",
-                    mountPath: "/db_data/",
-                    subPath: "data",
-                  },
-                ],
               },
               ...additionalContainers,
             ],
@@ -1005,17 +967,8 @@ EOF
                                 rm -rf /var/lib/postgresql/data/*
                                 rm -rf /var/lib/postgresql/log/*
                                 echo Proceeding to base backup from master...
-                                PGPASSWORD=${
-                                  replicationCredentials.pass
-                                } pg_basebackup -h ${this.metadata.name} -U ${
-                            replicationCredentials.user
-                          } -p 5432 -D /var/lib/postgresql/data -Fp -Xs -P -R
+                                pg_basebackup -h ${this.metadata.name} -U ${replicationCredentials.user} -p 5432 -D /var/lib/postgresql/data -Fp -Xs -P -R
                             fi
-
-                            echo Configuring pg_hba.conf...
-                            cat > /var/lib/postgresql/data/pg_hba.conf << ${
-                              this.spec.accessConfig ? pghbaCustom : pghba
-                            }         
 
                             echo Done.
 
@@ -1054,14 +1007,30 @@ EOF
                         },
                         readinessProbe: {
                           exec: {
-                            command: probeCheck,
+                            command: [
+                              "psql",
+                              "-h",
+                              "127.0.0.1",
+                              "-U",
+                              "postgres",
+                              "-c",
+                              "SELECT 1",
+                            ],
                           },
                           failureThreshold: 1,
                           periodSeconds: 3,
                         },
                         livenessProbe: {
                           exec: {
-                            command: probeCheck,
+                            command: [
+                              "psql",
+                              "-h",
+                              "127.0.0.1",
+                              "-U",
+                              "postgres",
+                              "-c",
+                              "SELECT 1",
+                            ],
                           },
                           failureThreshold: 2,
                           periodSeconds: 5,
