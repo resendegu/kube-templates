@@ -475,6 +475,18 @@ EOF
       ...(this.spec.users ?? []),
     ];
 
+    const usersReadOnly = [
+      ...(this.spec.readReplicas
+        ? [
+            {
+              username: replicationCredentials.user,
+              password: replicationCredentials.pass,
+            },
+          ]
+        : []),
+      ...(this.spec.users ?? []),
+    ];
+
     const replicaStringOptions = Object.entries(replicaOptions)
       .map(([key, value]) => [
         "-c",
@@ -792,19 +804,43 @@ EOF
                           ? "REPLICATION "
                           : ""
                       } ENCRYPTED PASSWORD '"'${user.password}'"'"
-                        ${
-                          user.username === "readOnly"
-                            ? `psql -h 127.0.0.1 -U postgres -c "GRANT USAGE ON SCHEMA public TO ${user.username}"`
-                            : ""
-                        }
-                        ${
-                          user.username === "readOnly"
-                            ? `psql -h 127.0.0.1 -U postgres -c "GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${user.username}"`
-                            : ""
-                        }
                       `,
                     )
                     .join("\n")}
+
+                    ${usersReadOnly
+                      .map(
+                        user => `
+                          echo Creating user ${user.username}...
+                          psql -h 127.0.0.1 -U postgres -c "CREATE USER "'"${
+                            user.username
+                          }"'" ${
+                          this.spec.readReplicas &&
+                          user.username === replicationCredentials.user
+                            ? "REPLICATION "
+                            : ""
+                        }ENCRYPTED PASSWORD '"'${user.password}'"'" || true
+                          psql -h 127.0.0.1 -U postgres -c "ALTER USER "'"${
+                            user.username
+                          }"'"${
+                          this.spec.readReplicas &&
+                          user.username === replicationCredentials.user
+                            ? "REPLICATION "
+                            : ""
+                        } ENCRYPTED PASSWORD '"'${user.password}'"'"
+                          ${
+                            user.username === "readOnly"
+                              ? `psql -h 127.0.0.1 -U postgres -c "GRANT USAGE ON SCHEMA public TO ${user.username}"`
+                              : ""
+                          }
+                          ${
+                            user.username === "readOnly"
+                              ? `psql -h 127.0.0.1 -U postgres -c "GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${user.username}"`
+                              : ""
+                          }
+                        `,
+                      )
+                      .join("\n")}
 
                   ${(this.spec.databases ?? [])
                     .map(databaseOrName =>
