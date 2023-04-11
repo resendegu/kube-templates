@@ -811,7 +811,7 @@ EOF
                             user.username
                         } ENCRYPTED PASSWORD '"'${user.password}'"'"
                           ${
-                              ? `psql -h 127.0.0.1 -U postgres -c "GRANT USAGE ON SCHEMA public TO ${user.username}"`
+                              ? `psql -h 127.0.0.1 -U postgres -c "GRANT USAGE ON SCHEMA public TO '${user.username}'"`
                               : ""
                           }
                           ${
