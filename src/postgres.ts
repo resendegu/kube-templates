@@ -26,6 +26,10 @@ interface PostgresSpec {
     username: string;
     password: string;
   }>;
+  usersReadOnly?: Array<{
+    username: string;
+    password: string;
+  }>;
   monitoring?: {
     type: "pgAnalyze";
     apiKey: string;
@@ -475,18 +479,6 @@ EOF
       ...(this.spec.users ?? []),
     ];
 
-    const usersReadOnly = [
-      ...(this.spec.readReplicas
-        ? [
-            {
-              username: replicationCredentials.user,
-              password: replicationCredentials.pass,
-            },
-          ]
-        : []),
-      ...(this.spec.users ?? []),
-    ];
-
     const replicaStringOptions = Object.entries(replicaOptions)
       .map(([key, value]) => [
         "-c",
@@ -836,6 +828,11 @@ EOF
                           ${
                             user.username === "readOnly"
                               ? `psql -h 127.0.0.1 -U postgres -c "GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${user.username}"`
+                              : ""
+                          }
+                          ${
+                            user.username === "readOnly"
+                              ? `psql -h 127.0.0.1 -U postgres -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO ${user.username}"`
                               : ""
                           }
                         `,
