@@ -806,11 +806,6 @@ EOF
                           echo Creating user ${user.username}...
                           psql -h 127.0.0.1 -U postgres -c "CREATE USER "'"${
                             user.username
-                          }"'" ${
-                          this.spec.readReplicas &&
-                          user.username === replicationCredentials.user
-                            ? "REPLICATION "
-                            : ""
                         }ENCRYPTED PASSWORD '"'${user.password}'"'" || true
                           psql -h 127.0.0.1 -U postgres -c "ALTER USER "'"${
                             user.username
