@@ -26,6 +26,10 @@ interface PostgresSpec {
     username: string;
     password: string;
   }>;
+  usersReadOnly?: Array<{
+    username: string;
+    password: string;
+  }>;
   monitoring?: {
     type: "pgAnalyze";
     apiKey: string;
@@ -795,6 +799,23 @@ EOF
                       `,
                     )
                     .join("\n")}
+
+                    ${usersReadOnly
+                      .map(
+                        user => `
+                          echo Creating user ${user.username}...
+                          psql -h 127.0.0.1 -U postgres -c "CREATE USER "'"${
+                            user.username
+                        }ENCRYPTED PASSWORD '"'${user.password}'"'" || true
+                          psql -h 127.0.0.1 -U postgres -c "ALTER USER "'"${
+                            user.username
+                        } ENCRYPTED PASSWORD '"'${user.password}'"'"
+                          psql -h 127.0.0.1 -U postgres -c "GRANT USAGE ON SCHEMA public TO '${user.username}'"
+                          psql -h 127.0.0.1 -U postgres -c "GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${user.username}"
+                          psql -h 127.0.0.1 -U postgres -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO ${user.username}"
+                        `,
+                      )
+                      .join("\n")}
 
                   ${(this.spec.databases ?? [])
                     .map(databaseOrName =>
