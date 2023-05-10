@@ -15,6 +15,9 @@ interface RethinkSpec {
   imagePullPolicy?: "Always" | "Never" | "IfNotPresent";
 }
 
+/**
+ * @deprecated
+ */
 export class Rethink {
   constructor(private metadata: ObjectMeta, private spec: RethinkSpec) {}
 

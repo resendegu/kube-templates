@@ -800,16 +800,12 @@ EOF
                     )
                     .join("\n")}
 
-                    ${usersReadOnly
+                    ${(this.spec.usersReadOnly ?? [])
                       .map(
                         user => `
                           echo Creating user ${user.username}...
-                          psql -h 127.0.0.1 -U postgres -c "CREATE USER "'"${
-                            user.username
-                        }ENCRYPTED PASSWORD '"'${user.password}'"'" || true
-                          psql -h 127.0.0.1 -U postgres -c "ALTER USER "'"${
-                            user.username
-                        } ENCRYPTED PASSWORD '"'${user.password}'"'"
+                          psql -h 127.0.0.1 -U postgres -c "CREATE USER "'"${user.username}"'" ENCRYPTED PASSWORD '"'${user.password}'"'" || true
+                          psql -h 127.0.0.1 -U postgres -c "ALTER USER "'"${user.username}"'" ENCRYPTED PASSWORD '"'${user.password}'"'"
                           psql -h 127.0.0.1 -U postgres -c "GRANT USAGE ON SCHEMA public TO '${user.username}'"
                           psql -h 127.0.0.1 -U postgres -c "GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${user.username}"
                           psql -h 127.0.0.1 -U postgres -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO ${user.username}"
@@ -1036,7 +1032,7 @@ EOF
                             echo Configuring pg_hba.conf...
                             cat > /var/lib/postgresql/data/pg_hba.conf << ${
                               this.spec.accessConfig ? pghbaCustom : pghba
-                            }         
+                            }
 
                             echo Done.
 

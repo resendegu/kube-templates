@@ -153,7 +153,7 @@ export class IngressV1 {
       !process.env.FF_KUBE_TEMPLATES_OVERRIDE_NGINX_INGRESS_CLASS
     ) {
       throw new Error(
-        `O ingressClass '${ingressClassName}' não é válido, você pode removê-lo sem problemas. 
+        `O ingressClass '${ingressClassName}' não é válido, você pode removê-lo sem problemas.
         Caso realmente queira usar esse ingressClass, defina a variável de ambiente 'FF_KUBE_TEMPLATES_OVERRIDE_NGINX_INGRESS_CLASS'
         Mais informações em: https://cubos.link/ingress-class-deprecated`,
       );
@@ -173,8 +173,19 @@ export class IngressV1 {
   }
 }
 
+/**
+ * @deprecated Use IngressV1 instead
+ */
 export class Ingress {
-  constructor(public metadata: ObjectMeta, public spec: IngressSpec) {}
+  constructor(public metadata: ObjectMeta, public spec: IngressSpec) {
+    console.error("");
+    console.error("⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️");
+    console.error("                     ⚠️ ATENÇÃO ⚠️                   ");
+    console.error("A classe Ingress do kube-templates foi depreciada e");
+    console.error("será removida em breve. Utilize a classe IngressV1.");
+    console.error("⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️");
+    console.error("");
+  }
 
   get yaml() {
     return new IngressV1(this.metadata, {
@@ -290,7 +301,7 @@ export class CronJob {
   get yaml() {
     return generateYaml([
       {
-        apiVersion: "batch/v1beta1",
+        apiVersion: "batch/v1",
         kind: "CronJob",
         metadata: this.metadata,
         spec: this.spec,

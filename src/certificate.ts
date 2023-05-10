@@ -10,13 +10,14 @@ interface CertificateSpec {
   replicationAllowedNamespaces?: RegExp;
 }
 
+/**
+ * @deprecated Use CertificateV1 instead
+ */
 export class Certificate {
   constructor(
     private metadata: Omit<ObjectMeta, "name"> & { name?: string },
     private spec: CertificateSpec,
-  ) {}
-
-  get yaml() {
+  ) {
     console.error("");
     console.error("⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️");
     console.error("                     ⚠️ ATENÇÃO ⚠️                    ");
@@ -24,7 +25,9 @@ export class Certificate {
     console.error("será removida em breve. Utilize a classe CertificateV1.");
     console.error("⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️");
     console.error("");
+  }
 
+  get yaml() {
     const domainSlash = this.spec.domain.replace(/\./gu, "-");
     const wildcard = (this.spec.challengeType ?? "dns") === "dns";
 
