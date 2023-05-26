@@ -72,14 +72,16 @@ interface StatelessAppSpec {
     period?: number;
     initialDelay?: number;
   };
-  volumes?: Array<{
-    type: "configMap" | "secret";
-    optional?: boolean;
-    readOnly?: boolean;
-    name: string;
-    mountPath: string;
-    items?: Array<{ key: string; path: string }>;
-  }>;
+  volumes?: Array<
+    {
+      type: "configMap" | "secret";
+      name: string;
+      optional?: boolean;
+      mountPath: string;
+      defaultMode?: number;
+      items?: Array<{ key: string; path: string }>;
+    } & io.k8s.api.core.v1.VolumeMount
+  >;
   crons?: Array<{
     name: string;
     schedule: string;
@@ -304,6 +306,7 @@ export class StatelessApp {
             secretName: volume.name,
             items: volume.items,
             optional: volume.optional ?? false,
+            defaultMode: volume.defaultMode,
           },
         });
       } else {
@@ -313,6 +316,7 @@ export class StatelessApp {
             name: volume.name,
             items: volume.items,
             optional: volume.optional ?? false,
+            defaultMode: volume.defaultMode,
           },
         });
       }
@@ -321,6 +325,9 @@ export class StatelessApp {
         name,
         readOnly: volume.readOnly ?? true,
         mountPath: volume.mountPath,
+        subPath: volume.subPath,
+        mountPropagation: volume.mountPropagation,
+        subPathExpr: volume.subPathExpr,
       });
     }
 
