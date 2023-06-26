@@ -976,6 +976,15 @@ EOF
                   spec: {
                     initContainers: this.spec.initContainers,
                     automountServiceAccountToken: false,
+                    ...(this.spec.imagePullSecrets
+                      ? {
+                          imagePullSecrets: this.spec.imagePullSecrets.map(
+                            secret => ({
+                              name: secret,
+                            }),
+                          ),
+                        }
+                      : {}),
                     containers: [
                       {
                         name: "pg-replica",
