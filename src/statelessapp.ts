@@ -40,7 +40,7 @@ interface StatelessAppSpec {
           publicUrl?: string | string[];
           tlsCert?: string;
           timeout?: number;
-          maxBodySize?: string;
+          maxBodySize?: "100m";
           limitRequestsPerSecond?: number;
           endpoints?: Array<{
             publicUrl?: string;
