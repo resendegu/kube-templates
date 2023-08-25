@@ -148,7 +148,7 @@ export class IngressV1 {
     }
 
     if (
-      ingressClassName !== "nginx" &&
+      !["nginx", "internal"].includes(ingressClassName) &&
       !process.env.CUBOS_DEV_GKE &&
       !process.env.FF_KUBE_TEMPLATES_OVERRIDE_NGINX_INGRESS_CLASS
     ) {
