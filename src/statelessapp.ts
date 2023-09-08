@@ -376,11 +376,11 @@ export class StatelessApp {
               : this.spec.image.startsWith("registry.cubos.io")
               ? { imagePullSecrets: [{ name: "gitlab-registry" }] }
               : {}),
-            ...(this.spec.terminationGracePeriodSeconds !== undefined
-              ? {
+            ...(this.spec.terminationGracePeriodSeconds === undefined
+              ? {}
+              : {
                   terminationGracePeriodSeconds: this.spec.terminationGracePeriodSeconds,
-                }
-              : {}),
+                }),
             automountServiceAccountToken: Boolean(this.spec.serviceAccountName),
             serviceAccountName: this.spec.serviceAccountName,
             tolerations: [],
