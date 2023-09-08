@@ -379,7 +379,8 @@ export class StatelessApp {
             ...(this.spec.terminationGracePeriodSeconds === undefined
               ? {}
               : {
-                  terminationGracePeriodSeconds: this.spec.terminationGracePeriodSeconds,
+                  terminationGracePeriodSeconds:
+                    this.spec.terminationGracePeriodSeconds,
                 }),
             automountServiceAccountToken: Boolean(this.spec.serviceAccountName),
             serviceAccountName: this.spec.serviceAccountName,
