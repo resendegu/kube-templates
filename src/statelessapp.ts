@@ -377,9 +377,10 @@ export class StatelessApp {
               ? { imagePullSecrets: [{ name: "gitlab-registry" }] }
               : {}),
             ...(this.spec.terminationGracePeriodSeconds !== undefined
-              ? { terminationGracePeriodSeconds: this.spec.terminationGracePeriodSeconds }
-              : {}
-            ),
+              ? {
+                  terminationGracePeriodSeconds: this.spec.terminationGracePeriodSeconds,
+                }
+              : {}),
             automountServiceAccountToken: Boolean(this.spec.serviceAccountName),
             serviceAccountName: this.spec.serviceAccountName,
             tolerations: [],
