@@ -102,6 +102,7 @@ interface StatelessAppSpec {
     };
   }>;
   imagePullSecrets?: string[];
+  terminationGracePeriodSeconds?: number;
   /**
    * @deprecated does nothing! kept only for compatibility purposes
    */
@@ -331,20 +332,6 @@ export class StatelessApp {
       });
     }
 
-    const basicPodSpec = {
-      ...(this.spec.imagePullSecrets
-        ? {
-            imagePullSecrets: this.spec.imagePullSecrets.map(secret => ({
-              name: secret,
-            })),
-          }
-        : this.spec.image.startsWith("registry.cubos.io")
-        ? { imagePullSecrets: [{ name: "gitlab-registry" }] }
-        : {}),
-      automountServiceAccountToken: Boolean(this.spec.serviceAccountName),
-      serviceAccountName: this.spec.serviceAccountName,
-    };
-
     return generateYaml([
       new Deployment(this.metadata, {
         replicas: Array.isArray(this.spec.replicas)
@@ -380,7 +367,21 @@ export class StatelessApp {
                 ],
               },
             },
-            ...basicPodSpec,
+            ...(this.spec.imagePullSecrets
+              ? {
+                  imagePullSecrets: this.spec.imagePullSecrets.map(secret => ({
+                    name: secret,
+                  })),
+                }
+              : this.spec.image.startsWith("registry.cubos.io")
+              ? { imagePullSecrets: [{ name: "gitlab-registry" }] }
+              : {}),
+            ...(this.spec.terminationGracePeriodSeconds !== undefined
+              ? { terminationGracePeriodSeconds: this.spec.terminationGracePeriodSeconds }
+              : {}
+            ),
+            automountServiceAccountToken: Boolean(this.spec.serviceAccountName),
+            serviceAccountName: this.spec.serviceAccountName,
             tolerations: [],
             nodeSelector: {},
             volumes,
