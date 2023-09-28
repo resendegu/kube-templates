@@ -756,9 +756,13 @@ EOF
                     for database in $DATABASES
                     do
                       echo Revoke $user on $database
-                      psql -h 127.0.0.1 -U postgres -c "REASSIGN OWNED BY \\"$user\\" TO postgres" \\"$database\\"
-                      psql -h 127.0.0.1 -U postgres -c "REVOKE ALL PRIVILEGES ON DATABASE \\"$database\\" FROM \\"$user\\""
-                      psql -h 127.0.0.1 -U postgres -c "REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM \\"$user\\"" \\"$database\\"
+                      psql -h 127.0.0.1 -U postgres -c "REASSIGN OWNED BY \\"$user\\" TO postgres" "$database"
+                      psql -h 127.0.0.1 -U postgres -c "REVOKE ALL PRIVILEGES ON DATABASE \\"$database\\" FROM \\"$user\\" CASCADE"
+                      psql -h 127.0.0.1 -U postgres -c "REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM \\"$user\\" CASCADE" "$database"
+                      psql -h 127.0.0.1 -U postgres -c "REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM \\"$user\\" CASCADE" "$database"
+                      psql -h 127.0.0.1 -U postgres -c "REVOKE ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public FROM \\"$user\\" CASCADE" "$database"
+                      psql -h 127.0.0.1 -U postgres -c "REVOKE ALL PRIVILEGES ON ALL PROCEDURES IN SCHEMA public FROM \\"$user\\" CASCADE" "$database"
+                      psql -h 127.0.0.1 -U postgres -c "REVOKE ALL PRIVILEGES ON ALL ROUTINES IN SCHEMA public FROM \\"$user\\" CASCADE" "$database"
                     done
 
                     ${
@@ -831,8 +835,8 @@ EOF
                             user => `
                               echo Granting privileges on database ${database.name} to user ${user}...
                               psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON DATABASE "${database.name}" TO "${user}"'
-                              psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "${user}"' \\"${database.name}\\"
-                              psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO "${user}"' \\"${database.name}\\"
+                              psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "${user}"' "${database.name}"
+                              psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO "${user}"' "${database.name}"
                             `,
                           )
                           .join("\n")}
@@ -856,14 +860,14 @@ EOF
                           .map(
                             database => `
                               echo Setting up PgAnalyze on database ${database.name}...
-                              psql -h 127.0.0.1 -U postgres -c 'CREATE EXTENSION IF NOT EXISTS pg_stat_statements WITH SCHEMA public;' \\"${database.name}\\"
-                              psql -h 127.0.0.1 -U postgres -c 'CREATE SCHEMA IF NOT EXISTS pganalyze;' \\"${database.name}\\"
-                              echo -e "CREATE OR REPLACE FUNCTION pganalyze.get_stat_statements(showtext boolean = true) RETURNS SETOF pg_stat_statements AS\\n\\$\\$\\n/* pganalyze-collector */ SELECT * FROM public.pg_stat_statements(showtext);\\n\\$\\$ LANGUAGE sql VOLATILE SECURITY DEFINER;" | psql -h 127.0.0.1 -U postgres \\"${database.name}\\"
-                              echo -e "CREATE OR REPLACE FUNCTION pganalyze.get_stat_activity() RETURNS SETOF pg_stat_activity AS\\n\\$\\$\\n  /* pganalyze-collector */ SELECT * FROM pg_catalog.pg_stat_activity;\\n\\$\\$ LANGUAGE sql VOLATILE SECURITY DEFINER;" | psql -h 127.0.0.1 -U postgres \\"${database.name}\\"
-                              echo -e "CREATE OR REPLACE FUNCTION pganalyze.get_column_stats() RETURNS SETOF pg_stats AS\\n\\$\\$\\n  /* pganalyze-collector */ SELECT schemaname, tablename, attname, inherited, null_frac, avg_width,\\n  n_distinct, NULL::anyarray, most_common_freqs, NULL::anyarray, correlation, NULL::anyarray,\\n  most_common_elem_freqs, elem_count_histogram\\n  FROM pg_catalog.pg_stats;\\n\\$\\$ LANGUAGE sql VOLATILE SECURITY DEFINER;" | psql -h 127.0.0.1 -U postgres \\"${database.name}\\"
-                              echo -e "CREATE OR REPLACE FUNCTION pganalyze.get_stat_replication() RETURNS SETOF pg_stat_replication AS\\n\\$\\$\\n  /* pganalyze-collector */ SELECT * FROM pg_catalog.pg_stat_replication;\\n\\$\\$ LANGUAGE sql VOLATILE SECURITY DEFINER;" | psql -h 127.0.0.1 -U postgres \\"${database.name}\\"
-                              psql -h 127.0.0.1 -U postgres -c "REVOKE ALL ON SCHEMA public FROM pganalyze;" \\"${database.name}\\"
-                              psql -h 127.0.0.1 -U postgres -c "GRANT USAGE ON SCHEMA pganalyze TO pganalyze;" \\"${database.name}\\"
+                              psql -h 127.0.0.1 -U postgres -c 'CREATE EXTENSION IF NOT EXISTS pg_stat_statements WITH SCHEMA public;' "${database.name}"
+                              psql -h 127.0.0.1 -U postgres -c 'CREATE SCHEMA IF NOT EXISTS pganalyze;' "${database.name}"
+                              echo -e "CREATE OR REPLACE FUNCTION pganalyze.get_stat_statements(showtext boolean = true) RETURNS SETOF pg_stat_statements AS\\n\\$\\$\\n/* pganalyze-collector */ SELECT * FROM public.pg_stat_statements(showtext);\\n\\$\\$ LANGUAGE sql VOLATILE SECURITY DEFINER;" | psql -h 127.0.0.1 -U postgres "${database.name}"
+                              echo -e "CREATE OR REPLACE FUNCTION pganalyze.get_stat_activity() RETURNS SETOF pg_stat_activity AS\\n\\$\\$\\n  /* pganalyze-collector */ SELECT * FROM pg_catalog.pg_stat_activity;\\n\\$\\$ LANGUAGE sql VOLATILE SECURITY DEFINER;" | psql -h 127.0.0.1 -U postgres "${database.name}"
+                              echo -e "CREATE OR REPLACE FUNCTION pganalyze.get_column_stats() RETURNS SETOF pg_stats AS\\n\\$\\$\\n  /* pganalyze-collector */ SELECT schemaname, tablename, attname, inherited, null_frac, avg_width,\\n  n_distinct, NULL::anyarray, most_common_freqs, NULL::anyarray, correlation, NULL::anyarray,\\n  most_common_elem_freqs, elem_count_histogram\\n  FROM pg_catalog.pg_stats;\\n\\$\\$ LANGUAGE sql VOLATILE SECURITY DEFINER;" | psql -h 127.0.0.1 -U postgres "${database.name}"
+                              echo -e "CREATE OR REPLACE FUNCTION pganalyze.get_stat_replication() RETURNS SETOF pg_stat_replication AS\\n\\$\\$\\n  /* pganalyze-collector */ SELECT * FROM pg_catalog.pg_stat_replication;\\n\\$\\$ LANGUAGE sql VOLATILE SECURITY DEFINER;" | psql -h 127.0.0.1 -U postgres "${database.name}"
+                              psql -h 127.0.0.1 -U postgres -c "REVOKE ALL ON SCHEMA public FROM pganalyze;" "${database.name}"
+                              psql -h 127.0.0.1 -U postgres -c "GRANT USAGE ON SCHEMA pganalyze TO pganalyze;" "${database.name}"
                             `,
                           )
                           .join("\n")
