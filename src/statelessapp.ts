@@ -1,7 +1,7 @@
 import { URL } from "url";
 
 import { Cron } from "./cron";
-import type { io } from "./generated/kubernetes";
+import type { io } from "./generated";
 import { clone, env, generateYaml, parseMemory } from "./helpers";
 import type { ObjectMeta } from "./kubernetes";
 import {
@@ -180,10 +180,6 @@ export class StatelessApp {
           if (!tls.hosts!.includes(hostname)) {
             tls.hosts!.push(hostname);
           }
-        }
-
-        if (!rule.http) {
-          rule.http = { paths: [] };
         }
 
         hasPath = hasPath || pathname !== "/";

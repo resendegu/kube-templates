@@ -1,6 +1,6 @@
 import { createHash } from "crypto";
 
-import type { io } from "./generated/kubernetes";
+import type { io } from "./generated";
 import { generateYaml, parseMemory } from "./helpers";
 import type { ObjectMeta } from "./kubernetes";
 import { Service, StatefulSet } from "./kubernetes";

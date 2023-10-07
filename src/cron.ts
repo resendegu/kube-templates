@@ -1,6 +1,6 @@
 import * as _ from "lodash";
 
-import type { io } from "./generated/kubernetes";
+import type { io } from "./generated";
 import { env, generateYaml } from "./helpers";
 import type { ObjectMeta } from "./kubernetes";
 import { CronJob } from "./kubernetes";

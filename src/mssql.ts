@@ -1,4 +1,4 @@
-import type { io } from "./generated/kubernetes";
+import type { io } from "./generated";
 import { generateYaml } from "./helpers";
 import type { ObjectMeta } from "./kubernetes";
 import { Service, StatefulSet } from "./kubernetes";

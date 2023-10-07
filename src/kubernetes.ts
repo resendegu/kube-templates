@@ -1,4 +1,4 @@
-import type { io } from "./generated/kubernetes";
+import type { io } from "./generated";
 import { generateYaml } from "./helpers";
 
 export interface BasicObjectMeta {
@@ -190,28 +190,31 @@ export class Ingress {
   get yaml() {
     return new IngressV1(this.metadata, {
       tls: this.spec.tls,
-      rules: this.spec.rules?.map(rule => ({
-        host: rule.host,
-        http: rule.http
-          ? {
-              paths:
-                rule.http.paths.map<io.k8s.api.networking.v1.HTTPIngressPath>(
-                  path => ({
-                    backend: {
-                      service: {
-                        name: path.backend.serviceName,
-                        port: {
-                          number: path.backend.servicePort,
+      rules:
+        this.spec.rules
+          ?.map<io.k8s.api.networking.v1.IngressRule>(rule => ({
+            host: rule.host,
+            http: rule.http
+              ? {
+                  paths:
+                    rule.http.paths.map<io.k8s.api.networking.v1.HTTPIngressPath>(
+                      path => ({
+                        backend: {
+                          service: {
+                            name: path.backend.serviceName,
+                            port: {
+                              number: path.backend.servicePort,
+                            },
+                          },
                         },
-                      },
-                    },
-                    path: path.path,
-                    pathType: "Prefix",
-                  }),
-                ),
-            }
-          : undefined,
-      })),
+                        path: path.path,
+                        pathType: "Prefix",
+                      }),
+                    ),
+                }
+              : undefined!,
+          }))
+          .filter(r => Boolean(r.http)) ?? [],
     }).yaml;
   }
 }
