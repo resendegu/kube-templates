@@ -1,8 +1,4 @@
-import { spawnSync } from "child_process";
-
 import { apply, kubectl } from "./helpers";
-
-console.log(spawnSync("docker ps", { shell: true }).stdout.toString());
 
 const storageClasses = kubectl("get", "storageclasses");
 const storageClassesToCreate = ["ssd-regional", "ssd"];
