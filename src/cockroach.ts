@@ -18,14 +18,15 @@ interface CockroachSpec {
   };
   memory: string | number;
   replicas: number;
-  certs?: {
-    [key: string]: Buffer;
-  };
+  certs?: Record<string, Buffer>;
   certsSecretName?: string;
 }
 
 export class Cockroach {
-  constructor(private metadata: ObjectMeta, private spec: CockroachSpec) {}
+  constructor(
+    private metadata: ObjectMeta,
+    private spec: CockroachSpec,
+  ) {}
 
   private get isLogToStderrDeprecated(): boolean {
     const match = /^(?<version>\d+)\./u.exec(this.spec.version);

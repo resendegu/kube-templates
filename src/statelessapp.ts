@@ -17,9 +17,7 @@ interface StatelessAppSpec {
   imagePullPolicy?: io.k8s.api.core.v1.Container["imagePullPolicy"];
   command?: string[];
   args?: string[];
-  envs?: {
-    [env: string]: string | number | { secretName: string; key: string };
-  };
+  envs?: Record<string, string | number | { secretName: string; key: string }>;
   forwardEnvs?: string[];
   secretEnvs?: string[];
   cpu: {
@@ -87,9 +85,10 @@ interface StatelessAppSpec {
     schedule: string;
     args: string[];
     command: string[];
-    envs?: {
-      [env: string]: string | number | { secretName: string; key: string };
-    };
+    envs?: Record<
+      string,
+      string | number | { secretName: string; key: string }
+    >;
     forwardEnvs?: string[];
     secretEnvs?: string[];
     cpu?: {
@@ -110,7 +109,10 @@ interface StatelessAppSpec {
 }
 
 export class StatelessApp {
-  constructor(private metadata: ObjectMeta, private spec: StatelessAppSpec) {}
+  constructor(
+    private metadata: ObjectMeta,
+    private spec: StatelessAppSpec,
+  ) {}
 
   get yaml() {
     const ingress = new IngressV1(clone(this.metadata), { rules: [], tls: [] });

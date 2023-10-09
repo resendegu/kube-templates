@@ -45,9 +45,7 @@ interface PostgresSpec {
   }>;
   storageClassName?: string;
   storageRequest?: string;
-  nodeSelector?: {
-    [annotation: string]: string;
-  };
+  nodeSelector?: Record<string, string>;
   tolerations?: io.k8s.api.core.v1.Toleration[];
   imagePullPolicy?: "Always" | "Never" | "IfNotPresent";
   options?: {
@@ -135,9 +133,9 @@ interface PostgresSpec {
     cpuOperatorCost?: number;
     parallelTupleCost?: number;
     parallelSetupCost?: number;
-    jitAboveCost?: number | -1;
-    jitInlineAboveCost?: number | -1;
-    jitOptimizeAboveCost?: number | -1;
+    jitAboveCost?: number;
+    jitInlineAboveCost?: number;
+    jitOptimizeAboveCost?: number;
     minParallelTableScanSize?: string;
     minParallelIndexScanSize?: string;
     effectiveCacheSize?: string;
@@ -165,7 +163,6 @@ interface PostgresSpec {
       | "debug1"
       | "info"
       | "notice"
-      | "warning"
       | "error"
       | "log"
       | "fatal"
@@ -180,7 +177,6 @@ interface PostgresSpec {
       | "info"
       | "notice"
       | "warning"
-      | "error"
       | "log"
       | "fatal"
       | "panic";
@@ -232,7 +228,6 @@ interface PostgresSpec {
       | "debug2"
       | "debug1"
       | "log"
-      | "notice"
       | "warning"
       | "error";
     rowSecurity?: boolean;
@@ -279,7 +274,10 @@ interface PostgresSpec {
 }
 
 export class Postgres {
-  constructor(private metadata: ObjectMeta, private spec: PostgresSpec) {}
+  constructor(
+    private metadata: ObjectMeta,
+    private spec: PostgresSpec,
+  ) {}
 
   get yaml() {
     const additionalContainers: io.k8s.api.core.v1.Container[] = [];
@@ -317,8 +315,8 @@ export class Postgres {
       : {};
 
     const mem = parseMemory(this.spec.memory);
-    const MB = 1024 * 1024;
-    const GB = 1024 * MB;
+    const mebibyte = 1024 * 1024;
+    const gibibyte = 1024 * mebibyte;
 
     const probeCheck = [
       "bash",
@@ -437,11 +435,11 @@ EOF
     }
 
     const options = {
-      maxConnections: Math.max(100, mem / (8 * MB)),
+      maxConnections: Math.max(100, mem / (8 * mebibyte)),
       sharedBuffers: `${Math.ceil(
-        (mem * (mem > Number(GB) ? 0.25 : 0.15)) / MB,
+        (mem * (mem > gibibyte ? 0.25 : 0.15)) / mebibyte,
       )}MB`,
-      effectiveCacheSize: `${Math.ceil(mem / 2 / MB)}MB`,
+      effectiveCacheSize: `${Math.ceil(mem / 2 / mebibyte)}MB`,
       ...masterReplicationOptions,
       ...commonReplicationOptions,
       ...(this.spec.options ?? {}),
@@ -787,19 +785,19 @@ EOF
                         psql -h 127.0.0.1 -U postgres -c "CREATE USER "'"${
                           user.username
                         }"'" ${
-                        this.spec.readReplicas &&
-                        user.username === replicationCredentials.user
-                          ? "REPLICATION "
-                          : ""
-                      }ENCRYPTED PASSWORD '"'${user.password}'"'" || true
+                          this.spec.readReplicas &&
+                          user.username === replicationCredentials.user
+                            ? "REPLICATION "
+                            : ""
+                        }ENCRYPTED PASSWORD '"'${user.password}'"'" || true
                         psql -h 127.0.0.1 -U postgres -c "ALTER USER "'"${
                           user.username
                         }"'"${
-                        this.spec.readReplicas &&
-                        user.username === replicationCredentials.user
-                          ? "REPLICATION "
-                          : ""
-                      } ENCRYPTED PASSWORD '"'${user.password}'"'"
+                          this.spec.readReplicas &&
+                          user.username === replicationCredentials.user
+                            ? "REPLICATION "
+                            : ""
+                        } ENCRYPTED PASSWORD '"'${user.password}'"'"
                       `,
                     )
                     .join("\n")}
@@ -1036,8 +1034,8 @@ EOF
                                 PGPASSWORD=${
                                   replicationCredentials.pass
                                 } pg_basebackup -h ${this.metadata.name} -U ${
-                            replicationCredentials.user
-                          } -p 5432 -D /var/lib/postgresql/data -Fp -Xs -P -R
+                                  replicationCredentials.user
+                                } -p 5432 -D /var/lib/postgresql/data -Fp -Xs -P -R
                             fi
 
                             echo Configuring pg_hba.conf...

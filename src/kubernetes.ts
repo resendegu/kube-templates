@@ -2,12 +2,8 @@ import type { io } from "./generated";
 import { generateYaml } from "./helpers";
 
 export interface BasicObjectMeta {
-  annotations?: {
-    [annotation: string]: string;
-  };
-  labels?: {
-    [label: string]: string;
-  };
+  annotations?: Record<string, string>;
+  labels?: Record<string, string>;
 }
 
 export interface NonNamespacedObjectMeta extends BasicObjectMeta {
@@ -161,7 +157,7 @@ export class HorizontalPodAutoscaler {
 export class Secret {
   constructor(
     public metadata: ObjectMeta,
-    public data?: { [key: string]: string | Buffer },
+    public data?: Record<string, string | Buffer>,
     public type?: string,
   ) {}
 

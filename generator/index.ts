@@ -2,7 +2,7 @@ import path from "path";
 
 import type { OpenAPIV3 } from "openapi-types";
 import type { ModuleDeclaration } from "ts-morph";
-import { Project } from "ts-morph";
+import { NewLineKind, Project, QuoteKind, IndentationText, ts } from "ts-morph";
 
 import { buildModules } from "./magic";
 import {
@@ -12,7 +12,15 @@ import {
 import { log } from "./utils/log";
 
 async function run() {
-  const project = new Project();
+  const project = new Project({
+    manipulationSettings: {
+      useTrailingCommas: true,
+      quoteKind: QuoteKind.Double,
+      newLineKind: NewLineKind.LineFeed,
+      indentationText: IndentationText.TwoSpaces,
+    },
+  });
+
   const modules: Array<Map<string, ModuleDeclaration>> = [];
 
   const indexFile = project.createSourceFile(
@@ -41,6 +49,36 @@ async function run() {
   }
 
   log.info("Saving files");
+
+  indexFile.formatText({
+    convertTabsToSpaces: true,
+    ensureNewLineAtEndOfFile: true,
+    indentMultiLineObjectLiteralBeginningOnBlankLine: true,
+    indentSize: 2,
+    indentStyle: ts.IndentStyle.Smart,
+    indentSwitchCase: true,
+    insertSpaceAfterCommaDelimiter: true,
+    insertSpaceAfterConstructor: false,
+    insertSpaceAfterFunctionKeywordForAnonymousFunctions: false,
+    insertSpaceAfterKeywordsInControlFlowStatements: true,
+    insertSpaceAfterOpeningAndBeforeClosingEmptyBraces: false,
+    insertSpaceAfterOpeningAndBeforeClosingJsxExpressionBraces: false,
+    insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces: false,
+    insertSpaceAfterOpeningAndBeforeClosingNonemptyBrackets: false,
+    insertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis: false,
+    insertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces: false,
+    insertSpaceAfterSemicolonInForStatements: true,
+    insertSpaceAfterTypeAssertion: false,
+    insertSpaceBeforeAndAfterBinaryOperators: true,
+    insertSpaceBeforeFunctionParenthesis: false,
+    insertSpaceBeforeTypeAnnotation: false,
+    newLineCharacter: "\n",
+    placeOpenBraceOnNewLineForControlBlocks: false,
+    placeOpenBraceOnNewLineForFunctions: false,
+    semicolons: ts.SemicolonPreference.Insert,
+    tabSize: 2,
+    trimTrailingWhitespace: true,
+  });
 
   await project.save();
 

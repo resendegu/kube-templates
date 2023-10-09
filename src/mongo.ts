@@ -22,7 +22,10 @@ interface MongoSpec {
 }
 
 export class Mongo {
-  constructor(private metadata: ObjectMeta, private spec: MongoSpec) {}
+  constructor(
+    private metadata: ObjectMeta,
+    private spec: MongoSpec,
+  ) {}
 
   get yaml() {
     return generateYaml([

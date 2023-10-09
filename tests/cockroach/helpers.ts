@@ -28,7 +28,7 @@ export async function queryCockroach(
     try {
       return (await client.query(query)).rows;
     } finally {
-      client.end();
+      await client.end();
     }
   } finally {
     forward.close();
@@ -69,7 +69,7 @@ export async function queryCockroachSecure(
     try {
       return (await client.query(query)).rows;
     } finally {
-      client.end();
+      await client.end();
     }
   } finally {
     forward.close();

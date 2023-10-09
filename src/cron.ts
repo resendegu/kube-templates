@@ -10,9 +10,7 @@ interface CronSpec {
   image: string;
   args?: string[];
   command?: string[];
-  envs?: {
-    [env: string]: string | number | { secretName: string; key: string };
-  };
+  envs?: Record<string, string | number | { secretName: string; key: string }>;
   forwardEnvs?: string[];
   secretEnvs?: string[];
   cpu: {
@@ -42,7 +40,10 @@ interface CronSpec {
 }
 
 export class Cron {
-  constructor(private metadata: ObjectMeta, private spec: CronSpec) {}
+  constructor(
+    private metadata: ObjectMeta,
+    private spec: CronSpec,
+  ) {}
 
   get yaml() {
     const volumes: io.k8s.api.core.v1.Volume[] = [];
