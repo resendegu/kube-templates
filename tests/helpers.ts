@@ -99,7 +99,7 @@ export function portForward(
 ) {
   const port = 63317 + parseInt(process.env.JEST_WORKER_ID!, 10);
   const proc = spawn("kubectl", [
-    "--kubeconfig=.test-kubeconfig",
+    "--kubeconfig=kind-kubeconfig",
     "-n",
     namespace,
     "port-forward",
