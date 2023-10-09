@@ -6,30 +6,6 @@ stages:
   - deploy
   - test
 
-Build Library:
-  stage: build
-  only:
-    - main
-  script:
-    - npm ci
-    - npx tsc -p tsconfig.json
-  artifacts:
-    paths:
-      - dist/
-
-Deploy (NPM):
-  stage: deploy
-  dependencies:
-    - Build Library
-  only:
-    - main
-  script:
-    - echo -e "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > dist/.npmrc
-    - cp package.json dist/
-    - cd dist/
-    - npm version 1.0.$CI_PIPELINE_ID || true
-    - npm publish --access public
-
 ESLint:
   stage: check
   script:
@@ -48,11 +24,36 @@ NPM Audit:
   script:
     - npm audit
 
+Build Library:
+  stage: build
+  only:
+    - main
+  script:
+    - npm ci
+    - npx tsc
+  artifacts:
+    paths:
+      - dist/
+
+Deploy (NPM):
+  stage: deploy
+  dependencies:
+    - Build Library
+  only:
+    - main
+  script:
+    - echo -e "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > dist/.npmrc
+    - cp package.json dist/
+    - cd dist/
+    - npm version 1.0.$CI_PIPELINE_ID || true
+    - npm publish --access public
+
 Test:
   stage: test
   image: docker
   script:
-    - apk add --no-cache nodejs npm curl python3 kubectl kind
+    - apk add --no-cache nodejs npm curl python3
+    - apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community kubectl kind
     - npm ci
     - npx ts-node tests/setup.ts
     - printf "FROM node:lts-alpine\nCOPY package.json package-lock.json ./\nRUN npm ci\nCOPY . /app" > Dockerfile
