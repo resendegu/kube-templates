@@ -32,6 +32,7 @@ describe("postgres", () => {
           },
           memory: "64Mi",
           version: "11.0",
+          postgresUserPassword: "postgres",
         },
       ),
     );
@@ -67,6 +68,7 @@ describe("postgres", () => {
           },
           memory: "64Mi",
           version: "11.7",
+          postgresUserPassword: "postgres",
         },
       ),
     );

@@ -8,7 +8,7 @@ export async function queryPostgres(
   query: string,
   user = "postgres",
   database = "postgres",
-  password = "",
+  password = "postgres",
 ) {
   const forward = portForward(namespace, pod, 5432);
 
