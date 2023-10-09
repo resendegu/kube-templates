@@ -3,3 +3,4 @@ src/*.js
 src/*.d.ts
 test.ts
 .test-kubeconfig
+kind-kubeconfig

@@ -4,7 +4,10 @@ import { unlinkSync, writeFileSync } from "fs";
 import deasync from "deasync";
 
 function rawKubectl(...args: string[]) {
-  const result = spawnSync("kubectl", [...args]);
+  const result = spawnSync("kubectl", [
+    "--kubeconfig=kind-kubeconfig",
+    ...args,
+  ]);
 
   if (result.status === 0) {
     return result.stdout.toString();
