@@ -51,8 +51,11 @@ Deploy (NPM):
 Test:
   stage: test
   image: docker
+  services:
+    - name: kindest/node@v1.28.0
+      alias: kind
   script:
-    - apk add --no-cache nodejs npm curl python3
+    - apk add --no-cache nodejs npm python3
     - apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community kubectl kind
     - npm ci
     - npx ts-node tests/setup.ts
