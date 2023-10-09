@@ -1,4 +1,4 @@
-image: node:16
+image: node:20
 
 stages:
   - check
@@ -52,9 +52,7 @@ Test:
   stage: test
   image: docker
   script:
-    - apk add nodejs npm curl
-    - curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.11.1/kind-$(uname)-amd64 && chmod +x ./kind && mv ./kind /bin/kind
-    - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl && chmod +x ./kubectl && cp ./kubectl /bin/kubectl
+    - apk add --no-cache nodejs npm curl python3 kubectl kind
     - npm ci
     - npx ts-node tests/setup.ts
     - printf "FROM node:lts-alpine\nCOPY package.json package-lock.json ./\nRUN npm ci\nCOPY . /app" > Dockerfile
