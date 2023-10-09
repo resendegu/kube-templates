@@ -150,9 +150,7 @@ export class MariaDB {
                   storage: "1Gi",
                 },
               },
-              storageClassName:
-                this.spec.storageClassName ??
-                (process.env.PRODUCTION ? "ssd-regional" : "standard"),
+              storageClassName: this.spec.storageClassName ?? "ssd",
             },
           },
         ],

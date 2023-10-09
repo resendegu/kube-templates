@@ -36,39 +36,6 @@ export class Namespace {
   }
 }
 
-// region Ingress v1beta1 for compatibility purposes
-export interface IngressSpec {
-  backend?: IngressBackend;
-  rules?: IngressRule[];
-  tls?: IngressTLS[];
-}
-
-export interface IngressBackend {
-  serviceName: string;
-  servicePort: number;
-}
-
-export interface IngressRule {
-  host: string;
-  http?: HTTPIngressRuleValue;
-}
-
-export interface IngressTLS {
-  hosts?: string[];
-  secretName: string;
-}
-
-export interface HTTPIngressRuleValue {
-  paths: HTTPIngressPath[];
-}
-
-export interface HTTPIngressPath {
-  backend: IngressBackend;
-  path: string;
-}
-
-// endregion
-
 export class Deployment {
   constructor(
     public metadata: ObjectMeta,
@@ -170,52 +137,6 @@ export class IngressV1 {
         },
       },
     ]);
-  }
-}
-
-/**
- * @deprecated Use IngressV1 instead
- */
-export class Ingress {
-  constructor(public metadata: ObjectMeta, public spec: IngressSpec) {
-    console.error("");
-    console.error("⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️");
-    console.error("                     ⚠️ ATENÇÃO ⚠️                   ");
-    console.error("A classe Ingress do kube-templates foi depreciada e");
-    console.error("será removida em breve. Utilize a classe IngressV1.");
-    console.error("⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️");
-    console.error("");
-  }
-
-  get yaml() {
-    return new IngressV1(this.metadata, {
-      tls: this.spec.tls,
-      rules:
-        this.spec.rules
-          ?.map<io.k8s.api.networking.v1.IngressRule>(rule => ({
-            host: rule.host,
-            http: rule.http
-              ? {
-                  paths:
-                    rule.http.paths.map<io.k8s.api.networking.v1.HTTPIngressPath>(
-                      path => ({
-                        backend: {
-                          service: {
-                            name: path.backend.serviceName,
-                            port: {
-                              number: path.backend.servicePort,
-                            },
-                          },
-                        },
-                        path: path.path,
-                        pathType: "Prefix",
-                      }),
-                    ),
-                }
-              : undefined!,
-          }))
-          .filter(r => Boolean(r.http)) ?? [],
-    }).yaml;
   }
 }
 

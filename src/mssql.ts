@@ -198,7 +198,7 @@ export class MSSQL {
                   storage: "2Gi",
                 },
               },
-              storageClassName: process.env.PRODUCTION ? "ssd-regional" : "ssd",
+              storageClassName: "ssd",
             },
           },
         ],

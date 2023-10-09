@@ -937,9 +937,7 @@ EOF
                   storage: this.spec.storageRequest ?? "2Gi",
                 },
               },
-              storageClassName:
-                this.spec.storageClassName ??
-                (process.env.PRODUCTION_CUBOS ? "ssd-regional" : "ssd"),
+              storageClassName: this.spec.storageClassName ?? "ssd",
             },
           },
         ],
