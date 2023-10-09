@@ -52,7 +52,7 @@ Test:
   stage: test
   image: docker
   services:
-    - name: kindest/node@v1.28.0
+    - name: kindest/node:v1.28.0
       alias: kind
   script:
     - apk add --no-cache nodejs npm python3
