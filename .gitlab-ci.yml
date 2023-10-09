@@ -51,12 +51,11 @@ Deploy (NPM):
 Test:
   stage: test
   image: docker
-  services:
-    - docker:dind
   script:
     - apk add --no-cache nodejs npm python3
     - apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community kubectl kind
     - npm ci
+    - kind cluster delete --name "kube-templates-test" || true
     - kind create cluster --name "kube-templates-test" --wait 5m
     - npx ts-node tests/setup.ts
     - printf "FROM node:lts-alpine\nCOPY package.json package-lock.json ./\nRUN npm ci\nCOPY . /app" > Dockerfile
