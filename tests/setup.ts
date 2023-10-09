@@ -16,13 +16,15 @@ function kind(...args: string[]) {
 const clusters = kind("get", "clusters").split("\n");
 let clusterName = "kube-templates-test";
 
+console.log("Pre-tests clusters:", clusters.join("\n"));
+
 if (process.env.CI) {
   for (const cluster of clusters) {
     if (!cluster.startsWith(`${clusterName}-`)) {
       continue;
     }
 
-    const date = parseInt(cluster.substr(clusterName.length + 1), 10);
+    const date = parseInt(cluster.substring(clusterName.length + 1), 10);
 
     if (date < new Date().getTime() - 3600000) {
       kind("delete", "cluster", "--name", cluster);
@@ -49,7 +51,7 @@ if (process.env.CI) {
   );
 } else {
   if (!clusters.includes(clusterName)) {
-    kind("create", "cluster", "--name", clusterName, "--wait", "1m");
+    kind("create", "cluster", "--name", clusterName, "--wait", "3m");
     clusters.push(clusterName);
   }
 
