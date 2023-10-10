@@ -1,4 +1,5 @@
 import type { io } from "./generated";
+import type { DeepPartial } from "./helpers";
 import { generateYaml } from "./helpers";
 import type { ObjectMeta } from "./kubernetes";
 import {
@@ -17,10 +18,11 @@ interface PostgresV1Spec {
     limit: string | number;
   };
   backups?: io.stackgres.v1.SGBackupConfig_spec;
+  extensions?: string[];
   overrides?: {
-    instanceProfile?: io.stackgres.v1.SGInstanceProfile_spec;
-    postgresConfig?: io.stackgres.v1.SGPostgresConfig_spec;
-    cluster?: io.stackgres.v1.SGCluster_spec;
+    instanceProfile?: DeepPartial<io.stackgres.v1.SGInstanceProfile_spec>;
+    postgresConfig?: DeepPartial<io.stackgres.v1.SGPostgresConfig_spec>;
+    cluster?: DeepPartial<io.stackgres.v1.SGCluster_spec>;
   };
 }
 
@@ -52,11 +54,11 @@ export class PostgresV1 {
         {
           cpu: this.spec.cpu.limit.toString(),
           memory: this.spec.memory,
-          ...this.spec.overrides?.instanceProfile,
+          ...(this.spec.overrides?.instanceProfile as any),
           requests: {
             cpu: this.spec.cpu.request.toString(),
             memory: this.spec.memory,
-            ...this.spec.overrides?.instanceProfile?.requests,
+            ...(this.spec.overrides?.instanceProfile?.requests as any),
           },
         },
       ),
@@ -68,10 +70,12 @@ export class PostgresV1 {
         },
         {
           postgresVersion: this.spec.version.toString(),
-          ...this.spec.overrides?.postgresConfig,
+          ...(this.spec.overrides?.postgresConfig as any),
           "postgresql.conf": {
             shared_preload_libraries: "pg_stat_statements",
-            ...this.spec.overrides?.postgresConfig?.["postgresql.conf"],
+            ...(this.spec.overrides?.postgresConfig?.[
+              "postgresql.conf"
+            ] as any),
           },
         },
       ),
@@ -84,7 +88,7 @@ export class PostgresV1 {
         {
           instances: this.spec.instances ?? 1,
           sgInstanceProfile: this.metadata.name,
-          ...this.spec.overrides?.cluster,
+          ...(this.spec.overrides?.cluster as any),
           configurations: {
             sgPostgresConfig: this.metadata.name,
             ...(this.spec.backups
@@ -92,17 +96,18 @@ export class PostgresV1 {
                   sgBackupConfig: this.metadata.name,
                 }
               : {}),
-            ...this.spec.overrides?.cluster?.configurations,
+            ...(this.spec.overrides?.cluster?.configurations as any),
           },
           postgres: {
             version: this.spec.version.toString(),
-            ...this.spec.overrides?.cluster?.postgres,
+            extensions: this.spec.extensions?.map(name => ({ name })) ?? [],
+            ...(this.spec.overrides?.cluster?.postgres as any),
           },
           pods: {
-            ...this.spec.overrides?.cluster?.pods,
+            ...(this.spec.overrides?.cluster?.pods as any),
             persistentVolume: {
               size: "2Gi",
-              ...this.spec.overrides?.cluster?.pods.persistentVolume,
+              ...(this.spec.overrides?.cluster?.pods?.persistentVolume as any),
             },
           },
         },

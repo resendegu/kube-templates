@@ -1,5 +1,11 @@
 import { dump } from "js-yaml";
 
+export type DeepPartial<T> = T extends object
+  ? {
+      [P in keyof T]?: DeepPartial<T[P]>;
+    }
+  : T;
+
 function stripUndefinedProperties(obj: any): any {
   if (Array.isArray(obj)) {
     return obj.map(stripUndefinedProperties);
