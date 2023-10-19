@@ -209,7 +209,7 @@ export class WordPress {
                   storage: "1Gi",
                 },
               },
-              storageClassName: this.spec.storageClassName ?? "ssd",
+              storageClassName: this.spec.storageClassName,
             },
           },
         ],

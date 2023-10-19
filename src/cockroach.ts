@@ -320,7 +320,6 @@ export class Cockroach {
                   storage: "2Gi",
                 },
               },
-              storageClassName: "ssd",
             },
           },
         ],

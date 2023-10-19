@@ -200,7 +200,6 @@ export class MSSQL {
                   storage: "2Gi",
                 },
               },
-              storageClassName: "ssd",
             },
           },
         ],

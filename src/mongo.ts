@@ -169,7 +169,7 @@ export class Mongo {
                   storage: "2Gi",
                 },
               },
-              storageClassName: this.spec.storageClassName ?? "ssd",
+              storageClassName: this.spec.storageClassName,
             },
           },
         ],

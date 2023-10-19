@@ -155,7 +155,7 @@ export class MySQL {
                   storage: "1Gi",
                 },
               },
-              storageClassName: this.spec.storageClassName ?? "ssd",
+              storageClassName: this.spec.storageClassName,
             },
           },
         ],
