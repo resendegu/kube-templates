@@ -50,10 +50,6 @@ interface StatelessAppSpec {
       | {
           type: "tcp";
         }
-      |
-        {
-          type: "udp";
-        }
     ) & {
       name?: string;
       port: number;
