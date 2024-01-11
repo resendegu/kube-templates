@@ -17,4 +17,8 @@ export const apiSpecs: Record<
     type: "GitHubDirectory",
     url: "https://github.com/cert-manager/cert-manager/tree/release-1.13/deploy/crds/",
   },
+  keda: {
+    type: "GitHubDirectory",
+    url: "https://github.com/kedacore/keda/tree/v2.12.0/config/crd/",
+  },
 };

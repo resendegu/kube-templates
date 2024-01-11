@@ -3,6 +3,7 @@ import { load as loadYaml } from "js-yaml";
 import _ from "lodash";
 import type { OpenAPIV3 } from "openapi-types";
 
+import { buildWithKustomize } from "./kustomize";
 import { log } from "./log";
 import type { CrdFile } from "../types/CrdFile";
 import type { GitHubDirectory } from "../types/GitHubDirectory";
@@ -21,24 +22,39 @@ export async function fetchDocumentsFromGitHubDirectory(
     },
   );
 
-  for (const item of directory.data.payload.tree.items) {
-    if (item.contentType === "file") {
-      const fileUrl = `${directoryUrl.replace("/tree/", "/raw/")}${item.name}`;
+  if (
+    directory.data.payload.tree.items.find(item =>
+      item.name.startsWith("kustomization"),
+    )
+  ) {
+    const kustomizeCrds = await buildWithKustomize({
+      items: directory.data.payload.tree.items,
+      directoryUrl,
+    });
 
-      log.debug(`Fetching OpenAPIv3 spec from ${fileUrl}`);
+    crds.push(...kustomizeCrds);
+  } else {
+    for (const item of directory.data.payload.tree.items) {
+      if (item.contentType === "file") {
+        const fileUrl = `${directoryUrl.replace("/tree/", "/raw/")}${
+          item.name
+        }`;
 
-      if (item.name.endsWith(".json")) {
-        const document = await axios.get<OpenAPIV3.Document>(fileUrl, {
-          headers: { Accept: "text/plain" },
-        });
+        log.debug(`Fetching OpenAPIv3 spec from ${fileUrl}`);
 
-        documents.push(document.data);
-      } else if (item.name.endsWith(".yaml") || item.name.endsWith(".yml")) {
-        const document = await axios.get<string>(fileUrl, {
-          headers: { Accept: "text/plain" },
-        });
+        if (item.name.endsWith(".json")) {
+          const document = await axios.get<OpenAPIV3.Document>(fileUrl, {
+            headers: { Accept: "text/plain" },
+          });
 
-        crds.push(loadYaml(document.data) as CrdFile);
+          documents.push(document.data);
+        } else if (item.name.endsWith(".yaml") || item.name.endsWith(".yml")) {
+          const document = await axios.get<string>(fileUrl, {
+            headers: { Accept: "text/plain" },
+          });
+
+          crds.push(loadYaml(document.data) as CrdFile);
+        }
       }
     }
   }
