@@ -35,12 +35,14 @@ async function run() {
     "https://github.com/kubernetes/kubernetes/tree/release-1.28/api/openapi-spec/v3/",
     "https://github.com/cert-manager/cert-manager/tree/release-1.13/deploy/crds/",
     "https://github.com/ongres/stackgres/tree/1.5.0/stackgres-k8s/src/common/src/main/resources/crds/",
+    "https://github.com/kedacore/keda/tree/v2.12.0/config/crd/",
   ];
 
   for (const url of urls) {
     log.group(url);
 
     const documents = await fetchDocumentsFromGitHubDirectory(url);
+
     const apiSpecObj: OpenAPIV3.Document = mergeDocuments(documents);
 
     modules.push(buildModules(indexFile, apiSpecObj)!);
