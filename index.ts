@@ -3,6 +3,7 @@ export * from "./src/certificate-v1";
 export * from "./src/certmanager";
 export * from "./src/cockroach";
 export * from "./src/cron";
+export * from "./src/keda";
 export * from "./src/kubernetes";
 export * from "./src/mariadb";
 export * from "./src/mongo";
