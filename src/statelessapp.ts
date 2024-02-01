@@ -3,7 +3,7 @@ import { URL } from "url";
 import { Cron } from "./cron";
 import type { io } from "./generated";
 import { clone, env, generateYaml, parseMemory } from "./helpers";
-import type { ObjectMeta } from "./kubernetes";
+import type { BasicObjectMeta, ObjectMeta } from "./kubernetes";
 import {
   Deployment,
   HorizontalPodAutoscaler,
@@ -20,6 +20,8 @@ interface StatelessAppSpec {
   envs?: Record<string, string | number | { secretName: string; key: string }>;
   forwardEnvs?: string[];
   secretEnvs?: string[];
+  metadata?: BasicObjectMeta;
+  topologySpreadConstraints?: io.k8s.api.core.v1.TopologySpreadConstraint[];
   cpu: {
     request: string | number;
     limit: string | number;
@@ -346,28 +348,26 @@ export class StatelessApp {
         },
         template: {
           metadata: {
+            annotations: this.spec.metadata?.annotations,
             labels: {
               app: this.metadata.name,
+              ...this.spec.metadata?.labels,
             },
           },
           spec: {
-            affinity: {
-              podAntiAffinity: {
-                preferredDuringSchedulingIgnoredDuringExecution: [
-                  {
-                    weight: 100,
-                    podAffinityTerm: {
-                      labelSelector: {
-                        matchLabels: {
-                          app: this.metadata.name,
-                        },
-                      },
-                      topologyKey: "kubernetes.io/hostname",
-                    },
+            topologySpreadConstraints: [
+              {
+                maxSkew: 1,
+                topologyKey: "topology.kubernetes.io/zone",
+                whenUnsatisfiable: "ScheduleAnyway",
+                labelSelector: {
+                  matchLabels: {
+                    app: this.metadata.name,
                   },
-                ],
+                },
               },
-            },
+              ...(this.spec.topologySpreadConstraints ?? []),
+            ],
             ...(this.spec.imagePullSecrets
               ? {
                   imagePullSecrets: this.spec.imagePullSecrets.map(secret => ({
