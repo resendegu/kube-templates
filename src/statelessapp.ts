@@ -3,7 +3,7 @@ import { URL } from "url";
 import { Cron } from "./cron";
 import type { io } from "./generated";
 import { clone, env, generateYaml, parseMemory } from "./helpers";
-import type { BasicObjectMeta, ObjectMeta } from "./kubernetes";
+import type { ObjectMeta } from "./kubernetes";
 import {
   Deployment,
   HorizontalPodAutoscaler,
@@ -20,7 +20,8 @@ interface StatelessAppSpec {
   envs?: Record<string, string | number | { secretName: string; key: string }>;
   forwardEnvs?: string[];
   secretEnvs?: string[];
-  metadata?: BasicObjectMeta;
+  annotations?: Record<string, string>;
+  labels?: Record<string, string>;
   topologySpreadConstraints?: io.k8s.api.core.v1.TopologySpreadConstraint[];
   cpu: {
     request: string | number;
@@ -348,10 +349,10 @@ export class StatelessApp {
         },
         template: {
           metadata: {
-            annotations: this.spec.metadata?.annotations,
+            annotations: this.spec.annotations,
             labels: {
               app: this.metadata.name,
-              ...this.spec.metadata?.labels,
+              ...this.spec.labels,
             },
           },
           spec: {
