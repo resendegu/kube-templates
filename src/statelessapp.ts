@@ -2,7 +2,7 @@ import { URL } from "url";
 
 import { Cron } from "./cron";
 import type { io } from "./generated";
-import { clone, env, generateYaml, parseMemory } from "./helpers";
+import { clone, generateYaml, mappedEnvs, parseMemory } from "./helpers";
 import type { ObjectMeta } from "./kubernetes";
 import {
   Deployment,
@@ -11,13 +11,19 @@ import {
   Service,
 } from "./kubernetes";
 
-interface StatelessAppSpec {
+type EnvValue =
+  | string
+  | number
+  | { secretName: string; key: string }
+  | { fieldPath: string };
+
+export interface StatelessAppSpec {
   replicas?: number | [number, number];
   image: string;
   imagePullPolicy?: io.k8s.api.core.v1.Container["imagePullPolicy"];
   command?: string[];
   args?: string[];
-  envs?: Record<string, string | number | { secretName: string; key: string }>;
+  envs?: Record<string, EnvValue>;
   forwardEnvs?: string[];
   secretEnvs?: string[];
   annotations?: Record<string, string>;
@@ -396,30 +402,7 @@ export class StatelessApp {
                 imagePullPolicy: this.spec.imagePullPolicy,
                 command: this.spec.command,
                 args: this.spec.args,
-                env: [
-                  ...(this.spec.envs
-                    ? Object.entries(this.spec.envs).map(([name, value]) =>
-                        typeof value === "object"
-                          ? {
-                              name,
-                              valueFrom: {
-                                secretKeyRef: {
-                                  name: value.secretName,
-                                  key: value.key,
-                                },
-                              },
-                            }
-                          : {
-                              name,
-                              value: `${value}`,
-                            },
-                      )
-                    : []),
-                  ...(this.spec.forwardEnvs ?? []).map(key => ({
-                    name: key,
-                    value: env[key],
-                  })),
-                ],
+                env: mappedEnvs(this.spec),
                 envFrom:
                   this.spec.secretEnvs?.map(name => ({
                     secretRef: {

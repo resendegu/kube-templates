@@ -1,16 +1,22 @@
 import * as _ from "lodash";
 
 import type { io } from "./generated";
-import { env, generateYaml } from "./helpers";
+import { generateYaml, mappedEnvs } from "./helpers";
 import type { ObjectMeta } from "./kubernetes";
 import { CronJob } from "./kubernetes";
+
+type EnvValue =
+  | string
+  | number
+  | { secretName: string; key: string }
+  | { fieldPath: string };
 
 interface CronSpec {
   schedule: string;
   image: string;
   args?: string[];
   command?: string[];
-  envs?: Record<string, string | number | { secretName: string; key: string }>;
+  envs?: Record<string, EnvValue>;
   forwardEnvs?: string[];
   secretEnvs?: string[];
   cpu: {
@@ -111,30 +117,7 @@ export class Cron {
                     image: this.spec.image,
                     args: this.spec.args,
                     command: this.spec.command,
-                    env: [
-                      ...Object.entries({
-                        ...this.spec.envs,
-                      }).map(([name, value]) =>
-                        typeof value === "object"
-                          ? {
-                              name,
-                              valueFrom: {
-                                secretKeyRef: {
-                                  name: value.secretName,
-                                  key: value.key,
-                                },
-                              },
-                            }
-                          : {
-                              name,
-                              value: `${value}`,
-                            },
-                      ),
-                      ...(this.spec.forwardEnvs ?? []).map(key => ({
-                        name: key,
-                        value: env[key],
-                      })),
-                    ],
+                    env: mappedEnvs(this.spec),
                     envFrom: (this.spec.secretEnvs ?? []).map(name => ({
                       secretRef: {
                         name,

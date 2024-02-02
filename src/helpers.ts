@@ -1,5 +1,7 @@
 import { dump } from "js-yaml";
 
+import type { StatelessAppSpec } from "./statelessapp";
+
 export type DeepPartial<T> = T extends object
   ? {
       [P in keyof T]?: DeepPartial<T[P]>;
@@ -96,4 +98,44 @@ export function parseMemory(memory: string | number) {
   }
 
   throw new Error(`Unrecognized memory format: '${memory}'`);
+}
+
+export function mappedEnvs(spec: StatelessAppSpec) {
+  const envs = Object.entries(spec.envs ?? {}).map(([name, value]) => {
+    if (typeof value === "object") {
+      if ("secretName" in value) {
+        return {
+          name,
+          valueFrom: {
+            secretKeyRef: {
+              name: value.secretName,
+              key: value.key,
+            },
+          },
+        };
+      } else if ("fieldPath" in value) {
+        return {
+          name,
+          valueFrom: {
+            fieldRef: {
+              version: "v1",
+              fieldPath: value.fieldPath,
+            },
+          },
+        };
+      }
+    }
+
+    return {
+      name,
+      value: `${value}`,
+    };
+  });
+
+  const forwardedEnvs = (spec.forwardEnvs ?? []).map(key => ({
+    name: key,
+    value: env[key],
+  }));
+
+  return [...envs, ...forwardedEnvs];
 }
