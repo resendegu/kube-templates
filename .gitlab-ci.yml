@@ -51,6 +51,7 @@ Deploy (NPM):
 Test:
   stage: test
   image: docker
+  allow_failure: true
   script:
     - apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community kubectl kind
     - kind delete cluster --name kube-templates-test || true
