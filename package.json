@@ -16,6 +16,7 @@
   },
   "devDependencies": {
     "@cubos/eslint-config": "^2.2.0",
+    "@cubos/kube-templates": "^1.0.868354",
     "@types/deasync": "^0.1.3",
     "@types/jest": "^29.5.5",
     "@types/js-yaml": "^4.0.6",
