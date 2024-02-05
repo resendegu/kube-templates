@@ -118,7 +118,6 @@ export function mappedEnvs(spec: StatelessAppSpec) {
           name,
           valueFrom: {
             fieldRef: {
-              version: "v1",
               fieldPath: value.fieldPath,
             },
           },
