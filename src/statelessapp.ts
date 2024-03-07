@@ -54,6 +54,7 @@ export interface StatelessAppSpec {
             tlsCert?: string;
             maxBodySize?: string;
             limitRequestsPerSecond?: number;
+            pathType?: "Prefix" | "Exact" | "ImplementationSpecific";
           }>;
         }
       | {
@@ -121,10 +122,7 @@ export interface StatelessAppSpec {
 }
 
 export class StatelessApp {
-  constructor(
-    private metadata: ObjectMeta,
-    private spec: StatelessAppSpec,
-  ) {}
+  constructor(private metadata: ObjectMeta, private spec: StatelessAppSpec) {}
 
   get yaml() {
     const ingress = new IngressV1(clone(this.metadata), { rules: [], tls: [] });
@@ -207,7 +205,7 @@ export class StatelessApp {
               },
             },
           },
-          pathType: "Prefix",
+          pathType: endpointSpec.pathType ?? "Prefix",
           path:
             pathname === "/"
               ? portSpec.ingressClass === "alb"
