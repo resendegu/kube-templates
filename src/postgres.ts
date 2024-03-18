@@ -8,6 +8,7 @@ import { Service, StatefulSet } from "./kubernetes";
 interface PostgresSpec {
   readReplicas?: number;
   version: string;
+  customImage?: string;
   cpu: {
     request: string | number;
     limit: string | number;
@@ -525,7 +526,9 @@ EOF
                 ? [
                     {
                       name: "pg-init",
-                      image: `postgres:${this.spec.version}-alpine`,
+                      image:
+                        this.spec.customImage ??
+                        `postgres:${this.spec.version}-alpine`,
                       imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
                       env: [
                         {
@@ -604,7 +607,9 @@ EOF
             containers: [
               {
                 name: "postgres",
-                image: `postgres:${this.spec.version}-alpine`,
+                image:
+                  this.spec.customImage ??
+                  `postgres:${this.spec.version}-alpine`,
                 args: [
                   "postgres",
                   ...Object.entries(options)
@@ -689,7 +694,9 @@ EOF
               },
               {
                 name: "setup",
-                image: `postgres:${this.spec.version}-alpine`,
+                image:
+                  this.spec.customImage ??
+                  `postgres:${this.spec.version}-alpine`,
                 imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
                 env: [
                   {
@@ -988,7 +995,9 @@ EOF
                     containers: [
                       {
                         name: "pg-replica",
-                        image: `postgres:${this.spec.version}-alpine`,
+                        image:
+                          this.spec.customImage ??
+                          `postgres:${this.spec.version}-alpine`,
                         env: [
                           {
                             name: "POSTGRES_PASSWORD",
