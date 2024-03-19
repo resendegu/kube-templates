@@ -839,9 +839,17 @@ EOF
                           .map(
                             user => `
                               echo Granting privileges on database ${database.name} to user ${user}...
-                              psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON DATABASE "${database.name}" TO "${user}"'
-                              psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "${user}"' "${database.name}"
-                              psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO "${user}"' "${database.name}"
+                              psql -h 127.0.0.1 -U postgres -c 'GRANT CONNECT, CREATE, TEMPORARY ON DATABASE "${database.name}" TO "${user}"'
+                              psql -h 127.0.0.1 -U postgres -c 'GRANT ALL PRIVILEGES ON SCHEMA public TO "${user}"' "${database.name}"
+                              psql -h 127.0.0.1 -U postgres -c 'GRANT ALL ON ALL TABLES IN SCHEMA public TO "${user}"' "${database.name}"
+                              psql -h 127.0.0.1 -U postgres -c 'GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO "${user}"' "${database.name}"
+                              psql -h 127.0.0.1 -U postgres -c 'GRANT ALL ON ALL ROUTINES IN SCHEMA public TO "${user}"' "${database.name}"
+                              psql -h 127.0.0.1 -U postgres -c 'GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO "${user}"' "${database.name}"
+                              psql -h 127.0.0.1 -U postgres -c 'ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON TABLES TO "${user}"' "${database.name}"
+                              psql -h 127.0.0.1 -U postgres -c 'ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON SEQUENCES TO "${user}"' "${database.name}"
+                              psql -h 127.0.0.1 -U postgres -c 'ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON TYPES TO "${user}"' "${database.name}"
+                              psql -h 127.0.0.1 -U postgres -c 'ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON ROUTINES TO "${user}"' "${database.name}"
+                              psql -h 127.0.0.1 -U postgres -c 'ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON FUNCTIONS TO "${user}"' "${database.name}"
                             `,
                           )
                           .join("\n")}
