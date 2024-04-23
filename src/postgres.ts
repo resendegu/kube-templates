@@ -270,6 +270,7 @@ interface PostgresSpec {
     sharedPreloadLibraries?: string;
     "pgStatStatements.track"?: "all" | "top" | "none";
   };
+  optionsReadReplicas?: {};
   overrides?: Partial<io.k8s.api.core.v1.Container>;
   imagePullSecrets?: string[];
 }
@@ -463,6 +464,7 @@ EOF
       ...replicaReplicationOptions,
       ...commonReplicationOptions,
       ...(this.spec.options ?? {}),
+      ...(this.spec.optionsReadReplicas ?? {}),
       ...loggingConfigs,
     };
 
