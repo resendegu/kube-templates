@@ -5,56 +5,6 @@ import { generateYaml, parseMemory } from "./helpers";
 import type { ObjectMeta } from "./kubernetes";
 import { Service, StatefulSet } from "./kubernetes";
 
-interface PostgresSpec {
-  readReplicas?: number;
-  version: string;
-  customImage?: string;
-  cpu: {
-    request: string | number;
-    limit: string | number;
-  };
-  memory: string | number;
-  postgresUserPassword?: string | { secretName: string; key: string };
-  replicaPassword?: string;
-  databases?: Array<
-    | {
-        name: string;
-        users?: string[];
-      }
-    | string
-  >;
-  users?: Array<{
-    username: string;
-    password: string;
-  }>;
-  usersReadOnly?: Array<{
-    username: string;
-    password: string;
-  }>;
-  monitoring?: {
-    type: "pgAnalyze";
-    apiKey: string;
-    monitorPostgresDatabase?: boolean;
-  };
-  initContainers?: io.k8s.api.core.v1.Container[];
-  accessConfig?: Array<{
-    type: string;
-    database: string;
-    user: string;
-    address: string;
-    method: string;
-  }>;
-  storageClassName?: string;
-  storageRequest?: string;
-  nodeSelector?: Record<string, string>;
-  tolerations?: io.k8s.api.core.v1.Toleration[];
-  imagePullPolicy?: "Always" | "Never" | "IfNotPresent";
-  options?: PostgresOptions;
-  optionsReplicas?: PostgresOptions;
-  overrides?: Partial<io.k8s.api.core.v1.Container>;
-  imagePullSecrets?: string[];
-}
-
 interface PostgresOptions {
   maxConnections?: number;
   superuserReservedConnections?: number;
@@ -278,6 +228,56 @@ interface PostgresOptions {
   maxStandbyArchiveDelay?: number;
   maxStandbyStreamingDelay?: number;
   hotStandbyFeedback?: "on" | "off";
+}
+
+interface PostgresSpec {
+  readReplicas?: number;
+  version: string;
+  customImage?: string;
+  cpu: {
+    request: string | number;
+    limit: string | number;
+  };
+  memory: string | number;
+  postgresUserPassword?: string | { secretName: string; key: string };
+  replicaPassword?: string;
+  databases?: Array<
+    | {
+        name: string;
+        users?: string[];
+      }
+    | string
+  >;
+  users?: Array<{
+    username: string;
+    password: string;
+  }>;
+  usersReadOnly?: Array<{
+    username: string;
+    password: string;
+  }>;
+  monitoring?: {
+    type: "pgAnalyze";
+    apiKey: string;
+    monitorPostgresDatabase?: boolean;
+  };
+  initContainers?: io.k8s.api.core.v1.Container[];
+  accessConfig?: Array<{
+    type: string;
+    database: string;
+    user: string;
+    address: string;
+    method: string;
+  }>;
+  storageClassName?: string;
+  storageRequest?: string;
+  nodeSelector?: Record<string, string>;
+  tolerations?: io.k8s.api.core.v1.Toleration[];
+  imagePullPolicy?: "Always" | "Never" | "IfNotPresent";
+  options?: PostgresOptions;
+  optionsReplicas?: PostgresOptions;
+  overrides?: Partial<io.k8s.api.core.v1.Container>;
+  imagePullSecrets?: string[];
 }
 
 export class Postgres {
