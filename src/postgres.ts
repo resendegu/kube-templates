@@ -441,12 +441,19 @@ EOF
       );
     }
 
-    const options = {
+    const commonOptions = {
       maxConnections: Math.max(100, mem / (8 * mebibyte)),
       sharedBuffers: `${Math.ceil(
         (mem * (mem > gibibyte ? 0.25 : 0.15)) / mebibyte,
       )}MB`,
       effectiveCacheSize: `${Math.ceil(mem / 2 / mebibyte)}MB`,
+      ssl: "on",
+      sslCertFile: "/var/lib/postgresql/certs/server.crt",
+      sslKeyFile: "/var/lib/postgresql/certs/server.key",
+    };
+
+    const options = {
+      ...commonOptions,
       ...masterReplicationOptions,
       ...commonReplicationOptions,
       ...(this.spec.options ?? {}),
@@ -462,10 +469,7 @@ EOF
     };
 
     const replicaOptions = {
-      maxConnections: Math.max(
-        100,
-        parseMemory(this.spec.memory) / (8 * 1024 * 1024),
-      ),
+      ...commonOptions,
       ...replicaReplicationOptions,
       ...commonReplicationOptions,
       ...(this.spec.options ?? {}),
@@ -574,6 +578,13 @@ EOF
                             su postgres -c "initdb -D /var/lib/postgresql/data"
                         fi
 
+                        cd /var/lib/postgresql/certs
+                        openssl req -new -text -passout pass:abcd -subj /CN=localhost -out server.req
+                        openssl rsa -in privkey.pem -passin pass:abcd -out server.key
+                        openssl req -x509 -in server.req -text -key server.key -out server.crt
+                        chmod 0400 *
+                        chown postgres:postgres *
+
                         echo Done.
                       `,
                       ],
@@ -592,6 +603,11 @@ EOF
                           mountPath: "/var/lib/postgresql/data",
                           name: "data",
                           subPath: "data",
+                        },
+                        {
+                          mountPath: "/var/lib/postgresql/certs",
+                          name: "data",
+                          subPath: "certs",
                         },
                         {
                           mountPath: "/dev/shm",
@@ -929,6 +945,12 @@ EOF
                     mountPath: "/db_data/",
                     subPath: "data",
                   },
+                  {
+                    mountPath: "/var/lib/postgresql/certs",
+                    name: "data",
+                    subPath: "certs",
+                    readOnly: true,
+                  },
                 ],
               },
               ...additionalContainers,
@@ -1082,6 +1104,11 @@ EOF
                             mountPath: "/var/lib/postgresql/data",
                             name: "data",
                             subPath: "data",
+                          },
+                          {
+                            mountPath: "/var/lib/postgresql/certs",
+                            name: "data",
+                            subPath: "certs",
                           },
                           {
                             mountPath: "/dev/shm",
