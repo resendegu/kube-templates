@@ -114,6 +114,7 @@ export interface StatelessAppSpec {
   }>;
   imagePullSecrets?: string[];
   terminationGracePeriodSeconds?: number;
+  nodeAffinityMode?: "on-demand" | "spot";
   /**
    * @deprecated does nothing! kept only for compatibility purposes
    */
@@ -395,6 +396,28 @@ export class StatelessApp {
             tolerations: [],
             nodeSelector: {},
             volumes,
+            ...(this.spec.nodeAffinityMode === "on-demand" ||
+            this.spec.nodeAffinityMode === "spot"
+              ? {
+                  affinity: {
+                    nodeAffinity: {
+                      requiredDuringSchedulingIgnoredDuringExecution: {
+                        nodeSelectorTerms: [
+                          {
+                            matchExpressions: [
+                              {
+                                key: "devops.cubos.io/node-type",
+                                operator: "In",
+                                values: [this.spec.nodeAffinityMode],
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                    },
+                  },
+                }
+              : {}),
             containers: [
               {
                 name: this.metadata.name,
