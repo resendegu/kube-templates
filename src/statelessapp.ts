@@ -122,10 +122,7 @@ export interface StatelessAppSpec {
 }
 
 export class StatelessApp {
-  constructor(
-    private metadata: ObjectMeta,
-    private spec: StatelessAppSpec,
-  ) {}
+  constructor(private metadata: ObjectMeta, private spec: StatelessAppSpec) {}
 
   get yaml() {
     const ingress = new IngressV1(clone(this.metadata), { rules: [], tls: [] });
