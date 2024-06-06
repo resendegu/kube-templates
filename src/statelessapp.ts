@@ -393,7 +393,8 @@ export class StatelessApp {
             tolerations: [],
             nodeSelector: {},
             volumes,
-            ...(["on-demand", "spot"].includes(this.spec.nodeAffinityMode ?? "")
+            ...(this.spec.nodeAffinityMode === "on-demand" ||
+            this.spec.nodeAffinityMode === "spot"
               ? {
                   affinity: {
                     nodeAffinity: {
