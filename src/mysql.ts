@@ -16,10 +16,7 @@ interface MySQLSpec {
 }
 
 export class MySQL {
-  constructor(
-    private metadata: ObjectMeta,
-    private spec: MySQLSpec,
-  ) {}
+  constructor(private metadata: ObjectMeta, private spec: MySQLSpec) {}
 
   get yaml() {
     return generateYaml([

@@ -31,10 +31,7 @@ interface WordPressSpec {
 }
 
 export class WordPress {
-  constructor(
-    private metadata: ObjectMeta,
-    private spec: WordPressSpec,
-  ) {}
+  constructor(private metadata: ObjectMeta, private spec: WordPressSpec) {}
 
   get yaml() {
     const url = this.spec.ingress.publicUrl

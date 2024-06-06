@@ -19,10 +19,7 @@ interface RedisSpec {
 }
 
 export class Redis {
-  constructor(
-    private metadata: ObjectMeta,
-    private spec: RedisSpec,
-  ) {}
+  constructor(private metadata: ObjectMeta, private spec: RedisSpec) {}
 
   get yaml() {
     return generateYaml([

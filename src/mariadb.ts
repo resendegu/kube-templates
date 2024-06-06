@@ -16,10 +16,7 @@ interface MariaDBSpec {
 }
 
 export class MariaDB {
-  constructor(
-    private metadata: ObjectMeta,
-    private spec: MariaDBSpec,
-  ) {}
+  constructor(private metadata: ObjectMeta, private spec: MariaDBSpec) {}
 
   get yaml() {
     return generateYaml([

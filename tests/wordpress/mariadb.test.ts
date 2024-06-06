@@ -1,8 +1,8 @@
-import { getAxiosClient } from "./helpers";
 import { Namespace } from "../../src/kubernetes";
 import { MariaDB } from "../../src/mariadb";
 import { WordPress } from "../../src/wordpress";
 import { apply, deleteObject, randomSuffix, waitPodReady } from "../helpers";
+import { getAxiosClient } from "./helpers";
 
 describe("WordPress + MariaDB", () => {
   const namespace = `test-${randomSuffix()}`;

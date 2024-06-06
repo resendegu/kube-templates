@@ -281,10 +281,7 @@ interface PostgresSpec {
 }
 
 export class Postgres {
-  constructor(
-    private metadata: ObjectMeta,
-    private spec: PostgresSpec,
-  ) {}
+  constructor(private metadata: ObjectMeta, private spec: PostgresSpec) {}
 
   get yaml() {
     const additionalContainers: io.k8s.api.core.v1.Container[] = [];
@@ -799,19 +796,19 @@ EOF
                         psql -h 127.0.0.1 -U postgres -c "CREATE USER "'"${
                           user.username
                         }"'" ${
-                          this.spec.readReplicas &&
-                          user.username === replicationCredentials.user
-                            ? "REPLICATION "
-                            : ""
-                        }ENCRYPTED PASSWORD '"'${user.password}'"'" || true
+                        this.spec.readReplicas &&
+                        user.username === replicationCredentials.user
+                          ? "REPLICATION "
+                          : ""
+                      }ENCRYPTED PASSWORD '"'${user.password}'"'" || true
                         psql -h 127.0.0.1 -U postgres -c "ALTER USER "'"${
                           user.username
                         }"'"${
-                          this.spec.readReplicas &&
-                          user.username === replicationCredentials.user
-                            ? "REPLICATION "
-                            : ""
-                        } ENCRYPTED PASSWORD '"'${user.password}'"'"
+                        this.spec.readReplicas &&
+                        user.username === replicationCredentials.user
+                          ? "REPLICATION "
+                          : ""
+                      } ENCRYPTED PASSWORD '"'${user.password}'"'"
                       `,
                     )
                     .join("\n")}
@@ -1058,8 +1055,8 @@ EOF
                                 PGPASSWORD=${
                                   replicationCredentials.pass
                                 } pg_basebackup -h ${this.metadata.name} -U ${
-                                  replicationCredentials.user
-                                } -p 5432 -D /var/lib/postgresql/data -Fp -Xs -P -R
+                            replicationCredentials.user
+                          } -p 5432 -D /var/lib/postgresql/data -Fp -Xs -P -R
                             fi
 
                             echo Configuring pg_hba.conf...

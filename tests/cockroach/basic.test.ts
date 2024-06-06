@@ -1,4 +1,3 @@
-import { queryCockroach } from "./helpers";
 import { Cockroach } from "../../src/cockroach";
 import { Namespace } from "../../src/kubernetes";
 import {
@@ -8,6 +7,7 @@ import {
   waitJobComplete,
   waitPodReady,
 } from "../helpers";
+import { queryCockroach } from "./helpers";
 
 describe("CockroachDB", () => {
   const namespace = `test-${randomSuffix()}`;

@@ -2,7 +2,6 @@ import { readFileSync } from "fs";
 
 import { mapValues } from "lodash";
 
-import { certificates, queryCockroachSecure } from "./helpers";
 import { Cockroach } from "../../src/cockroach";
 import { Namespace } from "../../src/kubernetes";
 import {
@@ -12,6 +11,7 @@ import {
   waitJobComplete,
   waitPodReady,
 } from "../helpers";
+import { certificates, queryCockroachSecure } from "./helpers";
 
 describe("CockroachDB Secure", () => {
   const namespace = `test-${randomSuffix()}`;

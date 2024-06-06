@@ -27,10 +27,7 @@ interface PostgresV1Spec {
 }
 
 export class PostgresV1 {
-  constructor(
-    private metadata: ObjectMeta,
-    private spec: PostgresV1Spec,
-  ) {}
+  constructor(private metadata: ObjectMeta, private spec: PostgresV1Spec) {}
 
   get yaml() {
     return generateYaml([

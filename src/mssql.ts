@@ -23,10 +23,7 @@ interface MSSQLSpec {
 }
 
 export class MSSQL {
-  constructor(
-    private metadata: ObjectMeta,
-    private spec: MSSQLSpec,
-  ) {}
+  constructor(private metadata: ObjectMeta, private spec: MSSQLSpec) {}
 
   get yaml() {
     return generateYaml([
