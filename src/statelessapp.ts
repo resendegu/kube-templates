@@ -114,6 +114,7 @@ export interface StatelessAppSpec {
   }>;
   imagePullSecrets?: string[];
   terminationGracePeriodSeconds?: number;
+  affinity?: io.k8s.api.core.v1.Affinity;
   /**
    * @deprecated does nothing! kept only for compatibility purposes
    */
@@ -395,6 +396,7 @@ export class StatelessApp {
             tolerations: [],
             nodeSelector: {},
             volumes,
+            affinity: this.spec.affinity,
             containers: [
               {
                 name: this.metadata.name,
