@@ -1,7 +1,7 @@
+import { queryPostgres } from "./helpers";
 import { Namespace } from "../../src/kubernetes";
 import { Postgres } from "../../src/postgres";
 import { apply, deleteObject, randomSuffix, waitPodReady } from "../helpers";
-import { queryPostgres } from "./helpers";
 
 describe("postgres", () => {
   const namespace = `test-${randomSuffix()}`;

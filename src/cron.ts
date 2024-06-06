@@ -46,7 +46,10 @@ interface CronSpec {
 }
 
 export class Cron {
-  constructor(private metadata: ObjectMeta, private spec: CronSpec) {}
+  constructor(
+    private metadata: ObjectMeta,
+    private spec: CronSpec,
+  ) {}
 
   get yaml() {
     const volumes: io.k8s.api.core.v1.Volume[] = [];

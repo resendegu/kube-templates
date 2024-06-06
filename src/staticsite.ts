@@ -16,7 +16,10 @@ interface StaticSiteSpec {
 }
 
 export class StaticSite {
-  constructor(private metadata: ObjectMeta, private spec: StaticSiteSpec) {}
+  constructor(
+    private metadata: ObjectMeta,
+    private spec: StaticSiteSpec,
+  ) {}
 
   get yaml() {
     const { hostname, pathname } = new URL(this.spec.publicUrl);

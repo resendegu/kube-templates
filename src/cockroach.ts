@@ -23,7 +23,10 @@ interface CockroachSpec {
 }
 
 export class Cockroach {
-  constructor(private metadata: ObjectMeta, private spec: CockroachSpec) {}
+  constructor(
+    private metadata: ObjectMeta,
+    private spec: CockroachSpec,
+  ) {}
 
   private get isLogToStderrDeprecated(): boolean {
     const match = /^(?<version>\d+)\./u.exec(this.spec.version);
