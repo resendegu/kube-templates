@@ -228,6 +228,7 @@ interface PostgresOptions {
   maxStandbyArchiveDelay?: number;
   maxStandbyStreamingDelay?: number;
   hotStandbyFeedback?: "on" | "off";
+  walLevel?: string;
 }
 
 interface PostgresSpec {
