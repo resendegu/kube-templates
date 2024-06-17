@@ -9,6 +9,7 @@ interface RedisSpec {
     limit: string | number;
   };
   memory: string | number;
+  password?: string;
   options?: {
     // TODO: Add all from https://raw.githubusercontent.com/antirez/redis/5.0/redis.conf
     maxmemory?: string;
@@ -68,6 +69,9 @@ export class Redis {
                       }`,
                     ])
                     .reduce((a, b) => [...a, ...b], []),
+                  ...(this.spec.password
+                    ? ["--requirepass", this.spec.password]
+                    : []),
                 ],
                 ports: [
                   {
