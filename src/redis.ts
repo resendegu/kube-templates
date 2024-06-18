@@ -29,7 +29,7 @@ export class Redis {
     const redisConfig = Object.entries(this.spec.options ?? {})
       .flatMap(
         ([key, value]) =>
-          `${key.replace(/[A-Z]/gu, x => `-${x.toLowerCase()}`)}: ${
+          `${key.replace(/[A-Z]/gu, x => `-${x.toLowerCase()}`)} ${
             value === true ? "yes" : value === false ? "no" : value
           }`,
       )
@@ -115,10 +115,10 @@ export class Redis {
               {
                 name: "redis-store-conf",
                 configMap: {
-                  name: "redis-store-conf",
+                  name: this.metadata.name,
                   items: [
                     {
-                      key: "redis-config",
+                      key: "redis.conf",
                       path: "redis.conf",
                     },
                   ],
