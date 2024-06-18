@@ -1,6 +1,6 @@
 import { generateYaml } from "./helpers";
 import type { ObjectMeta } from "./kubernetes";
-import { Service, StatefulSet } from "./kubernetes";
+import { ConfigMap, Service, StatefulSet } from "./kubernetes";
 
 interface RedisSpec {
   version: string;
@@ -15,6 +15,7 @@ interface RedisSpec {
     maxmemoryPolicy?: string;
     maxmemorySamples?: number;
     replicaIgnoreMaxmemory?: boolean;
+    requirepass?: string;
   };
 }
 
@@ -25,6 +26,15 @@ export class Redis {
   ) {}
 
   get yaml() {
+    const redisConfig = Object.entries(this.spec.options ?? {})
+      .flatMap(
+        ([key, value]) =>
+          `${key.replace(/[A-Z]/gu, x => `-${x.toLowerCase()}`)}: ${
+            value === true ? "yes" : value === false ? "no" : value
+          }`,
+      )
+      .join("\n");
+
     return generateYaml([
       new Service(this.metadata, {
         selector: {
@@ -36,6 +46,9 @@ export class Redis {
             port: 6379,
           },
         ],
+      }),
+      new ConfigMap(this.metadata, {
+        "redis.conf": redisConfig,
       }),
       new StatefulSet(this.metadata, {
         serviceName: this.metadata.name,
@@ -58,17 +71,7 @@ export class Redis {
                 name: "redis",
                 image: `redis:${this.spec.version}`,
                 imagePullPolicy: "Always",
-                args: [
-                  "redis-server",
-                  ...Object.entries(this.spec.options ?? {})
-                    .map(([key, value]) => [
-                      `--${key.replace(/[A-Z]/gu, x => `-${x.toLowerCase()}`)}`,
-                      `${
-                        value === true ? "yes" : value === false ? "no" : value
-                      }`,
-                    ])
-                    .reduce((a, b) => [...a, ...b], []),
-                ],
+                args: ["redis-server", "/redis-master/redis.conf"],
                 ports: [
                   {
                     name: "redis",
@@ -92,6 +95,12 @@ export class Redis {
                   failureThreshold: 1,
                   periodSeconds: 3,
                 },
+                volumeMounts: [
+                  {
+                    name: "redis-store-conf",
+                    mountPath: "/redis-master",
+                  },
+                ],
                 livenessProbe: {
                   exec: {
                     command: ["redis-cli", "ping"],
@@ -102,9 +111,22 @@ export class Redis {
                 },
               },
             ],
+            volumes: [
+              {
+                name: "redis-store-conf",
+                configMap: {
+                  name: "redis-store-conf",
+                  items: [
+                    {
+                      key: "redis-config",
+                      path: "redis.conf",
+                    },
+                  ],
+                },
+              },
+            ],
           },
         },
-        volumeClaimTemplates: [],
       }),
     ]);
   }
