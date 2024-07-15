@@ -1,5 +1,5 @@
 import type { io } from "./generated";
-import type { IngressClass } from "./helpers";
+import type { IngressClasses } from "./helpers";
 import { generateYaml, isValidIngressClass } from "./helpers";
 
 export interface BasicObjectMeta {
@@ -95,7 +95,7 @@ export class IngressV1 {
 
   get yaml() {
     let ingressClassName = (this.spec.ingressClassName ||
-      "nginx") as IngressClass;
+      "nginx") as IngressClasses;
 
     if (this.metadata.annotations?.["kubernetes.io/ingress.class"]) {
       console.warn("⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️");
