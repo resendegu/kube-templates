@@ -138,3 +138,18 @@ export function mappedEnvs(spec: StatelessAppSpec) {
 
   return [...envs, ...forwardedEnvs];
 }
+
+const ingressClasses = [
+  "alb",
+  "internal",
+  "nginx",
+  "private",
+  "public",
+  "security-nginx",
+] as const;
+
+export type IngressClasses = (typeof ingressClasses)[number];
+
+export function isValidIngressClass(ingressClassName: IngressClasses): boolean {
+  return ingressClasses.includes(ingressClassName);
+}
