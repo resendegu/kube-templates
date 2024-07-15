@@ -1,5 +1,6 @@
 import { URL } from "url";
 
+import type { IngressClass } from "./helpers";
 import { generateYaml } from "./helpers";
 import type { ObjectMeta } from "./kubernetes";
 import { IngressV1, Service } from "./kubernetes";
@@ -7,7 +8,7 @@ import { IngressV1, Service } from "./kubernetes";
 interface StaticSiteSpec {
   provider?: "gcs" | "s3";
   publicUrl: string;
-  ingressClass?: "public" | "private" | "internal";
+  ingressClass?: IngressClass;
   bucketName?: string;
   notFoundRedirect?: string;
   notFoundStatus?: number;

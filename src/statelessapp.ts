@@ -2,6 +2,7 @@ import { URL } from "url";
 
 import { Cron } from "./cron";
 import type { io } from "./generated";
+import type { IngressClass } from "./helpers";
 import { clone, generateYaml, mappedEnvs, parseMemory } from "./helpers";
 import type { ObjectMeta } from "./kubernetes";
 import {
@@ -42,7 +43,7 @@ export interface StatelessAppSpec {
     (
       | {
           type: "http";
-          ingressClass?: string;
+          ingressClass?: IngressClass;
           ingressAnnotations?: Record<string, string>;
           publicUrl?: string | string[];
           tlsCert?: string;

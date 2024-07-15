@@ -1,5 +1,6 @@
 import type { io } from "./generated";
-import { generateYaml } from "./helpers";
+import type { IngressClass } from "./helpers";
+import { generateYaml, isValidIngressClass } from "./helpers";
 
 export interface BasicObjectMeta {
   annotations?: Record<string, string>;
@@ -93,7 +94,8 @@ export class IngressV1 {
   ) {}
 
   get yaml() {
-    let ingressClassName = this.spec.ingressClassName || "nginx";
+    let ingressClassName = (this.spec.ingressClassName ||
+      "nginx") as IngressClass;
 
     if (this.metadata.annotations?.["kubernetes.io/ingress.class"]) {
       console.warn("⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️");
@@ -111,7 +113,7 @@ export class IngressV1 {
     }
 
     if (
-      !["nginx", "internal"].includes(ingressClassName) &&
+      !isValidIngressClass(ingressClassName) &&
       !process.env.CUBOS_DEV_GKE &&
       !process.env.FF_KUBE_TEMPLATES_OVERRIDE_NGINX_INGRESS_CLASS
     ) {
