@@ -18,6 +18,11 @@ type EnvValue =
   | { secretName: string; key: string }
   | { fieldPath: string };
 
+interface ProbeConfig {
+  period?: number;
+  initialDelay?: number;
+}
+
 export interface StatelessAppSpec {
   replicas?: number | [number, number];
   image: string;
@@ -79,10 +84,11 @@ export interface StatelessAppSpec {
     | {
         command: string[];
       }
-  ) & {
-    period?: number;
-    initialDelay?: number;
-  };
+  ) &
+    ProbeConfig & {
+      liveness?: ProbeConfig;
+      readiness?: ProbeConfig;
+    };
   volumes?: Array<
     {
       type: "configMap" | "secret";
@@ -283,7 +289,6 @@ export class StatelessApp {
           exec: {
             command: (this.spec.check as any).command,
           },
-          periodSeconds: this.spec.check.period ?? 3,
         };
       } else if ((this.spec.check as any).httpGetPath) {
         basicProbe = {
@@ -294,14 +299,12 @@ export class StatelessApp {
               ? [{ name: "Host", value: (this.spec.check as any).host }]
               : [],
           },
-          periodSeconds: this.spec.check.period ?? 3,
         };
       } else {
         basicProbe = {
           tcpSocket: {
             port: (this.spec.check as any).port,
           },
-          periodSeconds: this.spec.check.period ?? 3,
         };
       }
     }
@@ -453,13 +456,26 @@ export class StatelessApp {
                       ...basicProbe,
                       failureThreshold: 1,
                       successThreshold: 2,
+                      initialDelaySeconds:
+                        this.spec.check?.readiness?.initialDelay,
+                      periodSeconds:
+                        this.spec.check?.readiness?.period ??
+                        this.spec.check?.period ??
+                        3,
                     }
                   : undefined,
                 livenessProbe: basicProbe
                   ? {
                       ...basicProbe,
                       failureThreshold: 5,
-                      initialDelaySeconds: this.spec.check?.initialDelay ?? 5,
+                      initialDelaySeconds:
+                        this.spec.check?.liveness?.initialDelay ??
+                        this.spec.check?.initialDelay ??
+                        5,
+                      periodSeconds:
+                        this.spec.check?.liveness?.period ??
+                        this.spec.check?.period ??
+                        3,
                     }
                   : undefined,
               },
