@@ -17,7 +17,7 @@ interface CronSpec {
   args?: string[];
   command?: string[];
   envs?: Record<string, EnvValue>;
-  activeDeadlineSeconds: number;
+  timeoutSeconds: number;
   forwardEnvs?: string[];
   secretEnvs?: string[];
   cpu: {
@@ -138,7 +138,7 @@ export class Cron {
                   },
                 ],
                 restartPolicy: "Never",
-                activeDeadlineSeconds: this.spec.activeDeadlineSeconds,
+                activeDeadlineSeconds: this.spec.timeoutSeconds,
               },
             },
             ...(_.isUndefined(this.spec.backoffLimit)

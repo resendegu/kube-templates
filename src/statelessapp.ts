@@ -102,7 +102,7 @@ export interface StatelessAppSpec {
   crons?: Array<{
     name: string;
     schedule: string;
-    activeDeadlineSeconds: number;
+    timeoutSeconds: number;
     args: string[];
     command: string[];
     envs?: Record<
@@ -502,7 +502,7 @@ export class StatelessApp {
               },
               image: this.spec.image,
               schedule: cron.schedule,
-              activeDeadlineSeconds: cron.activeDeadlineSeconds,
+              timeoutSeconds: cron.timeoutSeconds,
               args: cron.args,
               command: cron.command,
               envs: { ...this.spec.envs, ...cron.envs },
