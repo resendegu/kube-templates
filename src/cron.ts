@@ -138,6 +138,7 @@ export class Cron {
                   },
                 ],
                 restartPolicy: "Never",
+                activeDeadlineSeconds: this.spec.activeDeadlineSeconds
               },
             },
             ...(_.isUndefined(this.spec.backoffLimit)
