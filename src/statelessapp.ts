@@ -102,7 +102,7 @@ export interface StatelessAppSpec {
   crons?: Array<{
     name: string;
     schedule: string;
-    timeoutSeconds: number;
+    timeoutSeconds?: number;
     args: string[];
     command: string[];
     envs?: Record<
