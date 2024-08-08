@@ -17,7 +17,7 @@ interface CronSpec {
   args?: string[];
   command?: string[];
   envs?: Record<string, EnvValue>;
-  timeoutSeconds: number;
+  timeoutSeconds?: number;
   forwardEnvs?: string[];
   secretEnvs?: string[];
   cpu: {
