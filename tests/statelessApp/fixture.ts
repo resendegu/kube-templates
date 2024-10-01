@@ -6,7 +6,7 @@ export const basicAppMetadataConfig: ObjectMeta = {
   namespace: "default",
 };
 
-export const basicAppSpecsConfig: StatelessAppSpec = {
+export const basicAppSpecConfig: StatelessAppSpec = {
   image: "nginx:latest",
   cpu: {
     limit: "500m",

@@ -357,7 +357,7 @@ export class StatelessApp {
 
       if (this.spec.minAvailable > replicas) {
         throw new Error(
-          "Minimum available replicas cannot be greater than the number of replicas",
+          "The minimum number of available replicas cannot be greater than the number of replicas",
         );
       }
     }
