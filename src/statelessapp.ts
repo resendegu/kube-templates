@@ -9,6 +9,7 @@ import {
   Deployment,
   HorizontalPodAutoscaler,
   IngressV1,
+  PodDisruptionBudget,
   Service,
 } from "./kubernetes";
 
@@ -127,6 +128,7 @@ export interface StatelessAppSpec {
    * @deprecated does nothing! kept only for compatibility purposes
    */
   disablePreemptibility?: boolean;
+  minAvailable?: number;
 }
 
 export class StatelessApp {
@@ -348,6 +350,18 @@ export class StatelessApp {
       });
     }
 
+    if (this.spec.minAvailable) {
+      const replicas = Array.isArray(this.spec.replicas)
+        ? this.spec.replicas[0]
+        : this.spec.replicas ?? 1;
+
+      if (this.spec.minAvailable > replicas) {
+        throw new Error(
+          "The minimum number of available replicas cannot be greater than the number of replicas",
+        );
+      }
+    }
+
     return generateYaml([
       new Deployment(this.metadata, {
         replicas: Array.isArray(this.spec.replicas)
@@ -555,6 +569,18 @@ export class StatelessApp {
                 apiVersion: "apps/v1",
                 kind: "Deployment",
                 name: this.metadata.name,
+              },
+            }),
+          ]
+        : []),
+      ...(this.spec.minAvailable
+        ? [
+            new PodDisruptionBudget(this.metadata, {
+              minAvailable: this.spec.minAvailable,
+              selector: {
+                matchLabels: {
+                  app: this.metadata.name,
+                },
               },
             }),
           ]
