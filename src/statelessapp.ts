@@ -490,7 +490,7 @@ export class StatelessApp {
                       periodSeconds:
                         this.spec.check?.liveness?.period ??
                         this.spec.check?.period ??
-                        3,
+                        12,
                     }
                   : undefined,
               },
@@ -560,7 +560,7 @@ export class StatelessApp {
                     name: "cpu",
                     target: {
                       type: "Utilization",
-                      averageUtilization: 75,
+                      averageUtilization: 70,
                     },
                   },
                 },
