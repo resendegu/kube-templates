@@ -26,6 +26,7 @@ interface ProbeConfig {
 
 export interface StatelessAppSpec {
   replicas?: number | [number, number];
+  cpuUtilizationToScale?: number;
   image: string;
   imagePullPolicy?: io.k8s.api.core.v1.Container["imagePullPolicy"];
   command?: string[];
@@ -362,6 +363,16 @@ export class StatelessApp {
       }
     }
 
+    if (
+      this.spec.cpuUtilizationToScale &&
+      (this.spec.cpuUtilizationToScale <= 0 ||
+        this.spec.cpuUtilizationToScale > 100)
+    ) {
+      throw new Error(
+        `cpuUtilizationToScale deve ser um percentual entre 1 e 100. Valor recebido: ${this.spec.cpuUtilizationToScale}`,
+      );
+    }
+
     return generateYaml([
       new Deployment(this.metadata, {
         replicas: Array.isArray(this.spec.replicas)
@@ -560,7 +571,7 @@ export class StatelessApp {
                     name: "cpu",
                     target: {
                       type: "Utilization",
-                      averageUtilization: 70,
+                      averageUtilization: this.spec.cpuUtilizationToScale ?? 50,
                     },
                   },
                 },
