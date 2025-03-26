@@ -78,7 +78,7 @@ export class StaticSite {
                 paths: [
                   {
                     path: `${pathname}?(.*)`,
-                    pathType: "Prefix",
+                    pathType: "ImplementationSpecific",
                     backend: {
                       service: {
                         name: providerName,
