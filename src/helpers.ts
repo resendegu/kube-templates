@@ -100,7 +100,9 @@ export function parseMemory(memory: string | number) {
   throw new Error(`Unrecognized memory format: '${memory}'`);
 }
 
-export function mappedEnvs(spec: StatelessAppSpec) {
+export function mappedEnvs(
+  spec: Pick<StatelessAppSpec, "envs" | "forwardEnvs">,
+) {
   const envs = Object.entries(spec.envs ?? {}).map(([name, value]) => {
     if (typeof value === "object") {
       if ("secretName" in value) {
