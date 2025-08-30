@@ -326,3 +326,61 @@ export class NetworkPolicy {
     ]);
   }
 }
+
+export class ServiceAccount {
+  constructor(
+    public metadata: ObjectMeta,
+    public automountServiceAccountToken?: boolean,
+    public secrets?: io.k8s.api.core.v1.ObjectReference[],
+  ) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "v1",
+        kind: "ServiceAccount",
+        metadata: this.metadata,
+        automountServiceAccountToken: this.automountServiceAccountToken,
+        secrets: this.secrets,
+      },
+    ]);
+  }
+}
+
+export class Role {
+  constructor(
+    public metadata: ObjectMeta,
+    public rules: io.k8s.api.rbac.v1.PolicyRule[],
+  ) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "rbac.authorization.k8s.io/v1",
+        kind: "Role",
+        metadata: this.metadata,
+        rules: this.rules,
+      },
+    ]);
+  }
+}
+
+export class RoleBinding {
+  constructor(
+    public metadata: ObjectMeta,
+    public roleRef: io.k8s.api.rbac.v1.RoleRef,
+    public subjects: io.k8s.api.rbac.v1.Subject[],
+  ) {}
+
+  get yaml() {
+    return generateYaml([
+      {
+        apiVersion: "rbac.authorization.k8s.io/v1",
+        kind: "RoleBinding",
+        metadata: this.metadata,
+        roleRef: this.roleRef,
+        subjects: this.subjects,
+      },
+    ]);
+  }
+}
