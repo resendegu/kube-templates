@@ -130,7 +130,7 @@ export interface StatelessAppSpec {
    */
   disablePreemptibility?: boolean;
   minAvailable?: number;
-  nodeAffinity?: Record<string, string>;
+  affinity?: io.k8s.api.core.v1.Affinity;
   nodeSelector?: Record<string, string>;
   tolerations?: io.k8s.api.core.v1.Toleration[];
 }
