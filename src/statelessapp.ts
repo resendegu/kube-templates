@@ -428,7 +428,7 @@ export class StatelessApp {
             serviceAccountName: this.spec.serviceAccountName,
             tolerations: this.spec.tolerations,
             nodeSelector: this.spec.nodeSelector,
-            affinity: this.spec.nodeAffinity,
+            affinity: this.spec.affinity,
             volumes,
             ...(this.spec.nodeAffinityMode === "on-demand" ||
             this.spec.nodeAffinityMode === "spot"
