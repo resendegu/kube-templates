@@ -130,6 +130,9 @@ export interface StatelessAppSpec {
    */
   disablePreemptibility?: boolean;
   minAvailable?: number;
+  affinity?: io.k8s.api.core.v1.Affinity;
+  nodeSelector?: Record<string, string>;
+  tolerations?: io.k8s.api.core.v1.Toleration[];
 }
 
 export class StatelessApp {
@@ -423,8 +426,9 @@ export class StatelessApp {
                 }),
             automountServiceAccountToken: Boolean(this.spec.serviceAccountName),
             serviceAccountName: this.spec.serviceAccountName,
-            tolerations: [],
-            nodeSelector: {},
+            tolerations: this.spec.tolerations,
+            nodeSelector: this.spec.nodeSelector,
+            affinity: this.spec.affinity,
             volumes,
             ...(this.spec.nodeAffinityMode === "on-demand" ||
             this.spec.nodeAffinityMode === "spot"
