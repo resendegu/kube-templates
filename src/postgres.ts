@@ -273,6 +273,7 @@ interface PostgresSpec {
   storageClassName?: string;
   storageRequest?: string;
   nodeSelector?: Record<string, string>;
+  affinity?: io.k8s.api.core.v1.Affinity;
   tolerations?: io.k8s.api.core.v1.Toleration[];
   imagePullPolicy?: "Always" | "Never" | "IfNotPresent";
   options?: PostgresOptions;
@@ -944,6 +945,7 @@ EOF
             ],
             tolerations: this.spec.tolerations,
             nodeSelector: this.spec.nodeSelector,
+            affinity: this.spec.affinity,
           },
         },
         volumeClaimTemplates: [
