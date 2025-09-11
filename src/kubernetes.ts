@@ -15,11 +15,6 @@ export interface ObjectMeta extends NonNamespacedObjectMeta {
   namespace: string;
 }
 
-export interface ObjectMetaWithGeneratedName extends BasicObjectMeta {
-  namespace: string;
-  generateName: string;
-}
-
 export class Namespace {
   constructor(
     public metadata: NonNamespacedObjectMeta,
@@ -257,7 +252,7 @@ export class PodDisruptionBudget {
 
 export class Job {
   constructor(
-    public metadata: ObjectMeta | ObjectMetaWithGeneratedName,
+    public metadata: ObjectMeta,
     public spec: Omit<io.k8s.api.batch.v1.JobSpec, "selector">,
   ) {}
 
