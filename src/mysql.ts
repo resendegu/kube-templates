@@ -11,6 +11,7 @@ interface MySQLSpec {
   };
   memory: string | number;
   rootPassword: string;
+  mysqlDatabase?: string;
   storageClassName?: string;
   initContainers?: io.k8s.api.core.v1.Container[];
 }
@@ -76,6 +77,10 @@ export class MySQL {
                   {
                     name: "MYSQL_ROOT_PASSWORD",
                     value: this.spec.rootPassword,
+                  },
+                  {
+                    name: "MYSQL_DATABASE",
+                    value: this.spec.mysqlDatabase,
                   },
                 ],
                 imagePullPolicy: "IfNotPresent",
