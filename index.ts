@@ -9,6 +9,7 @@ export * from "./src/mariadb";
 export * from "./src/mongo";
 export * from "./src/mssql";
 export * from "./src/mysql";
+export * from "./src/pgbouncer";
 export * from "./src/postgres-v1";
 export * from "./src/postgres";
 export * from "./src/redis";
