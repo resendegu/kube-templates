@@ -1,8 +1,29 @@
 {
-  "name": "@cubos/kube-templates",
+  "name": "@resendegu/kube-templates",
   "version": "1.0.0",
+  "description": "A fork from Cubos Tecnologia project on: https://git.cubos.io/cubos/kube-templates",
+  "keywords": [
+    "k8s",
+    "typescript",
+    "templates",
+    "kube-templates"
+  ],
+  "homepage": "https://github.com/resendegu/kube-templates#readme",
+  "bugs": {
+    "url": "https://github.com/resendegu/kube-templates/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/resendegu/kube-templates.git"
+  },
+  "license": "ISC",
+  "author": "Gustavo Resende",
+  "type": "commonjs",
   "main": "index.js",
   "types": "index.d.ts",
+  "directories": {
+    "test": "tests"
+  },
   "scripts": {
     "generate": "ts-node -T generator/index.ts && eslint --fix 'src/generated/**.ts'",
     "test": "ts-node -T tests/setup.ts && jest -w10",
