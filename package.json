@@ -1,6 +1,6 @@
 {
   "name": "@resendegu/kube-templates",
-  "version": "1.0.0",
+  "version": "0.0.0-development",
   "description": "A fork from Cubos Tecnologia project on: https://git.cubos.io/cubos/kube-templates",
   "keywords": [
     "k8s",
