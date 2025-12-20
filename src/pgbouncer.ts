@@ -215,7 +215,6 @@ export interface PgBouncerSpec {
   configPath?: string;
   userlistPath?: string;
   logDir?: string;
-  pidDir?: string;
   minAvailable?: number;
   rawConfig?: string;
   rawUserlist?: string;
@@ -424,15 +423,13 @@ function generateConfig(spec: PgBouncerSpec): string {
 
   const port = spec.port ?? 6432;
   const userlistPath =
-    spec.userlistPath ?? "/bitnami/pgbouncer/conf/userlist.txt";
-  const logDir = spec.logDir ?? "/opt/bitnami/pgbouncer/logs";
-  const pidDir = spec.pidDir ?? "/opt/bitnami/pgbouncer/tmp";
+    spec.userlistPath ?? "/etc/pgbouncer/userlist.txt";
+  const logDir = spec.logDir ?? "/var/log/pgbouncer";
 
   lines.push(`listen_port=${port}`);
   lines.push(`listen_addr=0.0.0.0`);
   lines.push(`auth_file=${userlistPath}`);
   lines.push(`logfile=${logDir}/pgbouncer.log`);
-  lines.push(`pidfile=${pidDir}/pgbouncer.pid`);
 
   if (spec.options) {
     const optionKeys = Object.keys(spec.options) as Array<
@@ -464,9 +461,9 @@ export class PgBouncer {
     const image = this.spec.image ?? "docker.io/cleanstart/pgbouncer:latest";
     const replicas = this.spec.replicas ?? 1;
     const configPath =
-      this.spec.configPath ?? "/bitnami/pgbouncer/conf/pgbouncer.ini";
+      this.spec.configPath ?? "/etc/pgbouncer/pgbouncer.ini";
     const userlistPath =
-      this.spec.userlistPath ?? "/bitnami/pgbouncer/conf/userlist.txt";
+      this.spec.userlistPath ?? "/etc/pgbouncer/userlist.txt";
 
     const configContent = this.spec.rawConfig ?? generateConfig(this.spec);
     const userlistContent =
@@ -511,6 +508,7 @@ export class PgBouncer {
           name: "pgbouncer",
           image,
           imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
+          args: [configPath],
           ports: [
             {
               name: "pgbouncer",
