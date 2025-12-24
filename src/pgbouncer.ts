@@ -212,6 +212,7 @@ export interface PgBouncerSpec {
   >;
   serviceAnnotations?: Record<string, string>;
   serviceType?: "ClusterIP" | "NodePort" | "LoadBalancer";
+  command?: string[];
   configPath?: string;
   userlistPath?: string;
   logDir?: string;
@@ -508,6 +509,7 @@ export class PgBouncer {
           name: "pgbouncer",
           image,
           imagePullPolicy: this.spec.imagePullPolicy ?? "IfNotPresent",
+          command: this.spec.command ?? ["pgbouncer"],
           args: [configPath],
           ports: [
             {
