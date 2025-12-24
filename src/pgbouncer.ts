@@ -458,7 +458,7 @@ export class PgBouncer {
 
   get yaml() {
     const port = this.spec.port ?? 6432;
-    const image = this.spec.image ?? "docker.io/cleanstart/pgbouncer:latest";
+    const image = this.spec.image ?? "docker.io/edoburu/pgbouncer:latest";
     const replicas = this.spec.replicas ?? 1;
     const configPath =
       this.spec.configPath ?? "/etc/pgbouncer/pgbouncer.ini";
