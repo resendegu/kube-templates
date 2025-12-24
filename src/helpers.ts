@@ -141,6 +141,20 @@ export function mappedEnvs(
   return [...envs, ...forwardedEnvs];
 }
 
+export function getRepositoryProvider(): Record<string, string> | null {
+  if (env.GITHUB_ACTIONS) {
+    return {
+      "app.kubernetes.io/source-repo": `${env.GITHUB_SERVER_URL}/${env.GITHUB_REPOSITORY}`,
+    };
+  }
+
+  if (env.GITLAB_CI) {
+    return { "app.kubernetes.io/source-repo": env.CI_PROJECT_URL };
+  }
+
+  return null;
+}
+
 const ingressClasses = [
   "alb",
   "internal",
