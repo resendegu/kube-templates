@@ -212,6 +212,7 @@ export interface PgBouncerSpec {
   >;
   serviceAnnotations?: Record<string, string>;
   serviceType?: "ClusterIP" | "NodePort" | "LoadBalancer";
+  command?: string[];
   configPath?: string;
   userlistPath?: string;
   logDir?: string;
@@ -458,7 +459,7 @@ export class PgBouncer {
 
   get yaml() {
     const port = this.spec.port ?? 6432;
-    const image = this.spec.image ?? "docker.io/cleanstart/pgbouncer:latest";
+    const image = this.spec.image ?? "docker.io/edoburu/pgbouncer:latest";
     const replicas = this.spec.replicas ?? 1;
     const configPath =
       this.spec.configPath ?? "/etc/pgbouncer/pgbouncer.ini";
@@ -507,7 +508,8 @@ export class PgBouncer {
         {
           name: "pgbouncer",
           image,
-          imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
+          imagePullPolicy: this.spec.imagePullPolicy ?? "IfNotPresent",
+          command: this.spec.command ?? ["pgbouncer"],
           args: [configPath],
           ports: [
             {
