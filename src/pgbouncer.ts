@@ -507,7 +507,7 @@ export class PgBouncer {
         {
           name: "pgbouncer",
           image,
-          imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
+          imagePullPolicy: this.spec.imagePullPolicy ?? "IfNotPresent",
           args: [configPath],
           ports: [
             {
