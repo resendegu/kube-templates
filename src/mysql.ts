@@ -10,8 +10,11 @@ interface MySQLSpec {
     limit: string | number;
   };
   memory: string | number;
-  rootPassword: string;
+  rootPassword?: string;
+  randomRootPassword?: boolean;
   mysqlDatabase?: string;
+  mysqlUser?: string;
+  mysqlPassword?: string;
   storageClassName?: string;
   initContainers?: io.k8s.api.core.v1.Container[];
 }
@@ -20,7 +23,35 @@ export class MySQL {
   constructor(
     private metadata: ObjectMeta,
     private spec: MySQLSpec,
-  ) {}
+  ) {
+    if (
+      (this.spec.mysqlUser && !this.spec.mysqlPassword) ||
+      (!this.spec.mysqlUser && this.spec.mysqlPassword)
+    ) {
+      throw new Error("mysqlUser and mysqlPassword must be defined together.");
+    }
+
+    if (this.spec.randomRootPassword && this.spec.rootPassword) {
+      throw new Error(
+        "rootPassword cannot be defined when randomRootPassword is set to true.",
+      );
+    }
+
+    if (
+      this.spec.randomRootPassword &&
+      (!this.spec.mysqlUser || !this.spec.mysqlPassword)
+    ) {
+      throw new Error(
+        "mysqlUser and mysqlPassword are required when randomRootPassword is set to true.",
+      );
+    }
+
+    if (!this.spec.randomRootPassword && !this.spec.rootPassword) {
+      throw new Error(
+        "rootPassword is required when randomRootPassword is not set to true.",
+      );
+    }
+  }
 
   get yaml() {
     return generateYaml([
@@ -74,10 +105,31 @@ export class MySQL {
                     : ["--log_error_verbosity=1"]),
                 ],
                 env: [
-                  {
-                    name: "MYSQL_ROOT_PASSWORD",
-                    value: this.spec.rootPassword,
-                  },
+                  ...(this.spec.randomRootPassword
+                    ? [
+                        {
+                          name: "MYSQL_RANDOM_ROOT_PASSWORD",
+                          value: "yes",
+                        },
+                      ]
+                    : [
+                        {
+                          name: "MYSQL_ROOT_PASSWORD",
+                          value: this.spec.rootPassword,
+                        },
+                      ]),
+                  ...(this.spec.mysqlUser && this.spec.mysqlPassword
+                    ? [
+                        {
+                          name: "MYSQL_USER",
+                          value: this.spec.mysqlUser,
+                        },
+                        {
+                          name: "MYSQL_PASSWORD",
+                          value: this.spec.mysqlPassword,
+                        },
+                      ]
+                    : []),
                   {
                     name: "MYSQL_DATABASE",
                     value: this.spec.mysqlDatabase,
@@ -121,8 +173,12 @@ export class MySQL {
                       "ping",
                       "-h",
                       "localhost",
-                      "-uroot",
-                      `-p${this.spec.rootPassword}`,
+                      ...(this.spec.mysqlUser && this.spec.mysqlPassword
+                        ? [
+                            `-u${this.spec.mysqlUser}`,
+                            `-p${this.spec.mysqlPassword}`,
+                          ]
+                        : ["-uroot", `-p${this.spec.rootPassword}`]),
                     ],
                   },
                   initialDelaySeconds: 5,
@@ -136,8 +192,12 @@ export class MySQL {
                       "ping",
                       "-h",
                       "localhost",
-                      "-uroot",
-                      `-p${this.spec.rootPassword}`,
+                      ...(this.spec.mysqlUser && this.spec.mysqlPassword
+                        ? [
+                            `-u${this.spec.mysqlUser}`,
+                            `-p${this.spec.mysqlPassword}`,
+                          ]
+                        : ["-uroot", `-p${this.spec.rootPassword}`]),
                     ],
                   },
                   failureThreshold: 2,
