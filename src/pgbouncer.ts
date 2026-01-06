@@ -423,8 +423,12 @@ function generateConfig(spec: PgBouncerSpec): string {
   lines.push("[pgbouncer]");
 
   const port = spec.port ?? 6432;
+<<<<<<< HEAD
   const userlistPath =
     spec.userlistPath ?? "/etc/pgbouncer/userlist.txt";
+=======
+  const userlistPath = spec.userlistPath ?? "/etc/pgbouncer/userlist.txt";
+>>>>>>> gitlab/main
   const logDir = spec.logDir ?? "/var/log/pgbouncer";
 
   lines.push(`listen_port=${port}`);
@@ -461,8 +465,12 @@ export class PgBouncer {
     const port = this.spec.port ?? 6432;
     const image = this.spec.image ?? "docker.io/edoburu/pgbouncer:latest";
     const replicas = this.spec.replicas ?? 1;
+<<<<<<< HEAD
     const configPath =
       this.spec.configPath ?? "/etc/pgbouncer/pgbouncer.ini";
+=======
+    const configPath = this.spec.configPath ?? "/etc/pgbouncer/pgbouncer.ini";
+>>>>>>> gitlab/main
     const userlistPath =
       this.spec.userlistPath ?? "/etc/pgbouncer/userlist.txt";
 
