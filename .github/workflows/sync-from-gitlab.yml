@@ -30,30 +30,31 @@ jobs:
             echo "has_changes=false" >> $GITHUB_OUTPUT
           else
             echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "gitlab_sha=$(git rev-parse --short gitlab/main)" >> $GITHUB_OUTPUT
           fi
 
-      - name: Create PR branch
+      - name: Create sync branch
         if: steps.check.outputs.has_changes == 'true'
         run: |
-          BRANCH_NAME="sync/gitlab-$(date +%Y%m%d-%H%M%S)"
-          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
-          git checkout -b $BRANCH_NAME
+          git checkout -b sync/gitlab
           git merge gitlab/main --no-edit --allow-unrelated-histories
-          git push origin $BRANCH_NAME
+          git push origin sync/gitlab --force
 
-      - name: Create Pull Request
+      - name: Create or Update Pull Request
         if: steps.check.outputs.has_changes == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ env.BRANCH_NAME }}
+          branch: sync/gitlab
           base: main
           title: "🔄 Sync from GitLab"
           body: |
             This PR syncs the latest changes from the upstream GitLab repository.
 
             **Source:** `git.cubos.io/cubos/kube-templates`
+            **Latest commit:** `${{ steps.check.outputs.gitlab_sha }}`
 
             ---
-            _This PR was created automatically by GitHub Actions._
+            _This PR was created/updated automatically by GitHub Actions._
           labels: sync,automated
+          update-existing: true
