@@ -26,11 +26,15 @@ jobs:
       - name: Check for changes
         id: check
         run: |
-          if git diff --quiet HEAD..gitlab/main; then
+          # Check if GitLab has commits that are not in our main branch
+          COMMITS_AHEAD=$(git rev-list --count HEAD..gitlab/main)
+          if [ "$COMMITS_AHEAD" -eq 0 ]; then
             echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "No new commits from GitLab"
           else
             echo "has_changes=true" >> $GITHUB_OUTPUT
             echo "gitlab_sha=$(git rev-parse --short gitlab/main)" >> $GITHUB_OUTPUT
+            echo "Found $COMMITS_AHEAD new commit(s) from GitLab"
           fi
 
       - name: Create sync branch and merge
