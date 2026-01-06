@@ -3,7 +3,13 @@ import { URL } from "url";
 import { Cron } from "./cron";
 import type { io } from "./generated";
 import type { IngressClasses } from "./helpers";
-import { clone, generateYaml, mappedEnvs, parseMemory } from "./helpers";
+import {
+  clone,
+  generateYaml,
+  getRepositoryProvider,
+  mappedEnvs,
+  parseMemory,
+} from "./helpers";
 import type { ObjectMeta } from "./kubernetes";
 import {
   Deployment,
@@ -143,6 +149,7 @@ export class StatelessApp {
 
   get yaml() {
     const ingress = new IngressV1(clone(this.metadata), { rules: [], tls: [] });
+    const repositoryInfoAnnotation = getRepositoryProvider();
 
     for (const portSpec of this.spec.ports ?? []) {
       if (
@@ -257,6 +264,7 @@ export class StatelessApp {
       ingress.metadata.annotations = {
         ...ingress.metadata.annotations,
         ...portSpec.ingressAnnotations,
+        ...repositoryInfoAnnotation,
       };
 
       // TODO: This shouldn't be global on entire Ingress. Should be per port.
@@ -389,7 +397,10 @@ export class StatelessApp {
         },
         template: {
           metadata: {
-            annotations: this.spec.annotations,
+            annotations: {
+              ...this.spec.annotations,
+              ...repositoryInfoAnnotation,
+            },
             labels: {
               app: this.metadata.name,
               ...this.spec.labels,
