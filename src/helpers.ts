@@ -142,13 +142,13 @@ export function mappedEnvs(
 }
 
 export function getRepositoryProvider(): Record<string, string> | null {
-  if (env.GITHUB_ACTIONS) {
+  if (process.env.GITHUB_ACTIONS) {
     return {
       "app.kubernetes.io/source-repo": `${env.GITHUB_SERVER_URL}/${env.GITHUB_REPOSITORY}`,
     };
   }
 
-  if (env.GITLAB_CI) {
+  if (process.env.GITLAB_CI) {
     return { "app.kubernetes.io/source-repo": env.CI_PROJECT_URL };
   }
 
