@@ -35,9 +35,17 @@ jobs:
 
       - name: Create sync branch
         if: steps.check.outputs.has_changes == 'true'
+        id: merge
         run: |
           git checkout -b sync/gitlab
-          git merge gitlab/main --no-edit --allow-unrelated-histories
+          if git merge gitlab/main --no-edit --allow-unrelated-histories; then
+            echo "has_conflicts=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_conflicts=true" >> $GITHUB_OUTPUT
+            # Stage all files including conflicts
+            git add -A
+            git commit -m "Sync from GitLab (with conflicts to resolve)"
+          fi
           git push origin sync/gitlab --force
 
       - name: Create or Update Pull Request
@@ -47,14 +55,15 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: sync/gitlab
           base: main
-          title: "🔄 Sync from GitLab"
+          title: "${{ steps.merge.outputs.has_conflicts == 'true' && '⚠️ Sync from GitLab (conflicts)' || '🔄 Sync from GitLab' }}"
           body: |
             This PR syncs the latest changes from the upstream GitLab repository.
 
             **Source:** `git.cubos.io/cubos/kube-templates`
             **Latest commit:** `${{ steps.check.outputs.gitlab_sha }}`
+            ${{ steps.merge.outputs.has_conflicts == 'true' && '⚠️ **This PR has merge conflicts that need to be resolved manually.**' || '' }}
 
             ---
             _This PR was created/updated automatically by GitHub Actions._
-          labels: sync,automated
+          labels: sync,automated${{ steps.merge.outputs.has_conflicts == 'true' && ',conflicts' || '' }}
           update-existing: true
