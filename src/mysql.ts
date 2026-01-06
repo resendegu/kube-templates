@@ -17,6 +17,7 @@ interface MySQLSpec {
   mysqlPassword?: string;
   storageClassName?: string;
   initContainers?: io.k8s.api.core.v1.Container[];
+  volumeMountSubPath?: string;
 }
 
 export class MySQL {
@@ -154,6 +155,9 @@ export class MySQL {
                   {
                     mountPath: "/var/lib/mysql",
                     name: "data",
+                    ...(this.spec.volumeMountSubPath
+                      ? { subPath: this.spec.volumeMountSubPath }
+                      : {}),
                   },
                 ],
                 resources: {
