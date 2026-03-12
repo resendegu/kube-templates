@@ -11,6 +11,7 @@ interface RedisSpec {
   memory: string | number;
   options?: {
     // TODO: Add all from https://raw.githubusercontent.com/antirez/redis/5.0/redis.conf
+    appendonly?: boolean;
     maxmemory?: string;
     maxmemoryPolicy?: string;
     maxmemorySamples?: number;
@@ -26,6 +27,11 @@ export class Redis {
   ) {}
 
   get yaml() {
+    const requirepass = this.spec.options?.requirepass;
+    const redisPingCommand = requirepass
+      ? ["sh", "-c", 'redis-cli -a "$REDIS_PASSWORD" ping']
+      : ["redis-cli", "ping"];
+
     const redisConfig = Object.entries(this.spec.options ?? {})
       .flatMap(
         ([key, value]) =>
@@ -72,6 +78,14 @@ export class Redis {
                 image: `redis:${this.spec.version}`,
                 imagePullPolicy: "Always",
                 args: ["redis-server", "/redis-master/redis.conf"],
+                env: requirepass
+                  ? [
+                      {
+                        name: "REDIS_PASSWORD",
+                        value: requirepass,
+                      },
+                    ]
+                  : undefined,
                 ports: [
                   {
                     name: "redis",
@@ -90,7 +104,7 @@ export class Redis {
                 },
                 readinessProbe: {
                   exec: {
-                    command: ["redis-cli", "ping"],
+                    command: redisPingCommand,
                   },
                   failureThreshold: 1,
                   periodSeconds: 3,
@@ -103,7 +117,7 @@ export class Redis {
                 ],
                 livenessProbe: {
                   exec: {
-                    command: ["redis-cli", "ping"],
+                    command: redisPingCommand,
                   },
                   failureThreshold: 2,
                   periodSeconds: 5,
