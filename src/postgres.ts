@@ -327,6 +327,9 @@ export class Postgres {
     const mebibyte = 1024 * 1024;
     const gibibyte = 1024 * mebibyte;
 
+    const [majorVersionString] = this.spec.version.split(".");
+    const majorVersion = Number.parseInt(majorVersionString, 10);
+
     const probeCheck = [
       "bash",
       "-c",
@@ -540,6 +543,14 @@ EOF
                         `postgres:${this.spec.version}-alpine`,
                       imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
                       env: [
+                        ...(majorVersion >= 18
+                          ? [
+                              {
+                                name: "PGDATA",
+                                value: "/var/lib/postgresql/data",
+                              },
+                            ]
+                          : []),
                         {
                           name: "POSTGRES_PASSWORD",
                           ...(this.spec.postgresUserPassword
@@ -636,6 +647,14 @@ EOF
                     .reduce((a, b) => [...a, ...b], []),
                 ],
                 env: [
+                  ...(majorVersion >= 18
+                    ? [
+                        {
+                          name: "PGDATA",
+                          value: "/var/lib/postgresql/data",
+                        },
+                      ]
+                    : []),
                   {
                     name: "POSTGRES_PASSWORD",
                     ...(this.spec.postgresUserPassword
