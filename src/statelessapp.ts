@@ -31,7 +31,7 @@ interface ProbeConfig {
 }
 
 export interface StatelessAppSpec {
-  replicas?: number | [number, number];
+  replicas?: number | [number, number] | null;
   cpuUtilizationToScale?: number;
   image: string;
   imagePullPolicy?: io.k8s.api.core.v1.Container["imagePullPolicy"];
@@ -387,9 +387,10 @@ export class StatelessApp {
 
     return generateYaml([
       new Deployment(this.metadata, {
-        replicas: Array.isArray(this.spec.replicas)
-          ? undefined // https://github.com/kubernetes/kubernetes/issues/25238
-          : this.spec.replicas ?? 1,
+        replicas:
+          Array.isArray(this.spec.replicas) || this.spec.replicas === null
+            ? undefined // https://github.com/kubernetes/kubernetes/issues/25238
+            : this.spec.replicas ?? 1,
         revisionHistoryLimit: 2,
         selector: {
           matchLabels: {
