@@ -2,11 +2,10 @@ import axios from "axios";
 import { load as loadYaml } from "js-yaml";
 import _ from "lodash";
 import type { OpenAPIV3 } from "openapi-types";
-
-import { buildWithKustomize } from "./kustomize";
-import { log } from "./log";
 import type { CrdFile } from "../types/CrdFile";
 import type { GitHubDirectory } from "../types/GitHubDirectory";
+import { buildWithKustomize } from "./kustomize";
+import { log } from "./log";
 
 export async function fetchDocumentsFromGitHubDirectory(
   directoryUrl: string,

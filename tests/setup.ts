@@ -1,5 +1,5 @@
-import { spawnSync } from "child_process";
-import { readFileSync, writeFileSync } from "fs";
+import { spawnSync } from "node:child_process";
+import { readFileSync, writeFileSync } from "node:fs";
 
 import { apply, kubectl } from "./helpers";
 

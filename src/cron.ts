@@ -94,8 +94,8 @@ export class Cron {
             })),
           }
         : this.spec.image.startsWith("registry.cubos.io")
-        ? { imagePullSecrets: [{ name: "gitlab-registry" }] }
-        : {}),
+          ? { imagePullSecrets: [{ name: "gitlab-registry" }] }
+          : {}),
       automountServiceAccountToken: Boolean(this.spec.serviceAccountName),
       serviceAccountName: this.spec.serviceAccountName,
     };

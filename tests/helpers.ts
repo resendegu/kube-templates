@@ -1,5 +1,5 @@
-import { spawn, spawnSync } from "child_process";
-import { unlinkSync, writeFileSync } from "fs";
+import { spawn, spawnSync } from "node:child_process";
+import { unlinkSync, writeFileSync } from "node:fs";
 
 function rawKubectl(...args: string[]) {
   const result = spawnSync("kubectl", [
@@ -33,7 +33,7 @@ export function deleteObject(kind: string, name: string, namespace?: string) {
 }
 
 export function randomSuffix() {
-  return `${new Date().getTime()}-${Math.floor(Math.random() * 100000)}`;
+  return `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
 }
 
 export function apply({ yaml }: { readonly yaml: string }) {
@@ -49,9 +49,9 @@ export function apply({ yaml }: { readonly yaml: string }) {
 }
 
 export function waitPodReady(namespace: string, pod: string, timeout = 60) {
-  const start = new Date().getTime();
+  const start = Date.now();
 
-  for (;;) {
+  for (; ;) {
     const podInfo = kubectl("-n", namespace, "get", "pod", pod);
 
     if (!podInfo) {
@@ -62,7 +62,7 @@ export function waitPodReady(namespace: string, pod: string, timeout = 60) {
       return;
     }
 
-    if (new Date().getTime() - start > timeout * 1000) {
+    if (Date.now() - start > timeout * 1000) {
       throw new Error(`timeout while waiting for pod ${pod} to become ready`);
     }
 
@@ -71,9 +71,9 @@ export function waitPodReady(namespace: string, pod: string, timeout = 60) {
 }
 
 export function waitJobComplete(namespace: string, job: string, timeout = 60) {
-  const start = new Date().getTime();
+  const start = Date.now();
 
-  for (;;) {
+  for (; ;) {
     const jobInfo = kubectl("-n", namespace, "get", "job", job);
 
     if (!jobInfo) {
@@ -84,7 +84,7 @@ export function waitJobComplete(namespace: string, job: string, timeout = 60) {
       return;
     }
 
-    if (new Date().getTime() - start > timeout * 1000) {
+    if (Date.now() - start > timeout * 1000) {
       throw new Error(`timeout while waiting for Job ${job} to become ready`);
     }
 
@@ -131,7 +131,6 @@ export function portForward(
     }
 
     sleep(0.1);
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (exitCode !== null) {
       throw new Error(stderr);
     }

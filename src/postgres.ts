@@ -1,4 +1,4 @@
-import { createHash } from "crypto";
+import { createHash } from "node:crypto";
 
 import type { io } from "./generated";
 import { generateYaml, parseMemory } from "./helpers";
@@ -491,18 +491,17 @@ EOF
     ];
 
     const replicaStringOptions = Object.entries(replicaOptions)
-      .map(([key, value]) => [
+      .flatMap(([key, value]) => [
         "-c",
         `${key.replace(/[A-Z]/gu, x => `_${x.toLowerCase()}`)}=` +
           `'${
             value === true
               ? "yes"
               : value === false
-              ? "no"
-              : value?.toString().replace(/'/gu, "'\"'\"'")
+                ? "no"
+                : value?.toString().replace(/'/gu, "'\"'\"'")
           }'`,
       ])
-      .reduce((a, b) => [...a, ...b], [])
       .join(" ");
 
     return generateYaml([
@@ -632,19 +631,13 @@ EOF
                   `postgres:${this.spec.version}-alpine`,
                 args: [
                   "postgres",
-                  ...Object.entries(options)
-                    .map(([key, value]) => [
-                      "-c",
-                      `${key.replace(/[A-Z]/gu, x => `_${x.toLowerCase()}`)}=` +
-                        `${
-                          value === true
-                            ? "yes"
-                            : value === false
-                            ? "no"
-                            : value
-                        }`,
-                    ])
-                    .reduce((a, b) => [...a, ...b], []),
+                  ...Object.entries(options).flatMap(([key, value]) => [
+                    "-c",
+                    `${key.replace(/[A-Z]/gu, x => `_${x.toLowerCase()}`)}=` +
+                      `${
+                        value === true ? "yes" : value === false ? "no" : value
+                      }`,
+                  ]),
                 ],
                 env: [
                   ...(majorVersion >= 18
