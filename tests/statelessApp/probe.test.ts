@@ -54,6 +54,51 @@ describe("statelessApp startup probe", () => {
     });
   });
 
+  it("should not emit timeoutSeconds when no timeout is configured", () => {
+    const app = new StatelessApp(basicAppMetadataConfig, {
+      ...basicAppSpecConfig,
+      check: { port: 3000, httpGetPath: "/health", startup: {} },
+    });
+
+    const container = getContainer(app);
+
+    expect(container.startupProbe.timeoutSeconds).toBeUndefined();
+    expect(container.livenessProbe.timeoutSeconds).toBeUndefined();
+    expect(container.readinessProbe.timeoutSeconds).toBeUndefined();
+  });
+
+  it("should apply a shared check.timeout to every probe", () => {
+    const app = new StatelessApp(basicAppMetadataConfig, {
+      ...basicAppSpecConfig,
+      check: { port: 3000, httpGetPath: "/health", timeout: 5, startup: {} },
+    });
+
+    const container = getContainer(app);
+
+    expect(container.startupProbe.timeoutSeconds).toBe(5);
+    expect(container.livenessProbe.timeoutSeconds).toBe(5);
+    expect(container.readinessProbe.timeoutSeconds).toBe(5);
+  });
+
+  it("should let a per-probe timeout override the shared check.timeout", () => {
+    const app = new StatelessApp(basicAppMetadataConfig, {
+      ...basicAppSpecConfig,
+      check: {
+        port: 3000,
+        httpGetPath: "/health",
+        timeout: 5,
+        startup: { timeout: 15 },
+        liveness: { timeout: 8 },
+      },
+    });
+
+    const container = getContainer(app);
+
+    expect(container.startupProbe.timeoutSeconds).toBe(15);
+    expect(container.livenessProbe.timeoutSeconds).toBe(8);
+    expect(container.readinessProbe.timeoutSeconds).toBe(5);
+  });
+
   it("should keep liveness and readiness probes alongside the startup probe", () => {
     const app = new StatelessApp(basicAppMetadataConfig, {
       ...basicAppSpecConfig,

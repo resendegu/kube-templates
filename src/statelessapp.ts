@@ -28,6 +28,7 @@ type EnvValue =
 interface ProbeConfig {
   period?: number;
   initialDelay?: number;
+  timeout?: number;
 }
 
 interface StartupProbeConfig extends ProbeConfig {
@@ -509,6 +510,9 @@ export class StatelessApp {
                         this.spec.check?.readiness?.period ??
                         this.spec.check?.period ??
                         3,
+                      timeoutSeconds:
+                        this.spec.check?.readiness?.timeout ??
+                        this.spec.check?.timeout,
                     }
                   : undefined,
                 livenessProbe: basicProbe
@@ -523,6 +527,9 @@ export class StatelessApp {
                         this.spec.check?.liveness?.period ??
                         this.spec.check?.period ??
                         12,
+                      timeoutSeconds:
+                        this.spec.check?.liveness?.timeout ??
+                        this.spec.check?.timeout,
                     }
                   : undefined,
                 startupProbe:
@@ -534,6 +541,9 @@ export class StatelessApp {
                         initialDelaySeconds:
                           this.spec.check.startup.initialDelay,
                         periodSeconds: this.spec.check.startup.period ?? 10,
+                        timeoutSeconds:
+                          this.spec.check.startup.timeout ??
+                          this.spec.check.timeout,
                       }
                     : undefined,
               },
