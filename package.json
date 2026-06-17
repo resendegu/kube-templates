@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "types": "index.d.ts",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "generate": "ts-node -T generator/index.ts && eslint --fix 'src/generated/**.ts'",
     "test": "ts-node -T tests/setup.ts && jest -w10",
@@ -19,7 +22,7 @@
     "@types/jest": "^29.5.5",
     "@types/js-yaml": "^4.0.6",
     "@types/lodash": "^4.14.199",
-    "@types/node": "^20.8.3",
+    "@types/node": "^24.0.0",
     "@types/pg": "^8.10.3",
     "chalk": "^4.1.2",
     "eslint": "^8.51.0",
