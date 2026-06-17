@@ -30,6 +30,10 @@ interface ProbeConfig {
   initialDelay?: number;
 }
 
+interface StartupProbeConfig extends ProbeConfig {
+  failureThreshold?: number;
+}
+
 export interface StatelessAppSpec {
   replicas?: number | [number, number] | null;
   cpuUtilizationToScale?: number;
@@ -96,6 +100,7 @@ export interface StatelessAppSpec {
     ProbeConfig & {
       liveness?: ProbeConfig;
       readiness?: ProbeConfig;
+      startup?: StartupProbeConfig;
     };
   volumes?: Array<
     {
@@ -520,6 +525,17 @@ export class StatelessApp {
                         12,
                     }
                   : undefined,
+                startupProbe:
+                  basicProbe && this.spec.check?.startup
+                    ? {
+                        ...basicProbe,
+                        failureThreshold:
+                          this.spec.check.startup.failureThreshold ?? 30,
+                        initialDelaySeconds:
+                          this.spec.check.startup.initialDelay,
+                        periodSeconds: this.spec.check.startup.period ?? 10,
+                      }
+                    : undefined,
               },
             ],
           },
