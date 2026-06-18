@@ -9,6 +9,6 @@ export default defineConfig({
     // Integration tests run against a shared kind cluster; cap concurrency to
     // avoid overloading it (the Jest setup used `-w10`).
     fileParallelism: true,
-    maxConcurrency: 10,
+    maxWorkers: 10,
   },
 });

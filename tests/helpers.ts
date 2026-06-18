@@ -95,7 +95,7 @@ export function portForward(
   pod: string,
   containerPort: number,
 ) {
-  const port = 63317 + parseInt(process.env.JEST_WORKER_ID!, 10);
+  const port = 63317 + parseInt(process.env.VITEST_WORKER_ID!, 10);
   const proc = spawn("kubectl", [
     "--kubeconfig=kind-kubeconfig",
     "-n",
