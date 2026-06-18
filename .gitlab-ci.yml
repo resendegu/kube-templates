@@ -48,14 +48,34 @@ Deploy (NPM):
     - npm version 1.0.$CI_PIPELINE_ID || true
     - npm publish --access public
 
+# Pure-logic tests (no cluster needed) run fast in the plain node image.
+Unit Tests:
+  stage: test
+  script:
+    - npm ci
+    - npx vitest run tests/statelessApp
+
+# Integration tests run against a real kind cluster. Each test group gets its
+# OWN cluster (parallel:matrix) so their DB StatefulSets don't all schedule
+# onto a single node and time out waiting to become ready. Within a job the
+# files run serially (--no-file-parallelism) for the same reason.
 Test:
   stage: test
   image: docker
   allow_failure: true
+  parallel:
+    matrix:
+      - TEST:
+          - tests/cockroach
+          - tests/postgres
+          - tests/wordpress
   script:
+    - export CLUSTER="kube-templates-test-$CI_NODE_INDEX"
     - apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community kubectl kind
-    - kind delete cluster --name kube-templates-test || true
-    - kind create cluster --name kube-templates-test --wait 5m --kubeconfig kind-kubeconfig
+    - kind delete cluster --name "$CLUSTER" || true
+    - kind create cluster --name "$CLUSTER" --wait 5m --kubeconfig kind-kubeconfig
     - printf "FROM node:24-alpine\nRUN apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community kubectl\nRUN apk add --no-cache docker-cli\nCOPY package.json package-lock.json ./\nRUN npm ci\nCOPY . /app" > Dockerfile
-    - docker build -t testimage .
-    - docker run --rm --net=kind --entrypoint="" --mount type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock testimage sh -c "cd /app; npx tsx tests/setup.ts; npx vitest run"
+    - docker build -t "testimage-$CI_NODE_INDEX" .
+    - docker run --rm --net=kind --entrypoint="" -e KIND_CLUSTER="$CLUSTER" --mount type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock "testimage-$CI_NODE_INDEX" sh -c "cd /app; npx tsx tests/setup.ts; npx vitest run $TEST --no-file-parallelism"
+  after_script:
+    - kind delete cluster --name "kube-templates-test-$CI_NODE_INDEX" || true
