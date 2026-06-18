@@ -1,5 +1,5 @@
-import { initial, last } from "lodash";
 import type { OpenAPIV3 } from "openapi-types";
+import { dropLast, last } from "remeda";
 import type {
   InterfaceDeclaration,
   ModuleDeclaration,
@@ -175,7 +175,7 @@ export function buildModules(file: SourceFile, apiSpecObj: OpenAPIV3.Document) {
     apiSpecObj.components.schemas ?? {},
   )) {
     const definitionKeyNs = definitionKey.split(".");
-    const namespace = initial(definitionKeyNs).join(".");
+    const namespace = dropLast(definitionKeyNs, 1).join(".");
     const className = last(definitionKeyNs) ?? "";
 
     let module: ModuleDeclaration;

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 
-import { mapValues } from "lodash";
+import { mapValues } from "remeda";
 import { Cockroach } from "../../src/cockroach";
 import { Namespace } from "../../src/kubernetes";
 import {

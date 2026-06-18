@@ -15,8 +15,6 @@ function rawKubectl(...args: string[]) {
 }
 
 export function sleep(seconds: number) {
-  // Atomics.wait blocks the current thread synchronously (allowed on Node's
-  // main thread), giving a sync sleep without a native dependency.
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, seconds * 1000);
 }
 

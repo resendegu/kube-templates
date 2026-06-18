@@ -1,7 +1,7 @@
 import axios from "axios";
 import { load as loadYaml } from "js-yaml";
-import _ from "lodash";
 import type { OpenAPIV3 } from "openapi-types";
+import { mergeDeep } from "remeda";
 import type { CrdFile } from "../types/CrdFile";
 import type { GitHubDirectory } from "../types/GitHubDirectory";
 import { buildWithKustomize } from "./kustomize";
@@ -64,7 +64,10 @@ export async function fetchDocumentsFromGitHubDirectory(
 export function mergeDocuments(
   documents: OpenAPIV3.Document[],
 ): OpenAPIV3.Document {
-  return _.mergeWith({}, ...documents);
+  return documents.reduce(
+    (merged, document) => mergeDeep(merged, document),
+    {} as OpenAPIV3.Document,
+  );
 }
 
 export function crdFileToOpenApi(files: CrdFile[]): OpenAPIV3.Document {
