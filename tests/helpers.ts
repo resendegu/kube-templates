@@ -15,7 +15,9 @@ function rawKubectl(...args: string[]) {
 }
 
 export function sleep(seconds: number) {
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, seconds * 1000);
+  return new Promise<void>(resolve => {
+    setTimeout(resolve, seconds * 1000);
+  });
 }
 
 export function kubectl(...args: string[]) {
@@ -23,18 +25,27 @@ export function kubectl(...args: string[]) {
 }
 
 export function deleteObject(kind: string, name: string, namespace?: string) {
+  // --wait=false so cleanup doesn't block the worker thread for the whole
+  // (potentially minute-long) namespace teardown; each test uses a unique
+  // namespace, so leaving it to delete in the background is fine.
   if (namespace) {
-    return rawKubectl(`--namespace=${namespace}`, "delete", kind, name);
+    return rawKubectl(
+      `--namespace=${namespace}`,
+      "delete",
+      "--wait=false",
+      kind,
+      name,
+    );
   }
 
-  return rawKubectl("delete", kind, name);
+  return rawKubectl("delete", "--wait=false", kind, name);
 }
 
 export function randomSuffix() {
   return `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
 }
 
-export function apply({ yaml }: { readonly yaml: string }) {
+export async function apply({ yaml }: { readonly yaml: string }) {
   const path = `/tmp/kube.${randomSuffix()}.yaml`;
 
   writeFileSync(path, yaml);
@@ -42,11 +53,15 @@ export function apply({ yaml }: { readonly yaml: string }) {
     return kubectl("apply", "-f", path);
   } finally {
     unlinkSync(path);
-    sleep(2);
+    await sleep(2);
   }
 }
 
-export function waitPodReady(namespace: string, pod: string, timeout = 60) {
+export async function waitPodReady(
+  namespace: string,
+  pod: string,
+  timeout = 60,
+) {
   const start = Date.now();
 
   for (; ;) {
@@ -64,11 +79,15 @@ export function waitPodReady(namespace: string, pod: string, timeout = 60) {
       throw new Error(`timeout while waiting for pod ${pod} to become ready`);
     }
 
-    sleep(1);
+    await sleep(1);
   }
 }
 
-export function waitJobComplete(namespace: string, job: string, timeout = 60) {
+export async function waitJobComplete(
+  namespace: string,
+  job: string,
+  timeout = 60,
+) {
   const start = Date.now();
 
   for (; ;) {
@@ -86,11 +105,11 @@ export function waitJobComplete(namespace: string, job: string, timeout = 60) {
       throw new Error(`timeout while waiting for Job ${job} to become ready`);
     }
 
-    sleep(1);
+    await sleep(1);
   }
 }
 
-export function portForward(
+export async function portForward(
   namespace: string,
   pod: string,
   containerPort: number,
@@ -128,7 +147,7 @@ export function portForward(
       break;
     }
 
-    sleep(0.1);
+    await sleep(0.1);
     if (exitCode !== null) {
       throw new Error(stderr);
     }

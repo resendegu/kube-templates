@@ -12,8 +12,8 @@ import { queryPostgres } from "./helpers";
 describe("postgres", () => {
   const namespace = `test-${randomSuffix()}`;
 
-  beforeAll(() => {
-    apply(
+  beforeAll(async () => {
+    await apply(
       new Namespace({
         name: namespace,
       }),
@@ -25,7 +25,7 @@ describe("postgres", () => {
   });
 
   test("Upgrade database from 11.0 to 11.7 without data loss", async () => {
-    apply(
+    await apply(
       new Postgres(
         {
           name: "postgres",
@@ -43,8 +43,8 @@ describe("postgres", () => {
       ),
     );
 
-    waitPodReady(namespace, "postgres-0");
-    sleep(5);
+    await waitPodReady(namespace, "postgres-0");
+    await sleep(5);
 
     expect(
       (await queryPostgres(namespace, "postgres-0", "SELECT version()"))[0]
@@ -62,7 +62,7 @@ describe("postgres", () => {
       "INSERT INTO foo VALUES (354687)",
     );
 
-    apply(
+    await apply(
       new Postgres(
         {
           name: "postgres",
@@ -80,8 +80,8 @@ describe("postgres", () => {
       ),
     );
 
-    waitPodReady(namespace, "postgres-0");
-    sleep(5);
+    await waitPodReady(namespace, "postgres-0");
+    await sleep(5);
 
     expect(
       (await queryPostgres(namespace, "postgres-0", "SELECT version()"))[0]

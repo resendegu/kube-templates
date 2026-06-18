@@ -15,8 +15,8 @@ import { certificates, queryCockroachSecure } from "./helpers";
 describe("CockroachDB Secure", () => {
   const namespace = `test-${randomSuffix()}`;
 
-  beforeAll(() => {
-    apply(
+  beforeAll(async () => {
+    await apply(
       new Namespace({
         name: namespace,
       }),
@@ -28,7 +28,7 @@ describe("CockroachDB Secure", () => {
   });
 
   test("Create secure database cluster", async () => {
-    apply(
+    await apply(
       new Cockroach(
         {
           name: "cockroach-safe",
@@ -47,9 +47,9 @@ describe("CockroachDB Secure", () => {
       ),
     );
 
-    waitPodReady(namespace, "cockroach-safe-0");
-    waitPodReady(namespace, "cockroach-safe-1");
-    waitJobComplete(namespace, "cockroach-safe-cluster-init");
+    await waitPodReady(namespace, "cockroach-safe-0");
+    await waitPodReady(namespace, "cockroach-safe-1");
+    await waitJobComplete(namespace, "cockroach-safe-cluster-init");
 
     expect(
       await queryCockroachSecure(

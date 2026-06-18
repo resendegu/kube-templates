@@ -27,11 +27,13 @@ const base = JSON.parse(
 
 delete base.metadata.annotations["storageclass.kubernetes.io/is-default-class"];
 
-for (const name of storageClassesToCreate) {
-  if (storageClasses.items.find((x: any) => x.metadata.name === name)) {
-    continue;
-  }
+void (async () => {
+  for (const name of storageClassesToCreate) {
+    if (storageClasses.items.find((x: any) => x.metadata.name === name)) {
+      continue;
+    }
 
-  base.metadata.name = name;
-  apply({ yaml: JSON.stringify(base) });
-}
+    base.metadata.name = name;
+    await apply({ yaml: JSON.stringify(base) });
+  }
+})();

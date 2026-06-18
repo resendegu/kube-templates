@@ -12,8 +12,8 @@ import { queryCockroach } from "./helpers";
 describe("CockroachDB", () => {
   const namespace = `test-${randomSuffix()}`;
 
-  beforeAll(() => {
-    apply(
+  beforeAll(async () => {
+    await apply(
       new Namespace({
         name: namespace,
       }),
@@ -25,7 +25,7 @@ describe("CockroachDB", () => {
   });
 
   test("Create basic database", async () => {
-    apply(
+    await apply(
       new Cockroach(
         {
           name: "cockroachdb",
@@ -43,8 +43,8 @@ describe("CockroachDB", () => {
       ),
     );
 
-    waitPodReady(namespace, "cockroachdb-0");
-    waitJobComplete(namespace, "cluster-init");
+    await waitPodReady(namespace, "cockroachdb-0");
+    await waitJobComplete(namespace, "cluster-init");
 
     expect(
       await queryCockroach(namespace, "svc/cockroachdb", "SELECT true AS ok"),
@@ -56,7 +56,7 @@ describe("CockroachDB", () => {
   });
 
   test("Create basic database with replicated instance", async () => {
-    apply(
+    await apply(
       new Cockroach(
         {
           name: "cockroachdb2",
@@ -74,10 +74,10 @@ describe("CockroachDB", () => {
       ),
     );
 
-    waitPodReady(namespace, "cockroachdb2-0");
-    waitPodReady(namespace, "cockroachdb2-1");
-    waitPodReady(namespace, "cockroachdb2-2");
-    waitJobComplete(namespace, "cockroachdb2-cluster-init");
+    await waitPodReady(namespace, "cockroachdb2-0");
+    await waitPodReady(namespace, "cockroachdb2-1");
+    await waitPodReady(namespace, "cockroachdb2-2");
+    await waitJobComplete(namespace, "cockroachdb2-cluster-init");
 
     expect(
       await queryCockroach(namespace, "svc/cockroachdb2", "SELECT true AS ok"),
