@@ -64,7 +64,7 @@ export async function waitPodReady(
 ) {
   const start = Date.now();
 
-  for (; ;) {
+  for (;;) {
     const podInfo = kubectl("-n", namespace, "get", "pod", pod);
 
     if (!podInfo) {
@@ -90,7 +90,7 @@ export async function waitJobComplete(
 ) {
   const start = Date.now();
 
-  for (; ;) {
+  for (;;) {
     const jobInfo = kubectl("-n", namespace, "get", "job", job);
 
     if (!jobInfo) {
