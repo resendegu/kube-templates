@@ -56,6 +56,6 @@ Test:
     - apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community kubectl kind
     - kind delete cluster --name kube-templates-test || true
     - kind create cluster --name kube-templates-test --wait 5m --kubeconfig kind-kubeconfig
-    - printf "FROM node:lts-alpine\nRUN apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community kubectl\nRUN apk add --no-cache docker-cli\nCOPY package.json package-lock.json ./\nRUN npm ci\nCOPY . /app" > Dockerfile
+    - printf "FROM node:20-alpine\nRUN apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community kubectl\nRUN apk add --no-cache docker-cli\nCOPY package.json package-lock.json ./\nRUN npm ci\nCOPY . /app" > Dockerfile
     - docker build -t testimage .
     - docker run --rm --net=kind --entrypoint="" --mount type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock testimage sh -c "cd /app; npx ts-node tests/setup.ts; npx jest -w10"

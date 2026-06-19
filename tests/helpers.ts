@@ -1,8 +1,6 @@
 import { spawn, spawnSync } from "child_process";
 import { unlinkSync, writeFileSync } from "fs";
 
-import deasync from "deasync";
-
 function rawKubectl(...args: string[]) {
   const result = spawnSync("kubectl", [
     "--kubeconfig=kind-kubeconfig",
@@ -17,7 +15,9 @@ function rawKubectl(...args: string[]) {
 }
 
 export function sleep(seconds: number) {
-  deasync.sleep(seconds * 1000);
+  // Atomics.wait blocks the current thread synchronously (allowed on Node's
+  // main thread), giving a sync sleep without a native dependency.
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, seconds * 1000);
 }
 
 export function kubectl(...args: string[]) {
