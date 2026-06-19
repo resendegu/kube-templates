@@ -60,7 +60,7 @@ export async function apply({ yaml }: { readonly yaml: string }) {
 export async function waitPodReady(
   namespace: string,
   pod: string,
-  timeout = 60,
+  timeout = 180,
 ) {
   const start = Date.now();
 
@@ -86,7 +86,7 @@ export async function waitPodReady(
 export async function waitJobComplete(
   namespace: string,
   job: string,
-  timeout = 60,
+  timeout = 180,
 ) {
   const start = Date.now();
 

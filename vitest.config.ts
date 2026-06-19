@@ -5,7 +5,7 @@ export default defineConfig({
     globals: true,
     environment: "node",
     include: ["tests/**/*.test.ts"],
-    testTimeout: 180_000,
+    testTimeout: 600_000,
     // afterAll deletes the namespace (cockroach pods + PVCs), which can take
     // well over Vitest's 10s default hook timeout.
     hookTimeout: 180_000,

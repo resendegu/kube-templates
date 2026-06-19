@@ -31,7 +31,7 @@ describe("postgres", () => {
             request: 0,
           },
           memory: "64Mi",
-          version: "12",
+          version: "16",
           postgresUserPassword: "postgres",
         },
       ),

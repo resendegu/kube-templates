@@ -24,7 +24,7 @@ describe("postgres", () => {
     deleteObject("namespace", namespace);
   });
 
-  test("Upgrade database from 11.0 to 11.7 without data loss", async () => {
+  test("Upgrade database from 16.0 to 16.4 without data loss", async () => {
     await apply(
       new Postgres(
         {
@@ -37,7 +37,7 @@ describe("postgres", () => {
             request: 0,
           },
           memory: "64Mi",
-          version: "11.0",
+          version: "16.0",
           postgresUserPassword: "postgres",
         },
       ),
@@ -49,7 +49,7 @@ describe("postgres", () => {
     expect(
       (await queryPostgres(namespace, "postgres-0", "SELECT version()"))[0]
         .version,
-    ).toMatch(/PostgreSQL 11.0/u);
+    ).toMatch(/PostgreSQL 16.0/u);
 
     await queryPostgres(
       namespace,
@@ -74,7 +74,7 @@ describe("postgres", () => {
             request: 0,
           },
           memory: "64Mi",
-          version: "11.7",
+          version: "16.4",
           postgresUserPassword: "postgres",
         },
       ),
@@ -86,7 +86,7 @@ describe("postgres", () => {
     expect(
       (await queryPostgres(namespace, "postgres-0", "SELECT version()"))[0]
         .version,
-    ).toMatch(/PostgreSQL 11.7/u);
+    ).toMatch(/PostgreSQL 16.4/u);
 
     expect(
       await queryPostgres(namespace, "postgres-0", "SELECT * FROM foo"),
