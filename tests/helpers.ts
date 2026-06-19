@@ -1,5 +1,5 @@
-import { spawn, spawnSync } from "child_process";
-import { unlinkSync, writeFileSync } from "fs";
+import { spawn, spawnSync } from "node:child_process";
+import { unlinkSync, writeFileSync } from "node:fs";
 
 function rawKubectl(...args: string[]) {
   const result = spawnSync("kubectl", [
@@ -15,9 +15,9 @@ function rawKubectl(...args: string[]) {
 }
 
 export function sleep(seconds: number) {
-  // Atomics.wait blocks the current thread synchronously (allowed on Node's
-  // main thread), giving a sync sleep without a native dependency.
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, seconds * 1000);
+  return new Promise<void>(resolve => {
+    setTimeout(resolve, seconds * 1000);
+  });
 }
 
 export function kubectl(...args: string[]) {
@@ -25,18 +25,27 @@ export function kubectl(...args: string[]) {
 }
 
 export function deleteObject(kind: string, name: string, namespace?: string) {
+  // --wait=false so cleanup doesn't block the worker thread for the whole
+  // (potentially minute-long) namespace teardown; each test uses a unique
+  // namespace, so leaving it to delete in the background is fine.
   if (namespace) {
-    return rawKubectl(`--namespace=${namespace}`, "delete", kind, name);
+    return rawKubectl(
+      `--namespace=${namespace}`,
+      "delete",
+      "--wait=false",
+      kind,
+      name,
+    );
   }
 
-  return rawKubectl("delete", kind, name);
+  return rawKubectl("delete", "--wait=false", kind, name);
 }
 
 export function randomSuffix() {
-  return `${new Date().getTime()}-${Math.floor(Math.random() * 100000)}`;
+  return `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
 }
 
-export function apply({ yaml }: { readonly yaml: string }) {
+export async function apply({ yaml }: { readonly yaml: string }) {
   const path = `/tmp/kube.${randomSuffix()}.yaml`;
 
   writeFileSync(path, yaml);
@@ -44,12 +53,16 @@ export function apply({ yaml }: { readonly yaml: string }) {
     return kubectl("apply", "-f", path);
   } finally {
     unlinkSync(path);
-    sleep(2);
+    await sleep(2);
   }
 }
 
-export function waitPodReady(namespace: string, pod: string, timeout = 60) {
-  const start = new Date().getTime();
+export async function waitPodReady(
+  namespace: string,
+  pod: string,
+  timeout = 180,
+) {
+  const start = Date.now();
 
   for (;;) {
     const podInfo = kubectl("-n", namespace, "get", "pod", pod);
@@ -62,16 +75,20 @@ export function waitPodReady(namespace: string, pod: string, timeout = 60) {
       return;
     }
 
-    if (new Date().getTime() - start > timeout * 1000) {
+    if (Date.now() - start > timeout * 1000) {
       throw new Error(`timeout while waiting for pod ${pod} to become ready`);
     }
 
-    sleep(1);
+    await sleep(1);
   }
 }
 
-export function waitJobComplete(namespace: string, job: string, timeout = 60) {
-  const start = new Date().getTime();
+export async function waitJobComplete(
+  namespace: string,
+  job: string,
+  timeout = 180,
+) {
+  const start = Date.now();
 
   for (;;) {
     const jobInfo = kubectl("-n", namespace, "get", "job", job);
@@ -84,20 +101,51 @@ export function waitJobComplete(namespace: string, job: string, timeout = 60) {
       return;
     }
 
-    if (new Date().getTime() - start > timeout * 1000) {
+    if (Date.now() - start > timeout * 1000) {
       throw new Error(`timeout while waiting for Job ${job} to become ready`);
     }
 
-    sleep(1);
+    await sleep(1);
   }
 }
 
-export function portForward(
+// Waits until a StatefulSet's rolling update has fully completed. Unlike
+// waitPodReady, this won't return early on the OLD pod while it's still
+// gracefully shutting down during an upgrade (which drops connections).
+export async function waitRolloutComplete(
+  namespace: string,
+  statefulSet: string,
+  timeout = 180,
+) {
+  const start = Date.now();
+
+  for (;;) {
+    const sts = kubectl("-n", namespace, "get", "statefulset", statefulSet);
+    const s = sts.status ?? {};
+
+    if (
+      s.observedGeneration >= sts.metadata.generation &&
+      s.updateRevision === s.currentRevision &&
+      s.updatedReplicas === s.replicas &&
+      s.readyReplicas === s.replicas
+    ) {
+      return;
+    }
+
+    if (Date.now() - start > timeout * 1000) {
+      throw new Error(`timeout while waiting for rollout of ${statefulSet}`);
+    }
+
+    await sleep(1);
+  }
+}
+
+export async function portForward(
   namespace: string,
   pod: string,
   containerPort: number,
 ) {
-  const port = 63317 + parseInt(process.env.JEST_WORKER_ID!, 10);
+  const port = 63317 + parseInt(process.env.VITEST_WORKER_ID!, 10);
   const proc = spawn("kubectl", [
     "--kubeconfig=kind-kubeconfig",
     "-n",
@@ -130,8 +178,7 @@ export function portForward(
       break;
     }
 
-    sleep(0.1);
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    await sleep(0.1);
     if (exitCode !== null) {
       throw new Error(stderr);
     }

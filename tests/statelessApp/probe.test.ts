@@ -1,7 +1,6 @@
 import { loadAll } from "js-yaml";
-
-import { basicAppMetadataConfig, basicAppSpecConfig } from "./fixture";
 import { StatelessApp } from "../../src/statelessapp";
+import { basicAppMetadataConfig, basicAppSpecConfig } from "./fixture";
 
 function getContainer(app: StatelessApp): any {
   const docs = loadAll(app.yaml) as any[];
