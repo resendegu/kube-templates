@@ -109,6 +109,37 @@ export async function waitJobComplete(
   }
 }
 
+// Waits until a StatefulSet's rolling update has fully completed. Unlike
+// waitPodReady, this won't return early on the OLD pod while it's still
+// gracefully shutting down during an upgrade (which drops connections).
+export async function waitRolloutComplete(
+  namespace: string,
+  statefulSet: string,
+  timeout = 180,
+) {
+  const start = Date.now();
+
+  for (;;) {
+    const sts = kubectl("-n", namespace, "get", "statefulset", statefulSet);
+    const s = sts.status ?? {};
+
+    if (
+      s.observedGeneration >= sts.metadata.generation &&
+      s.updateRevision === s.currentRevision &&
+      s.updatedReplicas === s.replicas &&
+      s.readyReplicas === s.replicas
+    ) {
+      return;
+    }
+
+    if (Date.now() - start > timeout * 1000) {
+      throw new Error(`timeout while waiting for rollout of ${statefulSet}`);
+    }
+
+    await sleep(1);
+  }
+}
+
 export async function portForward(
   namespace: string,
   pod: string,

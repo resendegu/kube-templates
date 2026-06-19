@@ -6,6 +6,7 @@ import {
   randomSuffix,
   sleep,
   waitPodReady,
+  waitRolloutComplete,
 } from "../helpers";
 import { queryPostgres } from "./helpers";
 
@@ -80,7 +81,7 @@ describe("postgres", () => {
       ),
     );
 
-    await waitPodReady(namespace, "postgres-0");
+    await waitRolloutComplete(namespace, "postgres");
     await sleep(5);
 
     expect(
