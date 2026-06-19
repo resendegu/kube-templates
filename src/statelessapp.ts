@@ -28,10 +28,15 @@ type EnvValue =
 interface ProbeConfig {
   period?: number;
   initialDelay?: number;
+  timeout?: number;
+}
+
+interface StartupProbeConfig extends ProbeConfig {
+  failureThreshold?: number;
 }
 
 export interface StatelessAppSpec {
-  replicas?: number | [number, number];
+  replicas?: number | [number, number] | null;
   cpuUtilizationToScale?: number;
   image: string;
   imagePullPolicy?: io.k8s.api.core.v1.Container["imagePullPolicy"];
@@ -96,6 +101,7 @@ export interface StatelessAppSpec {
     ProbeConfig & {
       liveness?: ProbeConfig;
       readiness?: ProbeConfig;
+      startup?: StartupProbeConfig;
     };
   volumes?: Array<
     {
@@ -387,9 +393,10 @@ export class StatelessApp {
 
     return generateYaml([
       new Deployment(this.metadata, {
-        replicas: Array.isArray(this.spec.replicas)
-          ? undefined // https://github.com/kubernetes/kubernetes/issues/25238
-          : this.spec.replicas ?? 1,
+        replicas:
+          Array.isArray(this.spec.replicas) || this.spec.replicas === null
+            ? undefined // https://github.com/kubernetes/kubernetes/issues/25238
+            : this.spec.replicas ?? 1,
         revisionHistoryLimit: 2,
         selector: {
           matchLabels: {
@@ -507,6 +514,9 @@ export class StatelessApp {
                         this.spec.check?.readiness?.period ??
                         this.spec.check?.period ??
                         3,
+                      timeoutSeconds:
+                        this.spec.check?.readiness?.timeout ??
+                        this.spec.check?.timeout,
                     }
                   : undefined,
                 livenessProbe: basicProbe
@@ -521,8 +531,25 @@ export class StatelessApp {
                         this.spec.check?.liveness?.period ??
                         this.spec.check?.period ??
                         12,
+                      timeoutSeconds:
+                        this.spec.check?.liveness?.timeout ??
+                        this.spec.check?.timeout,
                     }
                   : undefined,
+                startupProbe:
+                  basicProbe && this.spec.check?.startup
+                    ? {
+                        ...basicProbe,
+                        failureThreshold:
+                          this.spec.check.startup.failureThreshold ?? 30,
+                        initialDelaySeconds:
+                          this.spec.check.startup.initialDelay,
+                        periodSeconds: this.spec.check.startup.period ?? 10,
+                        timeoutSeconds:
+                          this.spec.check.startup.timeout ??
+                          this.spec.check.timeout,
+                      }
+                    : undefined,
               },
             ],
           },
