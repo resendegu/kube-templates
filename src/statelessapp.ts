@@ -1,4 +1,4 @@
-import { URL } from "url";
+import { URL } from "node:url";
 
 import { Cron } from "./cron";
 import type { io } from "./generated";
@@ -28,10 +28,15 @@ type EnvValue =
 interface ProbeConfig {
   period?: number;
   initialDelay?: number;
+  timeout?: number;
+}
+
+interface StartupProbeConfig extends ProbeConfig {
+  failureThreshold?: number;
 }
 
 export interface StatelessAppSpec {
-  replicas?: number | [number, number];
+  replicas?: number | [number, number] | null;
   cpuUtilizationToScale?: number;
   image: string;
   imagePullPolicy?: io.k8s.api.core.v1.Container["imagePullPolicy"];
@@ -96,6 +101,7 @@ export interface StatelessAppSpec {
     ProbeConfig & {
       liveness?: ProbeConfig;
       readiness?: ProbeConfig;
+      startup?: StartupProbeConfig;
     };
   volumes?: Array<
     {
@@ -194,9 +200,8 @@ export class StatelessApp {
         let rule = ingress.spec.rules!.find(x => x.host === hostname);
 
         if (!rule) {
-          ingress.spec.rules!.push(
-            (rule = { host: hostname, http: { paths: [] } }),
-          );
+          rule = { host: hostname, http: { paths: [] } };
+          ingress.spec.rules!.push(rule);
         }
 
         if (protocol === "https:") {
@@ -209,9 +214,8 @@ export class StatelessApp {
           );
 
           if (!tls) {
-            ingress.spec.tls!.push(
-              (tls = { secretName: endpointSpec.tlsCert, hosts: [] }),
-            );
+            tls = { secretName: endpointSpec.tlsCert, hosts: [] };
+            ingress.spec.tls!.push(tls);
           }
 
           if (!tls.hosts!.includes(hostname)) {
@@ -257,7 +261,6 @@ export class StatelessApp {
         }
 
         if (endpointSpec.limitRequestsPerSecond) {
-          // eslint-disable-next-line prefer-destructuring
           limitRequestsPerSecond = endpointSpec.limitRequestsPerSecond;
         }
       }
@@ -297,7 +300,7 @@ export class StatelessApp {
       }
     }
 
-    let basicProbe;
+    let basicProbe: any;
 
     if (this.spec.check) {
       if ((this.spec.check as any).command) {
@@ -366,7 +369,7 @@ export class StatelessApp {
     if (this.spec.minAvailable) {
       const replicas = Array.isArray(this.spec.replicas)
         ? this.spec.replicas[0]
-        : this.spec.replicas ?? 1;
+        : (this.spec.replicas ?? 1);
 
       if (this.spec.minAvailable > replicas) {
         throw new Error(
@@ -387,9 +390,10 @@ export class StatelessApp {
 
     return generateYaml([
       new Deployment(this.metadata, {
-        replicas: Array.isArray(this.spec.replicas)
-          ? undefined // https://github.com/kubernetes/kubernetes/issues/25238
-          : this.spec.replicas ?? 1,
+        replicas:
+          Array.isArray(this.spec.replicas) || this.spec.replicas === null
+            ? undefined // https://github.com/kubernetes/kubernetes/issues/25238
+            : (this.spec.replicas ?? 1),
         revisionHistoryLimit: 2,
         selector: {
           matchLabels: {
@@ -428,8 +432,8 @@ export class StatelessApp {
                   })),
                 }
               : this.spec.image.startsWith("registry.cubos.io")
-              ? { imagePullSecrets: [{ name: "gitlab-registry" }] }
-              : {}),
+                ? { imagePullSecrets: [{ name: "gitlab-registry" }] }
+                : {}),
             ...(this.spec.terminationGracePeriodSeconds === undefined
               ? {}
               : {
@@ -507,6 +511,9 @@ export class StatelessApp {
                         this.spec.check?.readiness?.period ??
                         this.spec.check?.period ??
                         3,
+                      timeoutSeconds:
+                        this.spec.check?.readiness?.timeout ??
+                        this.spec.check?.timeout,
                     }
                   : undefined,
                 livenessProbe: basicProbe
@@ -521,8 +528,25 @@ export class StatelessApp {
                         this.spec.check?.liveness?.period ??
                         this.spec.check?.period ??
                         12,
+                      timeoutSeconds:
+                        this.spec.check?.liveness?.timeout ??
+                        this.spec.check?.timeout,
                     }
                   : undefined,
+                startupProbe:
+                  basicProbe && this.spec.check?.startup
+                    ? {
+                        ...basicProbe,
+                        failureThreshold:
+                          this.spec.check.startup.failureThreshold ?? 30,
+                        initialDelaySeconds:
+                          this.spec.check.startup.initialDelay,
+                        periodSeconds: this.spec.check.startup.period ?? 10,
+                        timeoutSeconds:
+                          this.spec.check.startup.timeout ??
+                          this.spec.check.timeout,
+                      }
+                    : undefined,
               },
             ],
           },
