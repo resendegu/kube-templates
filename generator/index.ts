@@ -1,8 +1,7 @@
-import path from "path";
-
+import path from "node:path";
 import type { OpenAPIV3 } from "openapi-types";
 import type { ModuleDeclaration } from "ts-morph";
-import { NewLineKind, Project, QuoteKind, IndentationText, ts } from "ts-morph";
+import { IndentationText, NewLineKind, Project, QuoteKind, ts } from "ts-morph";
 
 import { buildModules } from "./magic";
 import {
