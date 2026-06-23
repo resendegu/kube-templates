@@ -1,8 +1,8 @@
-import { initial, last } from "lodash";
 import type { OpenAPIV3 } from "openapi-types";
+import { dropLast, last } from "remeda";
 import type {
-  ModuleDeclaration,
   InterfaceDeclaration,
+  ModuleDeclaration,
   SourceFile,
 } from "ts-morph";
 import { StructureKind } from "ts-morph";
@@ -10,10 +10,10 @@ import { StructureKind } from "ts-morph";
 import { generateDescription } from "./utils/description";
 import { log } from "./utils/log";
 import {
-  sanitizeRefName,
   sanitizeInterfaceName,
-  sanitizeTypeName,
   sanitizePropertyName,
+  sanitizeRefName,
+  sanitizeTypeName,
 } from "./utils/sanitizers";
 
 export function makeInterfaceIfNeeded(
@@ -30,7 +30,6 @@ export function makeInterfaceIfNeeded(
     return sanitizeRefName(defObj.$ref);
   }
 
-  // eslint-disable-next-line no-param-reassign
   definition = definition as OpenAPIV3.SchemaObject;
 
   if (definition.type === "object") {
@@ -176,7 +175,7 @@ export function buildModules(file: SourceFile, apiSpecObj: OpenAPIV3.Document) {
     apiSpecObj.components.schemas ?? {},
   )) {
     const definitionKeyNs = definitionKey.split(".");
-    const namespace = initial(definitionKeyNs).join(".");
+    const namespace = dropLast(definitionKeyNs, 1).join(".");
     const className = last(definitionKeyNs) ?? "";
 
     let module: ModuleDeclaration;
