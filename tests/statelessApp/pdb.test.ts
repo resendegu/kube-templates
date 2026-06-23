@@ -1,5 +1,5 @@
-import { basicAppMetadataConfig, basicAppSpecConfig } from "./fixture";
 import { StatelessApp } from "../../src/statelessapp";
+import { basicAppMetadataConfig, basicAppSpecConfig } from "./fixture";
 
 describe("statelessApp", () => {
   it("should throw an error when minAvailable is bigger than the number of replicas", () => {
