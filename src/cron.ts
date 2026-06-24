@@ -1,5 +1,3 @@
-import * as _ from "lodash";
-
 import type { io } from "./generated";
 import { generateYaml, mappedEnvs } from "./helpers";
 import type { ObjectMeta } from "./kubernetes";
@@ -94,8 +92,8 @@ export class Cron {
             })),
           }
         : this.spec.image.startsWith("registry.cubos.io")
-        ? { imagePullSecrets: [{ name: "gitlab-registry" }] }
-        : {}),
+          ? { imagePullSecrets: [{ name: "gitlab-registry" }] }
+          : {}),
       automountServiceAccountToken: Boolean(this.spec.serviceAccountName),
       serviceAccountName: this.spec.serviceAccountName,
     };
@@ -141,7 +139,7 @@ export class Cron {
                 activeDeadlineSeconds: this.spec.timeoutSeconds,
               },
             },
-            ...(_.isUndefined(this.spec.backoffLimit)
+            ...(this.spec.backoffLimit === undefined
               ? {}
               : { backoffLimit: this.spec.backoffLimit }),
           },
