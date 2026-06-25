@@ -1,8 +1,6 @@
-import { readFileSync } from "fs";
+import { readFileSync } from "node:fs";
 
-import { mapValues } from "lodash";
-
-import { certificates, queryCockroachSecure } from "./helpers";
+import { mapValues } from "remeda";
 import { Cockroach } from "../../src/cockroach";
 import { Namespace } from "../../src/kubernetes";
 import {
@@ -12,12 +10,13 @@ import {
   waitJobComplete,
   waitPodReady,
 } from "../helpers";
+import { certificates, queryCockroachSecure } from "./helpers";
 
 describe("CockroachDB Secure", () => {
   const namespace = `test-${randomSuffix()}`;
 
-  beforeAll(() => {
-    apply(
+  beforeAll(async () => {
+    await apply(
       new Namespace({
         name: namespace,
       }),
@@ -29,7 +28,7 @@ describe("CockroachDB Secure", () => {
   });
 
   test("Create secure database cluster", async () => {
-    apply(
+    await apply(
       new Cockroach(
         {
           name: "cockroach-safe",
@@ -40,17 +39,17 @@ describe("CockroachDB Secure", () => {
             limit: 2,
             request: 1,
           },
-          memory: "64Mi",
-          version: "21.1.3",
+          memory: "512Mi",
+          version: "24.3.0",
           replicas: 2,
           certs: mapValues(certificates, value => readFileSync(value)),
         },
       ),
     );
 
-    waitPodReady(namespace, "cockroach-safe-0");
-    waitPodReady(namespace, "cockroach-safe-1");
-    waitJobComplete(namespace, "cockroach-safe-cluster-init");
+    await waitPodReady(namespace, "cockroach-safe-0");
+    await waitPodReady(namespace, "cockroach-safe-1");
+    await waitJobComplete(namespace, "cockroach-safe-cluster-init");
 
     expect(
       await queryCockroachSecure(
