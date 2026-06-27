@@ -1,4 +1,4 @@
-import { URL } from "url";
+import { URL } from "node:url";
 
 import { generateYaml, parseMemory } from "./helpers";
 import type { ObjectMeta } from "./kubernetes";
