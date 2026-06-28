@@ -1,14 +1,18 @@
-import { spawnSync } from "child_process";
-import { readFileSync, writeFileSync } from "fs";
+import { spawnSync } from "node:child_process";
+import { readFileSync, writeFileSync } from "node:fs";
 
 import { apply, kubectl } from "./helpers";
 
+// Each CI matrix job runs its own kind cluster; KIND_CLUSTER tells us which
+// control-plane container to read the master IP from (defaults to the single
+// cluster used locally).
+const cluster = process.env.KIND_CLUSTER ?? "kube-templates-test";
 const kubeconfig = readFileSync("kind-kubeconfig", "utf-8");
 const masterIp = spawnSync("docker", [
   "inspect",
   "-f",
   "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}",
-  `kube-templates-test-control-plane`,
+  `${cluster}-control-plane`,
 ])
   .stdout.toString()
   .trim();
@@ -27,11 +31,13 @@ const base = JSON.parse(
 
 delete base.metadata.annotations["storageclass.kubernetes.io/is-default-class"];
 
-for (const name of storageClassesToCreate) {
-  if (storageClasses.items.find((x: any) => x.metadata.name === name)) {
-    continue;
-  }
+void (async () => {
+  for (const name of storageClassesToCreate) {
+    if (storageClasses.items.find((x: any) => x.metadata.name === name)) {
+      continue;
+    }
 
-  base.metadata.name = name;
-  apply({ yaml: JSON.stringify(base) });
-}
+    base.metadata.name = name;
+    await apply({ yaml: JSON.stringify(base) });
+  }
+})();
