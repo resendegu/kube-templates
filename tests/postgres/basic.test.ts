@@ -1,13 +1,13 @@
-import { queryPostgres } from "./helpers";
 import { Namespace } from "../../src/kubernetes";
 import { Postgres } from "../../src/postgres";
 import { apply, deleteObject, randomSuffix, waitPodReady } from "../helpers";
+import { queryPostgres } from "./helpers";
 
 describe("postgres", () => {
   const namespace = `test-${randomSuffix()}`;
 
-  beforeAll(() => {
-    apply(
+  beforeAll(async () => {
+    await apply(
       new Namespace({
         name: namespace,
       }),
@@ -19,7 +19,7 @@ describe("postgres", () => {
   });
 
   test("Create basic database", async () => {
-    apply(
+    await apply(
       new Postgres(
         {
           name: "postgres",
@@ -31,13 +31,13 @@ describe("postgres", () => {
             request: 0,
           },
           memory: "64Mi",
-          version: "12",
+          version: "16",
           postgresUserPassword: "postgres",
         },
       ),
     );
 
-    waitPodReady(namespace, "postgres-0");
+    await waitPodReady(namespace, "postgres-0");
 
     expect(
       await queryPostgres(namespace, "postgres-0", "SELECT true AS ok"),
