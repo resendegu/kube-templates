@@ -91,7 +91,7 @@ export function parseMemory(memory: string | number) {
 
     if (match) {
       const base = parseInt(match[1], 10);
-      const multiplier = Math.pow(match[2] ? 1024 : 1000, i);
+      const multiplier = (match[2] ? 1024 : 1000) ** i;
 
       return base * multiplier;
     }
