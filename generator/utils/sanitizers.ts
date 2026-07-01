@@ -1,9 +1,9 @@
-import { initial, last } from "lodash";
+import { dropLast, last } from "remeda";
 
 export function sanitizeRefName(name: string) {
   const definitionKey = name.split("/").pop()!;
   const definitionKeyNs = definitionKey.split(".");
-  const namespace = initial(definitionKeyNs).join(".");
+  const namespace = dropLast(definitionKeyNs, 1).join(".");
   const className = last(definitionKeyNs) ?? "";
 
   return `${namespace.replace(/[-]/gu, "_")}.${className}`;
