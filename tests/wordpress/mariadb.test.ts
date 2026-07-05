@@ -1,14 +1,14 @@
-import { getAxiosClient } from "./helpers";
 import { Namespace } from "../../src/kubernetes";
 import { MariaDB } from "../../src/mariadb";
 import { WordPress } from "../../src/wordpress";
 import { apply, deleteObject, randomSuffix, waitPodReady } from "../helpers";
+import { getAxiosClient } from "./helpers";
 
 describe("WordPress + MariaDB", () => {
   const namespace = `test-${randomSuffix()}`;
 
-  beforeAll(() => {
-    apply(
+  beforeAll(async () => {
+    await apply(
       new Namespace({
         name: namespace,
       }),
@@ -20,7 +20,7 @@ describe("WordPress + MariaDB", () => {
   });
 
   test("Create a WordPress instance", async () => {
-    apply(
+    await apply(
       new MariaDB(
         {
           name: "mariadb",
@@ -38,9 +38,9 @@ describe("WordPress + MariaDB", () => {
       ),
     );
 
-    waitPodReady(namespace, "mariadb-0");
+    await waitPodReady(namespace, "mariadb-0");
 
-    apply(
+    await apply(
       new WordPress(
         {
           name: "wordpress",
@@ -68,9 +68,9 @@ describe("WordPress + MariaDB", () => {
       ),
     );
 
-    waitPodReady(namespace, "wordpress-0");
+    await waitPodReady(namespace, "wordpress-0");
 
-    const [axios, close] = getAxiosClient(namespace, "wordpress-0", 80);
+    const [axios, close] = await getAxiosClient(namespace, "wordpress-0", 80);
 
     expect((await axios.get("/")).data).toMatch(
       /WordPress &rsaquo; Installation/u,
