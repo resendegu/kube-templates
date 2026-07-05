@@ -1,4 +1,4 @@
-import * as _ from "lodash";
+import { range } from "remeda";
 
 import { generateYaml } from "./helpers";
 import type { ObjectMeta } from "./kubernetes";
@@ -262,7 +262,7 @@ export class Cockroach {
                     hasCerts
                       ? `$(hostname).${this.metadata.name}`
                       : "$(hostname -f)"
-                  } --http-addr 0.0.0.0 --join ${_.range(this.spec.replicas)
+                  } --http-addr 0.0.0.0 --join ${range(0, this.spec.replicas)
                     .map(
                       i => `${this.metadata.name}-${i}.${this.metadata.name}`,
                     )
