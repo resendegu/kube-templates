@@ -1,4 +1,4 @@
-import { createHash } from "crypto";
+import { createHash } from "node:crypto";
 
 import type { io } from "./generated";
 import { generateYaml, parseMemory } from "./helpers";
@@ -327,6 +327,9 @@ export class Postgres {
     const mebibyte = 1024 * 1024;
     const gibibyte = 1024 * mebibyte;
 
+    const [majorVersionString] = this.spec.version.split(".");
+    const majorVersion = Number.parseInt(majorVersionString, 10);
+
     const probeCheck = [
       "bash",
       "-c",
@@ -488,18 +491,17 @@ EOF
     ];
 
     const replicaStringOptions = Object.entries(replicaOptions)
-      .map(([key, value]) => [
+      .flatMap(([key, value]) => [
         "-c",
         `${key.replace(/[A-Z]/gu, x => `_${x.toLowerCase()}`)}=` +
           `'${
             value === true
               ? "yes"
               : value === false
-              ? "no"
-              : value?.toString().replace(/'/gu, "'\"'\"'")
+                ? "no"
+                : value?.toString().replace(/'/gu, "'\"'\"'")
           }'`,
       ])
-      .reduce((a, b) => [...a, ...b], [])
       .join(" ");
 
     return generateYaml([
@@ -540,6 +542,14 @@ EOF
                         `postgres:${this.spec.version}-alpine`,
                       imagePullPolicy: this.spec.imagePullPolicy ?? "Always",
                       env: [
+                        ...(majorVersion >= 18
+                          ? [
+                              {
+                                name: "PGDATA",
+                                value: "/var/lib/postgresql/data",
+                              },
+                            ]
+                          : []),
                         {
                           name: "POSTGRES_PASSWORD",
                           ...(this.spec.postgresUserPassword
@@ -621,21 +631,23 @@ EOF
                   `postgres:${this.spec.version}-alpine`,
                 args: [
                   "postgres",
-                  ...Object.entries(options)
-                    .map(([key, value]) => [
-                      "-c",
-                      `${key.replace(/[A-Z]/gu, x => `_${x.toLowerCase()}`)}=` +
-                        `${
-                          value === true
-                            ? "yes"
-                            : value === false
-                            ? "no"
-                            : value
-                        }`,
-                    ])
-                    .reduce((a, b) => [...a, ...b], []),
+                  ...Object.entries(options).flatMap(([key, value]) => [
+                    "-c",
+                    `${key.replace(/[A-Z]/gu, x => `_${x.toLowerCase()}`)}=` +
+                      `${
+                        value === true ? "yes" : value === false ? "no" : value
+                      }`,
+                  ]),
                 ],
                 env: [
+                  ...(majorVersion >= 18
+                    ? [
+                        {
+                          name: "PGDATA",
+                          value: "/var/lib/postgresql/data",
+                        },
+                      ]
+                    : []),
                   {
                     name: "POSTGRES_PASSWORD",
                     ...(this.spec.postgresUserPassword
