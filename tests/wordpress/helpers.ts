@@ -3,12 +3,12 @@ import axios from "axios";
 
 import { portForward } from "../helpers";
 
-export function getAxiosClient(
+export async function getAxiosClient(
   namespace: string,
   pod: string,
   port: number,
-): [AxiosInstance, () => void] {
-  const forward = portForward(namespace, pod, port);
+): Promise<[AxiosInstance, () => void]> {
+  const forward = await portForward(namespace, pod, port);
 
   return [
     axios.create({ baseURL: `http://localhost:${forward.port}` }),
