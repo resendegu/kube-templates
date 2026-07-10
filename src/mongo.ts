@@ -1,4 +1,4 @@
-import * as _ from "lodash";
+import { mergeDeep } from "remeda";
 
 import { generateYaml } from "./helpers";
 import type { BasicObjectMeta, ObjectMeta } from "./kubernetes";
@@ -29,7 +29,7 @@ export class Mongo {
 
   get yaml() {
     return generateYaml([
-      new Service(_.merge(this.metadata, this.spec.serviceMetadata), {
+      new Service(mergeDeep(this.metadata, this.spec.serviceMetadata ?? {}), {
         selector: {
           app: this.metadata.name,
         },
