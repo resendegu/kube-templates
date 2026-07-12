@@ -1,14 +1,14 @@
 import { exec as execCb } from "node:child_process";
-import { writeFile, mkdir, rm } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 
 import axios from "axios";
 import {
-  load as loadYaml,
-  loadAll as loadAllYaml,
   dump,
   JSON_SCHEMA,
+  loadAll as loadAllYaml,
+  load as loadYaml,
 } from "js-yaml";
 
 import type { CrdFile } from "../types/CrdFile";
