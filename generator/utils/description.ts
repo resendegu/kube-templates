@@ -1,5 +1,5 @@
 import type { OpenAPIV3 } from "openapi-types";
-import { StructureKind, type JSDocStructure } from "ts-morph";
+import { type JSDocStructure, StructureKind } from "ts-morph";
 
 export function generateDescription(
   object: OpenAPIV3.BaseSchemaObject,
