@@ -1,4 +1,3 @@
-import { queryPostgres } from "./helpers";
 import { Namespace } from "../../src/kubernetes";
 import { Postgres } from "../../src/postgres";
 import {
@@ -7,13 +6,15 @@ import {
   randomSuffix,
   sleep,
   waitPodReady,
+  waitRolloutComplete,
 } from "../helpers";
+import { queryPostgres } from "./helpers";
 
 describe("postgres", () => {
   const namespace = `test-${randomSuffix()}`;
 
-  beforeAll(() => {
-    apply(
+  beforeAll(async () => {
+    await apply(
       new Namespace({
         name: namespace,
       }),
@@ -24,8 +25,8 @@ describe("postgres", () => {
     deleteObject("namespace", namespace);
   });
 
-  test("Upgrade database from 11.0 to 11.7 without data loss", async () => {
-    apply(
+  test("Upgrade database from 16.0 to 16.4 without data loss", async () => {
+    await apply(
       new Postgres(
         {
           name: "postgres",
@@ -37,19 +38,19 @@ describe("postgres", () => {
             request: 0,
           },
           memory: "64Mi",
-          version: "11.0",
+          version: "16.0",
           postgresUserPassword: "postgres",
         },
       ),
     );
 
-    waitPodReady(namespace, "postgres-0");
-    sleep(5);
+    await waitPodReady(namespace, "postgres-0");
+    await sleep(5);
 
     expect(
       (await queryPostgres(namespace, "postgres-0", "SELECT version()"))[0]
         .version,
-    ).toMatch(/PostgreSQL 11.0/u);
+    ).toMatch(/PostgreSQL 16.0/u);
 
     await queryPostgres(
       namespace,
@@ -62,7 +63,7 @@ describe("postgres", () => {
       "INSERT INTO foo VALUES (354687)",
     );
 
-    apply(
+    await apply(
       new Postgres(
         {
           name: "postgres",
@@ -74,19 +75,19 @@ describe("postgres", () => {
             request: 0,
           },
           memory: "64Mi",
-          version: "11.7",
+          version: "16.4",
           postgresUserPassword: "postgres",
         },
       ),
     );
 
-    waitPodReady(namespace, "postgres-0");
-    sleep(5);
+    await waitRolloutComplete(namespace, "postgres");
+    await sleep(5);
 
     expect(
       (await queryPostgres(namespace, "postgres-0", "SELECT version()"))[0]
         .version,
-    ).toMatch(/PostgreSQL 11.7/u);
+    ).toMatch(/PostgreSQL 16.4/u);
 
     expect(
       await queryPostgres(namespace, "postgres-0", "SELECT * FROM foo"),
