@@ -371,12 +371,40 @@ const pooler = new PgBouncer(
       request: "100m",
       limit: "500m",
     },
-    memory: "128Mi",
+    memory: {
+      request: "128Mi",
+      limit: "256Mi",
+    },
+    enableExporter: true,
   }
 );
 
 console.log(pooler.yaml);
 ```
+
+#### Prometheus exporter
+
+Setting `enableExporter: true` adds a [pgbouncer_exporter](https://github.com/prometheus-community/pgbouncer_exporter) sidecar (port `9127`, `/metrics`) to every PgBouncer pod, along with `prometheus.io/scrape|port|path` annotations on the pod template — so Prometheus scrapes each replica individually. The metrics port is intentionally **not** exposed on the Service.
+
+A dedicated `pgbouncer_exporter` user is automatically added to `userlist.txt` and `stats_users` (existing `statsUsers`/`ignoreStartupParameters` options are appended to, never overwritten), with a deterministic password derived from the object metadata. If a user with the exporter's username is already declared in `spec.users`, that entry (and its password) is reused instead of creating a new one. The connection string is stored in the generated Secret under the `exporter-connection-string` key. For production, set an explicit password.
+
+Defaults can be overridden via `exporterOptions`:
+
+```typescript
+enableExporter: true,
+exporterOptions: {
+  image: "docker.io/prometheuscommunity/pgbouncer-exporter:v0.12.1",
+  port: 9127,
+  user: "pgbouncer_exporter",
+  password: "explicit-password",
+  cpu: { request: "10m", limit: "100m" },
+  memory: { request: "32Mi", limit: "64Mi" },
+},
+```
+
+Note: when `rawConfig` or `rawUserlist` is used, the exporter credentials cannot be injected into the raw side automatically — you must provide explicit credentials (`exporterOptions.user` + `password`, or a full `exporterOptions.connectionString`) that match your raw config, otherwise `.yaml` throws. If only one of `rawConfig`/`rawUserlist` is set, the other one still gets the exporter user/`stats_users`/`ignore_startup_parameters` wiring auto-injected as usual — only the raw side is left untouched, so it must already declare the exporter's credentials itself.
+
+Setting `exporterOptions.connectionString` takes full ownership of the exporter's identity: no user is added to `userlist.txt`/`stats_users`/`spec.users`, since the connection string may reference credentials unrelated to `exporterOptions.user`/`password`. Ensure the identity it embeds is already declared in your `spec.users` and `options.statsUsers`.
 
 ## Helper Functions
 
