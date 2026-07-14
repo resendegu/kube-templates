@@ -21,13 +21,11 @@
   "type": "commonjs",
   "main": "index.js",
   "types": "index.d.ts",
-<<<<<<< HEAD
   "directories": {
     "test": "tests"
-=======
+  },
   "engines": {
     "node": ">=24"
->>>>>>> gitlab/main
   },
   "scripts": {
     "generate": "tsx generator/index.ts && biome format --write src/generated",
