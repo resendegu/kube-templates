@@ -52,7 +52,7 @@ export class StaticSite {
             ...annotations,
             "nginx.ingress.kubernetes.io/rewrite-target": "/$1",
             "nginx.ingress.kubernetes.io/upstream-vhost":
-             this.spec.bucketName ?? hostname,
+              this.spec.bucketName ?? hostname,
             "nginx.ingress.kubernetes.io/use-regex": "true",
             "nginx.ingress.kubernetes.io/configuration-snippet": `
               proxy_intercept_errors on;
