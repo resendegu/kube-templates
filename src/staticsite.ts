@@ -50,10 +50,10 @@ export class StaticSite {
           ...this.metadata,
           annotations: {
             ...annotations,
-            "nginx.ingress.kubernetes.io/rewrite-target": "/$1",
-            "nginx.ingress.kubernetes.io/upstream-vhost":
-              this.spec.bucketName ?? hostname,
-            "nginx.ingress.kubernetes.io/use-regex": "true",
+            "nginx.ingress.kubernetes.io/rewrite-target": `/${
+              this.spec.bucketName ?? hostname
+            }/$1`,
+            "nginx.ingress.kubernetes.io/upstream-vhost": providerEndpoint,
             "nginx.ingress.kubernetes.io/configuration-snippet": `
               proxy_intercept_errors on;
               error_page 403 = /index.html;
