@@ -35,6 +35,7 @@ interface CronSpec {
     items?: Array<{ key: string; path: string }>;
   }>;
   backoffLimit?: number;
+  labels?: Record<string, string>;
   imagePullSecrets?: string[];
   allowConcurrentExecution?: boolean;
   serviceAccountName?: string;
@@ -107,6 +108,9 @@ export class Cron {
         jobTemplate: {
           spec: {
             template: {
+              metadata: {
+                labels: this.spec.labels,
+              },
               spec: {
                 ...basicPodSpec,
                 volumes,

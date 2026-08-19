@@ -793,7 +793,7 @@ EOF
 
                     ${
                       // Only drop users that should not exist
-                      users
+                      [...users, ...(this.spec.usersReadOnly ?? [])]
                         .map(
                           user => `
                           [ "$user" == '${user.username}' ] && continue
@@ -830,19 +830,6 @@ EOF
                     )
                     .join("\n")}
 
-                    ${(this.spec.usersReadOnly ?? [])
-                      .map(
-                        user => `
-                          echo Creating user ${user.username}...
-                          psql -h 127.0.0.1 -U postgres -c "CREATE USER "'"${user.username}"'" ENCRYPTED PASSWORD '"'${user.password}'"'" || true
-                          psql -h 127.0.0.1 -U postgres -c "ALTER USER "'"${user.username}"'" ENCRYPTED PASSWORD '"'${user.password}'"'"
-                          psql -h 127.0.0.1 -U postgres -c "GRANT USAGE ON SCHEMA public TO '${user.username}'"
-                          psql -h 127.0.0.1 -U postgres -c "GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${user.username}"
-                          psql -h 127.0.0.1 -U postgres -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO ${user.username}"
-                        `,
-                      )
-                      .join("\n")}
-
                   ${(this.spec.databases ?? [])
                     .map(databaseOrName =>
                       typeof databaseOrName === "string"
@@ -877,6 +864,47 @@ EOF
                       `,
                     )
                     .join("\n")}
+
+                  ${
+                    // Read-only users run AFTER database creation so GRANT CONNECT
+                    // targets databases that already exist (setup runs under set -e).
+                    (this.spec.usersReadOnly ?? [])
+                      .map(user => {
+                        const readOnlyDatabases = (
+                          this.spec.databases ?? []
+                        ).map(databaseOrName =>
+                          typeof databaseOrName === "string"
+                            ? databaseOrName
+                            : databaseOrName.name,
+                        );
+                        return `
+                          echo Creating read-only user ${user.username}...
+                          psql -h 127.0.0.1 -U postgres -c "CREATE USER "'"${user.username}"'" ENCRYPTED PASSWORD '"'${user.password}'"'" || true
+                          psql -h 127.0.0.1 -U postgres -c "ALTER USER "'"${user.username}"'" ENCRYPTED PASSWORD '"'${user.password}'"'"
+                          ${readOnlyDatabases
+                            .map(
+                              database =>
+                                `psql -h 127.0.0.1 -U postgres -c 'GRANT CONNECT ON DATABASE "${database}" TO "${user.username}"'`,
+                            )
+                            .join("\n                          ")}
+                          ${
+                            majorVersion >= 14
+                              ? `psql -h 127.0.0.1 -U postgres -c 'GRANT pg_read_all_data TO "${user.username}"'`
+                              : readOnlyDatabases
+                                  .map(
+                                    database => `
+                          psql -h 127.0.0.1 -U postgres -c 'GRANT USAGE ON SCHEMA public TO "${user.username}"' "${database}"
+                          psql -h 127.0.0.1 -U postgres -c 'GRANT SELECT ON ALL TABLES IN SCHEMA public TO "${user.username}"' "${database}"
+                          psql -h 127.0.0.1 -U postgres -c 'GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO "${user.username}"' "${database}"
+                          psql -h 127.0.0.1 -U postgres -c 'ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO "${user.username}"' "${database}"
+                          psql -h 127.0.0.1 -U postgres -c 'ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON SEQUENCES TO "${user.username}"' "${database}"`,
+                                  )
+                                  .join("\n")
+                          }
+                        `;
+                      })
+                      .join("\n")
+                  }
 
                   ${
                     this.spec.monitoring?.type === "pgAnalyze"
