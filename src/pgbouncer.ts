@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import type { io } from "./generated";
 import { generateYaml } from "./helpers";
 import type { ObjectMeta } from "./kubernetes";
@@ -182,6 +184,22 @@ export interface PgBouncerPeer {
   poolSize?: number;
 }
 
+export interface PgBouncerExporterOptions {
+  image?: string;
+  port?: number;
+  user?: string;
+  password?: string;
+  connectionString?: string;
+  cpu?: {
+    request: string | number;
+    limit: string | number;
+  };
+  memory?: {
+    request: string | number;
+    limit: string | number;
+  };
+}
+
 export interface PgBouncerSpec {
   image?: string;
   replicas?: number;
@@ -219,6 +237,8 @@ export interface PgBouncerSpec {
   minAvailable?: number;
   rawConfig?: string;
   rawUserlist?: string;
+  enableExporter?: boolean;
+  exporterOptions?: PgBouncerExporterOptions;
 }
 
 function camelToSnake(str: string): string {
@@ -464,9 +484,98 @@ export class PgBouncer {
     const userlistPath =
       this.spec.userlistPath ?? "/etc/pgbouncer/userlist.txt";
 
-    const configContent = this.spec.rawConfig ?? generateConfig(this.spec);
+    const exporterEnabled = this.spec.enableExporter ?? false;
+    const exporterPort = this.spec.exporterOptions?.port ?? 9127;
+    const exporterUser = this.spec.exporterOptions?.user ?? "pgbouncer_exporter";
+    const exporterConnectionStringOverride =
+      this.spec.exporterOptions?.connectionString;
+    const existingExporterUser = this.spec.users.find(
+      user => user.username === exporterUser,
+    );
+    // The generated userlist is the source of truth for the exporter's
+    // password: an entry already declared in spec.users wins over
+    // exporterOptions.password, otherwise the connection string would not
+    // match the credentials pgbouncer actually loads. With rawUserlist the
+    // explicit exporterOptions credentials are the only truth available.
+    const exporterPassword =
+      this.spec.rawUserlist === undefined && existingExporterUser
+        ? existingExporterUser.password
+        : (this.spec.exporterOptions?.password ??
+          createHash("sha256")
+            .update(`${JSON.stringify(this.metadata)}:pgbouncer-exporter`)
+            .digest("hex"));
+
+    if (
+      exporterEnabled &&
+      (this.spec.rawConfig !== undefined ||
+        this.spec.rawUserlist !== undefined) &&
+      exporterConnectionStringOverride === undefined &&
+      (this.spec.exporterOptions?.user === undefined ||
+        this.spec.exporterOptions?.password === undefined)
+    ) {
+      throw new Error(
+        "enableExporter with rawConfig/rawUserlist requires explicit exporterOptions credentials (user and password, or connectionString)",
+      );
+    }
+
+    // A caller-supplied connectionString may reference credentials that
+    // have nothing to do with `exporterUser`/`exporterPassword` (or with
+    // spec.users/spec.options at all) — auto-provisioning a user/stats_users
+    // entry in that case would ship a stray, unused credential. Only
+    // provision when we are the ones building the connection string.
+    const shouldProvisionCredentials =
+      exporterEnabled && exporterConnectionStringOverride === undefined;
+
+    // rawConfig and rawUserlist are independent escape hatches: whichever
+    // one is NOT set still gets the exporter user/stats wiring injected, so
+    // a mixed rawConfig-only (or rawUserlist-only) setup still authenticates.
+    const effectiveUsers =
+      shouldProvisionCredentials &&
+      this.spec.rawUserlist === undefined &&
+      !existingExporterUser
+        ? [
+            ...this.spec.users,
+            { username: exporterUser, password: exporterPassword },
+          ]
+        : this.spec.users;
+
+    let effectiveOptions = this.spec.options;
+
+    if (shouldProvisionCredentials && this.spec.rawConfig === undefined) {
+      const options = this.spec.options ?? {};
+      const statsUsersList = options.statsUsers
+        ? options.statsUsers.split(",").map(user => user.trim())
+        : [];
+      const statsUsers = statsUsersList.includes(exporterUser)
+        ? options.statsUsers
+        : [...statsUsersList, exporterUser].join(",");
+      const ignoreParamsList = options.ignoreStartupParameters
+        ? options.ignoreStartupParameters.split(",").map(param => param.trim())
+        : [];
+      const ignoreStartupParameters = ignoreParamsList.includes(
+        "extra_float_digits",
+      )
+        ? options.ignoreStartupParameters
+        : [...ignoreParamsList, "extra_float_digits"].join(",");
+
+      effectiveOptions = { ...options, statsUsers, ignoreStartupParameters };
+    }
+
+    const effectiveListenPort =
+      this.spec.options?.listenPort ?? this.spec.port ?? 6432;
+    const exporterConnectionString =
+      exporterConnectionStringOverride ??
+      `postgres://${encodeURIComponent(exporterUser)}:${encodeURIComponent(exporterPassword)}@127.0.0.1:${effectiveListenPort}/pgbouncer?sslmode=disable`;
+
+    const configContent =
+      this.spec.rawConfig ??
+      generateConfig({
+        ...this.spec,
+        options: effectiveOptions,
+        users: effectiveUsers,
+      });
     const userlistContent =
-      this.spec.rawUserlist ?? generateUserlist(this.spec.users);
+      this.spec.rawUserlist ?? generateUserlist(effectiveUsers);
 
     const env: io.k8s.api.core.v1.EnvVar[] = [];
 
@@ -498,6 +607,66 @@ export class PgBouncer {
           });
         }
       }
+    }
+
+    const additionalContainers: io.k8s.api.core.v1.Container[] = [];
+
+    if (exporterEnabled) {
+      additionalContainers.push({
+        name: "pgbouncer-exporter",
+        image:
+          this.spec.exporterOptions?.image ??
+          "docker.io/prometheuscommunity/pgbouncer-exporter:v0.12.1",
+        imagePullPolicy: this.spec.imagePullPolicy ?? "IfNotPresent",
+        args:
+          exporterPort === 9127
+            ? undefined
+            : [`--web.listen-address=:${exporterPort}`],
+        ports: [
+          {
+            name: "metrics",
+            containerPort: exporterPort,
+            protocol: "TCP",
+          },
+        ],
+        env: [
+          {
+            name: "PGBOUNCER_EXPORTER_CONNECTION_STRING",
+            valueFrom: {
+              secretKeyRef: {
+                name: this.metadata.name,
+                key: "exporter-connection-string",
+              },
+            },
+          },
+        ],
+        resources: {
+          requests: {
+            cpu: this.spec.exporterOptions?.cpu?.request ?? "10m",
+            memory: this.spec.exporterOptions?.memory?.request ?? "32Mi",
+          },
+          limits: {
+            cpu: this.spec.exporterOptions?.cpu?.limit ?? "100m",
+            memory: this.spec.exporterOptions?.memory?.limit ?? "64Mi",
+          },
+        },
+        readinessProbe: {
+          tcpSocket: {
+            port: exporterPort,
+          },
+          initialDelaySeconds: 5,
+          periodSeconds: 10,
+          failureThreshold: 3,
+        },
+        livenessProbe: {
+          tcpSocket: {
+            port: exporterPort,
+          },
+          initialDelaySeconds: 10,
+          periodSeconds: 10,
+          failureThreshold: 3,
+        },
+      });
     }
 
     const podSpec: io.k8s.api.core.v1.PodSpec = {
@@ -556,6 +725,7 @@ export class PgBouncer {
             failureThreshold: 3,
           },
         },
+        ...additionalContainers,
       ],
       volumes: [
         {
@@ -612,7 +782,14 @@ export class PgBouncer {
               app: this.metadata.name,
               ...this.metadata.labels,
             },
-            annotations: this.metadata.annotations,
+            annotations: exporterEnabled
+              ? {
+                  "prometheus.io/scrape": "true",
+                  "prometheus.io/port": String(exporterPort),
+                  "prometheus.io/path": "/metrics",
+                  ...this.metadata.annotations,
+                }
+              : this.metadata.annotations,
           },
           spec: podSpec,
         },
@@ -635,6 +812,9 @@ export class PgBouncer {
         },
         {
           "userlist.txt": userlistContent,
+          ...(exporterEnabled
+            ? { "exporter-connection-string": exporterConnectionString }
+            : {}),
         },
       ),
     ];
