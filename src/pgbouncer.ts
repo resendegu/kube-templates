@@ -486,12 +486,8 @@ export class PgBouncer {
 
     const exporterEnabled = this.spec.enableExporter ?? false;
     const exporterPort = this.spec.exporterOptions?.port ?? 9127;
-<<<<<<< HEAD
-    const exporterUser = this.spec.exporterOptions?.user ?? "pgbouncer_exporter";
-=======
     const exporterUser =
       this.spec.exporterOptions?.user ?? "pgbouncer_exporter";
->>>>>>> gitlab/main
     const exporterConnectionStringOverride =
       this.spec.exporterOptions?.connectionString;
     const existingExporterUser = this.spec.users.find(
